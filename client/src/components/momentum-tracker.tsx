@@ -2,6 +2,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { 
   MessageCircle, 
   Code, 
@@ -16,7 +19,10 @@ import {
   Star,
   CheckCircle2,
   RotateCcw,
-  ClipboardList
+  ClipboardList,
+  Trash2,
+  StickyNote,
+  Plus
 } from "lucide-react";
 
 interface Task {
@@ -33,6 +39,8 @@ interface CompletedTask {
   name: string;
   points: number;
   timestamp: string;
+  date: string;
+  note?: string;
 }
 
 const tasks: Task[] = [
@@ -148,26 +156,43 @@ export default function MomentumTracker() {
   const [currentPoints, setCurrentPoints] = useState(0);
   const [completedTasks, setCompletedTasks] = useState<CompletedTask[]>([]);
   const [showAchievement, setShowAchievement] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskNote, setTaskNote] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const maxPoints = 15;
   const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
 
-  const addPoints = (task: Task) => {
+  const openTaskDialog = (task: Task) => {
+    setSelectedTask(task);
+    setTaskNote("");
+    setIsDialogOpen(true);
+  };
+
+  const addPoints = (task: Task, note?: string) => {
     if (currentPoints >= maxPoints) return;
 
     const newPoints = Math.min(currentPoints + task.points, maxPoints);
     setCurrentPoints(newPoints);
 
-    const timestamp = new Date().toLocaleTimeString([], { 
+    const now = new Date();
+    const timestamp = now.toLocaleTimeString([], { 
       hour: '2-digit', 
       minute: '2-digit' 
+    });
+    const date = now.toLocaleDateString([], {
+      weekday: 'short',
+      month: 'short', 
+      day: 'numeric'
     });
 
     const completedTask: CompletedTask = {
       id: `${task.id}-${Date.now()}`,
       name: task.name,
       points: task.points,
-      timestamp: `Completed at ${timestamp}`
+      timestamp,
+      date,
+      note: note || undefined
     };
 
     setCompletedTasks(prev => [completedTask, ...prev]);
@@ -177,6 +202,24 @@ export default function MomentumTracker() {
       setTimeout(() => {
         setShowAchievement(true);
       }, 500);
+    }
+  };
+
+  const handleTaskSubmit = () => {
+    if (selectedTask) {
+      addPoints(selectedTask, taskNote.trim() || undefined);
+      setIsDialogOpen(false);
+      setSelectedTask(null);
+      setTaskNote("");
+    }
+  };
+
+  const deleteCompletedTask = (taskId: string) => {
+    const taskToDelete = completedTasks.find(task => task.id === taskId);
+    if (taskToDelete) {
+      setCurrentPoints(prev => Math.max(0, prev - taskToDelete.points));
+      setCompletedTasks(prev => prev.filter(task => task.id !== taskId));
+      setShowAchievement(false);
     }
   };
 
@@ -255,16 +298,26 @@ export default function MomentumTracker() {
                           <p className="text-sm text-slate-500">{task.description}</p>
                         </div>
                       </div>
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-2">
                         <span className={`text-lg font-semibold ${pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
                           +{task.points}
                         </span>
                         <Button 
                           onClick={() => addPoints(task)}
                           disabled={currentPoints >= maxPoints}
-                          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2"
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
-                          Add
+                          <Plus className="w-4 h-4" />
+                        </Button>
+                        <Button 
+                          onClick={() => openTaskDialog(task)}
+                          disabled={currentPoints >= maxPoints}
+                          variant="outline"
+                          size="sm"
+                          className="border-slate-300 hover:bg-slate-50"
+                        >
+                          <StickyNote className="w-4 h-4" />
                         </Button>
                       </div>
                     </div>
@@ -303,16 +356,37 @@ export default function MomentumTracker() {
                       key={task.id}
                       className="animate-fade-in flex items-center justify-between p-3 rounded-lg bg-emerald-50 border border-emerald-200"
                     >
-                      <div className="flex items-center space-x-3">
+                      <div className="flex items-center space-x-3 flex-1">
                         <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
                           <CheckCircle2 className="w-4 h-4 text-white" />
                         </div>
-                        <div>
+                        <div className="flex-1 min-w-0">
                           <p className="font-medium text-emerald-800">{task.name}</p>
-                          <p className="text-xs text-emerald-600">{task.timestamp}</p>
+                          <div className="flex items-center space-x-2 text-xs text-emerald-600">
+                            <span>{task.date}</span>
+                            <span>•</span>
+                            <span>{task.timestamp}</span>
+                          </div>
+                          {task.note && (
+                            <div className="flex items-center space-x-1 mt-1">
+                              <StickyNote className="w-3 h-3 text-emerald-500" />
+                              <p className="text-xs text-emerald-700 italic truncate">{task.note}</p>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      <div className="text-emerald-700 font-semibold">+{task.points} pts</div>
+                      <div className="flex items-center space-x-2">
+                        <div className="text-emerald-700 font-semibold text-sm">+{task.points}</div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteCompletedTask(task.id)}
+                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
+                          title="Delete task"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </div>
                     </div>
                   ))
                 )}
@@ -334,6 +408,52 @@ export default function MomentumTracker() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Task Note Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Task with Note</DialogTitle>
+            </DialogHeader>
+            {selectedTask && (
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-slate-50">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[selectedTask.color as keyof typeof colorClasses]}`}>
+                    <selectedTask.icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-slate-800">{selectedTask.name}</p>
+                    <p className="text-sm text-slate-500">+{selectedTask.points} points</p>
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="task-note">Add a note (optional)</Label>
+                  <Input
+                    id="task-note"
+                    placeholder="e.g., Sent email to John from LinkedIn"
+                    value={taskNote}
+                    onChange={(e) => setTaskNote(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleTaskSubmit()}
+                  />
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => setIsDialogOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    onClick={handleTaskSubmit}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    Add Task
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Achievement Badge */}
         {showAchievement && (
