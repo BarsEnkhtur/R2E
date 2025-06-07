@@ -45,6 +45,7 @@ interface CompletedTask {
   points: number;
   note?: string;
   completedAt: string;
+  weekStartDate: string;
 }
 
 interface TaskStats {
@@ -55,8 +56,15 @@ interface TaskStats {
   currentValue: number;
   timesThisWeek: number;
   lastCompleted: string | null;
-  weekOfYear: number;
-  year: number;
+  weekStartDate: string;
+}
+
+interface WeeklyHistory {
+  id: number;
+  weekStartDate: string;
+  totalPoints: number;
+  tasksCompleted: number;
+  createdAt: string;
 }
 
 const tasks: Task[] = [
@@ -173,15 +181,26 @@ export default function MomentumTracker() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskNote, setTaskNote] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState<string>("");
   
   const queryClient = useQueryClient();
   const maxPoints = 15;
 
+  // Helper function to get current week start date
+  const getCurrentWeekStart = (): string => {
+    const d = new Date();
+    const day = d.getDay() || 7;
+    d.setDate(d.getDate() - day + 1);
+    return d.toISOString().split('T')[0];
+  };
+
+  const currentWeek = selectedWeek || getCurrentWeekStart();
+
   // Fetch completed tasks from database
   const { data: completedTasks = [], isLoading } = useQuery({
-    queryKey: ['/api/completed-tasks'],
+    queryKey: ['/api/completed-tasks', currentWeek],
     queryFn: async (): Promise<CompletedTask[]> => {
-      const response = await fetch('/api/completed-tasks');
+      const response = await fetch(`/api/completed-tasks?week=${currentWeek}`);
       if (!response.ok) throw new Error('Failed to fetch tasks');
       return await response.json();
     }
@@ -189,10 +208,20 @@ export default function MomentumTracker() {
 
   // Fetch task stats for current week
   const { data: taskStats = [] } = useQuery({
-    queryKey: ['/api/task-stats'],
+    queryKey: ['/api/task-stats', currentWeek],
     queryFn: async (): Promise<TaskStats[]> => {
-      const response = await fetch('/api/task-stats');
+      const response = await fetch(`/api/task-stats?week=${currentWeek}`);
       if (!response.ok) throw new Error('Failed to fetch task stats');
+      return await response.json();
+    }
+  });
+
+  // Fetch weekly history
+  const { data: weeklyHistory = [] } = useQuery({
+    queryKey: ['/api/weekly-history'],
+    queryFn: async (): Promise<WeeklyHistory[]> => {
+      const response = await fetch('/api/weekly-history');
+      if (!response.ok) throw new Error('Failed to fetch weekly history');
       return await response.json();
     }
   });
@@ -243,8 +272,9 @@ export default function MomentumTracker() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks', currentWeek] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats', currentWeek] });
+      queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
       // Show achievement if goal reached
       const newPoints = currentPoints + (selectedTask ? getCurrentTaskValue(selectedTask) : 0);
       if (newPoints >= maxPoints) {
