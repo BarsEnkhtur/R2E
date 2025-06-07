@@ -26,7 +26,11 @@ import {
   StickyNote,
   Plus,
   TrendingUp,
-  Flame
+  Flame,
+  ChevronLeft,
+  ChevronRight,
+  Calendar,
+  BarChart3
 } from "lucide-react";
 
 interface Task {
@@ -294,8 +298,9 @@ export default function MomentumTracker() {
       if (!response.ok) throw new Error('Failed to delete task');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks', currentWeek] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats', currentWeek] });
+      queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
       setShowAchievement(false);
     }
   });
@@ -309,8 +314,9 @@ export default function MomentumTracker() {
       if (!response.ok) throw new Error('Failed to clear tasks');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
-      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks', currentWeek] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats', currentWeek] });
+      queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
       setShowAchievement(false);
     }
   });
@@ -349,6 +355,26 @@ export default function MomentumTracker() {
     setShowAchievement(false);
   };
 
+  // Helper functions for week navigation
+  const formatWeekDisplay = (weekStart: string): string => {
+    const start = new Date(weekStart);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
+
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    const current = new Date(currentWeek);
+    const newDate = new Date(current);
+    newDate.setDate(current.getDate() + (direction === 'next' ? 7 : -7));
+    setSelectedWeek(newDate.toISOString().split('T')[0]);
+  };
+
+  const goToCurrentWeek = () => {
+    setSelectedWeek("");
+  };
+
   return (
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -358,6 +384,47 @@ export default function MomentumTracker() {
             Weekly Momentum Tracker
           </h1>
           <p className="text-slate-600">Build momentum with consistent daily actions</p>
+          
+          {/* Week Navigation */}
+          <div className="flex items-center justify-center space-x-4 mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWeek('prev')}
+              className="flex items-center space-x-1"
+            >
+              <ChevronLeft className="w-4 h-4" />
+              <span>Previous</span>
+            </Button>
+            
+            <div className="flex items-center space-x-2 px-4 py-2 bg-white rounded-lg border border-slate-200">
+              <Calendar className="w-4 h-4 text-slate-500" />
+              <span className="font-medium text-slate-800">
+                {formatWeekDisplay(currentWeek)}
+              </span>
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWeek('next')}
+              className="flex items-center space-x-1"
+            >
+              <span>Next</span>
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            
+            {selectedWeek && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={goToCurrentWeek}
+                className="text-blue-600 hover:text-blue-700"
+              >
+                Current Week
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Progress Section */}
