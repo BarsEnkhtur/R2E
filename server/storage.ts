@@ -1,6 +1,6 @@
-import { users, completedTasks, type User, type InsertUser, type CompletedTask, type InsertCompletedTask } from "@shared/schema";
+import { users, completedTasks, taskStats, type User, type InsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -10,6 +10,10 @@ export interface IStorage {
   createCompletedTask(task: InsertCompletedTask): Promise<CompletedTask>;
   deleteCompletedTask(id: number): Promise<void>;
   clearAllCompletedTasks(): Promise<void>;
+  getTaskStats(weekOfYear: number, year: number): Promise<TaskStats[]>;
+  getTaskStatByTaskId(taskId: string, weekOfYear: number, year: number): Promise<TaskStats | undefined>;
+  createTaskStats(stats: InsertTaskStats): Promise<TaskStats>;
+  updateTaskStats(taskId: string, updates: Partial<TaskStats>): Promise<TaskStats>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -52,6 +56,42 @@ export class DatabaseStorage implements IStorage {
 
   async clearAllCompletedTasks(): Promise<void> {
     await db.delete(completedTasks);
+  }
+
+  async getTaskStats(weekOfYear: number, year: number): Promise<TaskStats[]> {
+    return await db
+      .select()
+      .from(taskStats)
+      .where(and(eq(taskStats.weekOfYear, weekOfYear), eq(taskStats.year, year)));
+  }
+
+  async getTaskStatByTaskId(taskId: string, weekOfYear: number, year: number): Promise<TaskStats | undefined> {
+    const [stat] = await db
+      .select()
+      .from(taskStats)
+      .where(and(
+        eq(taskStats.taskId, taskId),
+        eq(taskStats.weekOfYear, weekOfYear),
+        eq(taskStats.year, year)
+      ));
+    return stat || undefined;
+  }
+
+  async createTaskStats(stats: InsertTaskStats): Promise<TaskStats> {
+    const [created] = await db
+      .insert(taskStats)
+      .values(stats)
+      .returning();
+    return created;
+  }
+
+  async updateTaskStats(taskId: string, updates: Partial<TaskStats>): Promise<TaskStats> {
+    const [updated] = await db
+      .update(taskStats)
+      .set(updates)
+      .where(eq(taskStats.taskId, taskId))
+      .returning();
+    return updated;
   }
 }
 

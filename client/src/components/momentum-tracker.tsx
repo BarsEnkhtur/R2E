@@ -45,6 +45,18 @@ interface CompletedTask {
   completedAt: string;
 }
 
+interface TaskStats {
+  id: number;
+  taskId: string;
+  taskName: string;
+  basePoints: number;
+  currentValue: number;
+  timesThisWeek: number;
+  lastCompleted: string | null;
+  weekOfYear: number;
+  year: number;
+}
+
 const tasks: Task[] = [
   {
     id: "networking",
@@ -103,9 +115,9 @@ const tasks: Task[] = [
     color: "green"
   },
   {
-    id: "tech-prep",
-    name: "Tech interview prep",
-    description: "Practice coding challenges",
+    id: "casing-prep",
+    name: "Casing prep",
+    description: "Practice case studies and frameworks",
     points: 2,
     icon: Monitor,
     color: "orange"
