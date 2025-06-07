@@ -24,7 +24,9 @@ import {
   ClipboardList,
   Trash2,
   StickyNote,
-  Plus
+  Plus,
+  TrendingUp,
+  Flame
 } from "lucide-react";
 
 interface Task {
@@ -185,8 +187,43 @@ export default function MomentumTracker() {
     }
   });
 
+  // Fetch task stats for current week
+  const { data: taskStats = [] } = useQuery({
+    queryKey: ['/api/task-stats'],
+    queryFn: async (): Promise<TaskStats[]> => {
+      const response = await fetch('/api/task-stats');
+      if (!response.ok) throw new Error('Failed to fetch task stats');
+      return await response.json();
+    }
+  });
+
   const currentPoints = completedTasks.reduce((sum, task) => sum + task.points, 0);
   const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
+
+  // Helper function to get task stats for a specific task
+  const getTaskStats = (taskId: string): TaskStats | undefined => {
+    return taskStats.find(stat => stat.taskId === taskId);
+  };
+
+  // Helper function to check if task needs attention (4+ days since last completion)
+  const needsAttention = (taskId: string): boolean => {
+    const stats = getTaskStats(taskId);
+    if (!stats || !stats.lastCompleted) return false;
+    
+    const lastCompleted = new Date(stats.lastCompleted);
+    const daysSince = (Date.now() - lastCompleted.getTime()) / (1000 * 60 * 60 * 24);
+    return daysSince >= 4;
+  };
+
+  // Helper function to calculate current task value with compounding
+  const getCurrentTaskValue = (task: Task): number => {
+    const stats = getTaskStats(task.id);
+    if (!stats) return task.points;
+    
+    // Add neglect bonus if needed
+    const neglectBonus = needsAttention(task.id) ? 1 : 0;
+    return stats.currentValue + neglectBonus;
+  };
 
   const openTaskDialog = (task: Task) => {
     setSelectedTask(task);
@@ -207,8 +244,9 @@ export default function MomentumTracker() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
       // Show achievement if goal reached
-      const newPoints = currentPoints + (selectedTask?.points || 0);
+      const newPoints = currentPoints + (selectedTask ? getCurrentTaskValue(selectedTask) : 0);
       if (newPoints >= maxPoints) {
         setTimeout(() => {
           setShowAchievement(true);
@@ -227,6 +265,7 @@ export default function MomentumTracker() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
       setShowAchievement(false);
     }
   });
@@ -241,6 +280,7 @@ export default function MomentumTracker() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
       setShowAchievement(false);
     }
   });
@@ -311,9 +351,19 @@ export default function MomentumTracker() {
               />
             </div>
             
-            {/* Progress Stats */}
-            <div className="flex justify-between text-sm text-slate-600">
-              <span>Started: <span className="font-medium">This Week</span></span>
+            {/* Progress Stats and Compounding Info */}
+            <div className="flex justify-between items-center text-sm text-slate-600">
+              <div className="flex items-center space-x-4">
+                <span>Started: <span className="font-medium">This Week</span></span>
+                {taskStats.length > 0 && (
+                  <div className="flex items-center space-x-2">
+                    <TrendingUp className="w-4 h-4 text-green-600" />
+                    <span className="text-green-600 font-medium">
+                      {taskStats.filter(s => s.timesThisWeek > 1).length} compounding
+                    </span>
+                  </div>
+                )}
+              </div>
               <span>{Math.round(progressPercentage)}% Complete</span>
             </div>
           </CardContent>
@@ -337,15 +387,36 @@ export default function MomentumTracker() {
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[task.color as keyof typeof colorClasses]}`}>
                           <IconComponent className="w-5 h-5" />
                         </div>
-                        <div>
-                          <p className="font-medium text-slate-800">{task.name}</p>
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <p className="font-medium text-slate-800">{task.name}</p>
+                            {needsAttention(task.id) && (
+                              <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
+                                <Flame className="w-3 h-3" />
+                                <span>Needs attention</span>
+                              </div>
+                            )}
+                            {getTaskStats(task.id) && getTaskStats(task.id)!.timesThisWeek > 1 && (
+                              <div className="flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
+                                <TrendingUp className="w-3 h-3" />
+                                <span>{getTaskStats(task.id)!.timesThisWeek}x</span>
+                              </div>
+                            )}
+                          </div>
                           <p className="text-sm text-slate-500">{task.description}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <span className={`text-lg font-semibold ${pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
-                          +{task.points}
-                        </span>
+                        <div className="text-right">
+                          <div className={`text-lg font-semibold ${pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
+                            +{getCurrentTaskValue(task)}
+                          </div>
+                          {getTaskStats(task.id) && getCurrentTaskValue(task) !== task.points && (
+                            <div className="text-xs text-slate-400">
+                              base: {task.points}
+                            </div>
+                          )}
+                        </div>
                         <Button 
                           onClick={() => addPoints(task)}
                           disabled={currentPoints >= maxPoints}
