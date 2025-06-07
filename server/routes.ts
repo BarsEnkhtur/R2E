@@ -3,19 +3,21 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCompletedTaskSchema } from "@shared/schema";
 
-// Helper function to get current week of year
-function getWeekOfYear(date: Date): { weekOfYear: number; year: number } {
-  const start = new Date(date.getFullYear(), 0, 1);
-  const days = Math.floor((date.getTime() - start.getTime()) / (24 * 60 * 60 * 1000));
-  const weekOfYear = Math.ceil((days + start.getDay() + 1) / 7);
-  return { weekOfYear, year: date.getFullYear() };
+// Helper function to get current week start date (Monday)
+function getWeekStartDate(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay() || 7; // Get current day (1=Monday, 7=Sunday)
+  d.setDate(d.getDate() - day + 1); // Set to Monday
+  return d.toISOString().split('T')[0]; // Return YYYY-MM-DD format
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Get all completed tasks
+  // Get completed tasks (optionally filtered by week)
   app.get("/api/completed-tasks", async (req, res) => {
     try {
-      const tasks = await storage.getCompletedTasks();
+      const weekStartDate = req.query.week as string | undefined;
+      const currentWeek = weekStartDate || getWeekStartDate(new Date());
+      const tasks = await storage.getCompletedTasks(currentWeek);
       res.json(tasks);
     } catch (error) {
       console.error(`Error fetching completed tasks: ${error}`);
@@ -26,17 +28,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new completed task with compounding logic
   app.post("/api/completed-tasks", async (req, res) => {
     try {
-      const result = insertCompletedTaskSchema.safeParse(req.body);
-      if (!result.success) {
-        return res.status(400).json({ error: "Invalid task data", details: result.error.issues });
-      }
-
-      const { taskId, name, points: basePoints, note } = result.data;
+      const { taskId, name, points: basePoints, note } = req.body;
       const now = new Date();
-      const { weekOfYear, year } = getWeekOfYear(now);
+      const weekStartDate = getWeekStartDate(now);
 
       // Get or create task stats for this week
-      let taskStat = await storage.getTaskStatByTaskId(taskId, weekOfYear, year);
+      let taskStat = await storage.getTaskStatByTaskId(taskId, weekStartDate);
       
       if (!taskStat) {
         // First time doing this task this week
@@ -47,8 +44,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           currentValue: basePoints,
           timesThisWeek: 1,
           lastCompleted: now,
-          weekOfYear,
-          year
+          weekStartDate
         });
       } else {
         // Task already done this week - apply compounding
@@ -56,7 +52,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compoundingBonus = Math.min((newTimesThisWeek - 1) * 0.5, basePoints); // Cap at 2x base
         const newCurrentValue = Math.min(basePoints + compoundingBonus, basePoints * 2);
         
-        taskStat = await storage.updateTaskStats(taskId, {
+        taskStat = await storage.updateTaskStats(taskId, weekStartDate, {
           currentValue: newCurrentValue,
           timesThisWeek: newTimesThisWeek,
           lastCompleted: now
@@ -68,7 +64,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         taskId,
         name,
         points: taskStat.currentValue,
-        note
+        note,
+        weekStartDate
+      });
+
+      // Update weekly history
+      const weekTasks = await storage.getCompletedTasks(weekStartDate);
+      const totalPoints = weekTasks.reduce((sum, t) => sum + t.points, 0);
+      await storage.createOrUpdateWeeklyHistory({
+        weekStartDate,
+        totalPoints,
+        tasksCompleted: weekTasks.length
       });
 
       res.status(201).json(task);
@@ -97,19 +103,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Clear all completed tasks and reset week
   app.delete("/api/completed-tasks", async (req, res) => {
     try {
-      await storage.clearAllCompletedTasks();
-      // Also clear task stats for current week
-      const { weekOfYear, year } = getWeekOfYear(new Date());
-      const taskStatsToReset = await storage.getTaskStats(weekOfYear, year);
+      const weekStartDate = getWeekStartDate(new Date());
+      await storage.clearAllCompletedTasks(weekStartDate);
       
       // Reset all task stats for the week
+      const taskStatsToReset = await storage.getTaskStats(weekStartDate);
       for (const stat of taskStatsToReset) {
-        await storage.updateTaskStats(stat.taskId, {
+        await storage.updateTaskStats(stat.taskId, weekStartDate, {
           currentValue: stat.basePoints,
           timesThisWeek: 0,
           lastCompleted: null
         });
       }
+      
+      // Update weekly history
+      await storage.createOrUpdateWeeklyHistory({
+        weekStartDate,
+        totalPoints: 0,
+        tasksCompleted: 0
+      });
       
       res.status(204).send();
     } catch (error) {
@@ -121,12 +133,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get task stats for current week (for frontend display)
   app.get("/api/task-stats", async (req, res) => {
     try {
-      const { weekOfYear, year } = getWeekOfYear(new Date());
-      const stats = await storage.getTaskStats(weekOfYear, year);
+      const weekStartDate = req.query.week as string || getWeekStartDate(new Date());
+      const stats = await storage.getTaskStats(weekStartDate);
       res.json(stats);
     } catch (error) {
       console.error(`Error fetching task stats: ${error}`);
       res.status(500).json({ error: "Failed to fetch task stats" });
+    }
+  });
+
+  // Get weekly history
+  app.get("/api/weekly-history", async (req, res) => {
+    try {
+      const history = await storage.getWeeklyHistory();
+      res.json(history);
+    } catch (error) {
+      console.error(`Error fetching weekly history: ${error}`);
+      res.status(500).json({ error: "Failed to fetch weekly history" });
     }
   });
 

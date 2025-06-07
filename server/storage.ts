@@ -1,4 +1,4 @@
-import { users, completedTasks, taskStats, type User, type InsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats } from "@shared/schema";
+import { users, completedTasks, taskStats, weeklyHistory, type User, type InsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats, type WeeklyHistory, type InsertWeeklyHistory } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and } from "drizzle-orm";
 
@@ -6,14 +6,16 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getCompletedTasks(): Promise<CompletedTask[]>;
+  getCompletedTasks(weekStartDate?: string): Promise<CompletedTask[]>;
   createCompletedTask(task: InsertCompletedTask): Promise<CompletedTask>;
   deleteCompletedTask(id: number): Promise<void>;
-  clearAllCompletedTasks(): Promise<void>;
-  getTaskStats(weekOfYear: number, year: number): Promise<TaskStats[]>;
-  getTaskStatByTaskId(taskId: string, weekOfYear: number, year: number): Promise<TaskStats | undefined>;
+  clearAllCompletedTasks(weekStartDate?: string): Promise<void>;
+  getTaskStats(weekStartDate: string): Promise<TaskStats[]>;
+  getTaskStatByTaskId(taskId: string, weekStartDate: string): Promise<TaskStats | undefined>;
   createTaskStats(stats: InsertTaskStats): Promise<TaskStats>;
-  updateTaskStats(taskId: string, updates: Partial<TaskStats>): Promise<TaskStats>;
+  updateTaskStats(taskId: string, weekStartDate: string, updates: Partial<TaskStats>): Promise<TaskStats>;
+  getWeeklyHistory(): Promise<WeeklyHistory[]>;
+  createOrUpdateWeeklyHistory(weekData: InsertWeeklyHistory): Promise<WeeklyHistory>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -35,11 +37,16 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getCompletedTasks(): Promise<CompletedTask[]> {
-    return await db
-      .select()
-      .from(completedTasks)
-      .orderBy(desc(completedTasks.completedAt));
+  async getCompletedTasks(weekStartDate?: string): Promise<CompletedTask[]> {
+    const query = db.select().from(completedTasks);
+    
+    if (weekStartDate) {
+      return await query
+        .where(eq(completedTasks.weekStartDate, weekStartDate))
+        .orderBy(desc(completedTasks.completedAt));
+    }
+    
+    return await query.orderBy(desc(completedTasks.completedAt));
   }
 
   async createCompletedTask(task: InsertCompletedTask): Promise<CompletedTask> {
@@ -54,25 +61,28 @@ export class DatabaseStorage implements IStorage {
     await db.delete(completedTasks).where(eq(completedTasks.id, id));
   }
 
-  async clearAllCompletedTasks(): Promise<void> {
-    await db.delete(completedTasks);
+  async clearAllCompletedTasks(weekStartDate?: string): Promise<void> {
+    if (weekStartDate) {
+      await db.delete(completedTasks).where(eq(completedTasks.weekStartDate, weekStartDate));
+    } else {
+      await db.delete(completedTasks);
+    }
   }
 
-  async getTaskStats(weekOfYear: number, year: number): Promise<TaskStats[]> {
+  async getTaskStats(weekStartDate: string): Promise<TaskStats[]> {
     return await db
       .select()
       .from(taskStats)
-      .where(and(eq(taskStats.weekOfYear, weekOfYear), eq(taskStats.year, year)));
+      .where(eq(taskStats.weekStartDate, weekStartDate));
   }
 
-  async getTaskStatByTaskId(taskId: string, weekOfYear: number, year: number): Promise<TaskStats | undefined> {
+  async getTaskStatByTaskId(taskId: string, weekStartDate: string): Promise<TaskStats | undefined> {
     const [stat] = await db
       .select()
       .from(taskStats)
       .where(and(
         eq(taskStats.taskId, taskId),
-        eq(taskStats.weekOfYear, weekOfYear),
-        eq(taskStats.year, year)
+        eq(taskStats.weekStartDate, weekStartDate)
       ));
     return stat || undefined;
   }
@@ -85,13 +95,48 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateTaskStats(taskId: string, updates: Partial<TaskStats>): Promise<TaskStats> {
+  async updateTaskStats(taskId: string, weekStartDate: string, updates: Partial<TaskStats>): Promise<TaskStats> {
     const [updated] = await db
       .update(taskStats)
       .set(updates)
-      .where(eq(taskStats.taskId, taskId))
+      .where(and(
+        eq(taskStats.taskId, taskId),
+        eq(taskStats.weekStartDate, weekStartDate)
+      ))
       .returning();
     return updated;
+  }
+
+  async getWeeklyHistory(): Promise<WeeklyHistory[]> {
+    return await db
+      .select()
+      .from(weeklyHistory)
+      .orderBy(desc(weeklyHistory.weekStartDate));
+  }
+
+  async createOrUpdateWeeklyHistory(weekData: InsertWeeklyHistory): Promise<WeeklyHistory> {
+    const [existing] = await db
+      .select()
+      .from(weeklyHistory)
+      .where(eq(weeklyHistory.weekStartDate, weekData.weekStartDate));
+
+    if (existing) {
+      const [updated] = await db
+        .update(weeklyHistory)
+        .set({
+          totalPoints: weekData.totalPoints,
+          tasksCompleted: weekData.tasksCompleted
+        })
+        .where(eq(weeklyHistory.weekStartDate, weekData.weekStartDate))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db
+        .insert(weeklyHistory)
+        .values(weekData)
+        .returning();
+      return created;
+    }
   }
 }
 

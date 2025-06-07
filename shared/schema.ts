@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, real } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -12,21 +12,29 @@ export const completedTasks = pgTable("completed_tasks", {
   id: serial("id").primaryKey(),
   taskId: text("task_id").notNull(),
   name: text("name").notNull(),
-  points: integer("points").notNull(),
+  points: real("points").notNull(),
   note: text("note"),
   completedAt: timestamp("completed_at").defaultNow().notNull(),
+  weekStartDate: text("week_start_date").notNull(),
 });
 
 export const taskStats = pgTable("task_stats", {
   id: serial("id").primaryKey(),
-  taskId: text("task_id").notNull().unique(),
+  taskId: text("task_id").notNull(),
   taskName: text("task_name").notNull(),
-  basePoints: integer("base_points").notNull(),
-  currentValue: integer("current_value").notNull(),
+  basePoints: real("base_points").notNull(),
+  currentValue: real("current_value").notNull(),
   timesThisWeek: integer("times_this_week").notNull().default(0),
   lastCompleted: timestamp("last_completed"),
-  weekOfYear: integer("week_of_year").notNull(),
-  year: integer("year").notNull(),
+  weekStartDate: text("week_start_date").notNull(),
+});
+
+export const weeklyHistory = pgTable("weekly_history", {
+  id: serial("id").primaryKey(),
+  weekStartDate: text("week_start_date").notNull().unique(),
+  totalPoints: real("total_points").notNull().default(0),
+  tasksCompleted: integer("tasks_completed").notNull().default(0),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -39,6 +47,7 @@ export const insertCompletedTaskSchema = createInsertSchema(completedTasks).pick
   name: true,
   points: true,
   note: true,
+  weekStartDate: true,
 });
 
 export const insertTaskStatsSchema = createInsertSchema(taskStats).pick({
@@ -48,8 +57,13 @@ export const insertTaskStatsSchema = createInsertSchema(taskStats).pick({
   currentValue: true,
   timesThisWeek: true,
   lastCompleted: true,
-  weekOfYear: true,
-  year: true,
+  weekStartDate: true,
+});
+
+export const insertWeeklyHistorySchema = createInsertSchema(weeklyHistory).pick({
+  weekStartDate: true,
+  totalPoints: true,
+  tasksCompleted: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -58,3 +72,5 @@ export type InsertCompletedTask = z.infer<typeof insertCompletedTaskSchema>;
 export type CompletedTask = typeof completedTasks.$inferSelect;
 export type InsertTaskStats = z.infer<typeof insertTaskStatsSchema>;
 export type TaskStats = typeof taskStats.$inferSelect;
+export type InsertWeeklyHistory = z.infer<typeof insertWeeklyHistorySchema>;
+export type WeeklyHistory = typeof weeklyHistory.$inferSelect;
