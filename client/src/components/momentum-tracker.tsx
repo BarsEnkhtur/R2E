@@ -37,12 +37,12 @@ interface Task {
 }
 
 interface CompletedTask {
-  id: string;
+  id: number;
+  taskId: string;
   name: string;
   points: number;
-  timestamp: string;
-  date: string;
   note?: string;
+  completedAt: string;
 }
 
 const tasks: Task[] = [
@@ -155,14 +155,25 @@ const pointsColorClasses = {
 };
 
 export default function MomentumTracker() {
-  const [currentPoints, setCurrentPoints] = useState(0);
-  const [completedTasks, setCompletedTasks] = useState<CompletedTask[]>([]);
   const [showAchievement, setShowAchievement] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskNote, setTaskNote] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
+  const queryClient = useQueryClient();
   const maxPoints = 15;
+
+  // Fetch completed tasks from database
+  const { data: completedTasks = [], isLoading } = useQuery({
+    queryKey: ['/api/completed-tasks'],
+    queryFn: async (): Promise<CompletedTask[]> => {
+      const response = await fetch('/api/completed-tasks');
+      if (!response.ok) throw new Error('Failed to fetch tasks');
+      return await response.json();
+    }
+  });
+
+  const currentPoints = completedTasks.reduce((sum, task) => sum + task.points, 0);
   const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
 
   const openTaskDialog = (task: Task) => {
@@ -171,40 +182,66 @@ export default function MomentumTracker() {
     setIsDialogOpen(true);
   };
 
+  // Mutation to create a new completed task
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: { taskId: string; name: string; points: number; note?: string }) => {
+      const response = await fetch('/api/completed-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+      });
+      if (!response.ok) throw new Error('Failed to create task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      // Show achievement if goal reached
+      const newPoints = currentPoints + (selectedTask?.points || 0);
+      if (newPoints >= maxPoints) {
+        setTimeout(() => {
+          setShowAchievement(true);
+        }, 500);
+      }
+    }
+  });
+
+  // Mutation to delete a completed task
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await fetch(`/api/completed-tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete task');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      setShowAchievement(false);
+    }
+  });
+
+  // Mutation to clear all tasks
+  const clearAllTasksMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/completed-tasks', {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to clear tasks');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      setShowAchievement(false);
+    }
+  });
+
   const addPoints = (task: Task, note?: string) => {
     if (currentPoints >= maxPoints) return;
-
-    const newPoints = Math.min(currentPoints + task.points, maxPoints);
-    setCurrentPoints(newPoints);
-
-    const now = new Date();
-    const timestamp = now.toLocaleTimeString([], { 
-      hour: '2-digit', 
-      minute: '2-digit' 
-    });
-    const date = now.toLocaleDateString([], {
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric'
-    });
-
-    const completedTask: CompletedTask = {
-      id: `${task.id}-${Date.now()}`,
+    
+    createTaskMutation.mutate({
+      taskId: task.id,
       name: task.name,
       points: task.points,
-      timestamp,
-      date,
       note: note || undefined
-    };
-
-    setCompletedTasks(prev => [completedTask, ...prev]);
-
-    // Show achievement if goal reached
-    if (newPoints >= maxPoints) {
-      setTimeout(() => {
-        setShowAchievement(true);
-      }, 500);
-    }
+    });
   };
 
   const handleTaskSubmit = () => {
@@ -216,20 +253,13 @@ export default function MomentumTracker() {
     }
   };
 
-  const deleteCompletedTask = (taskId: string) => {
-    const taskToDelete = completedTasks.find(task => task.id === taskId);
-    if (taskToDelete) {
-      setCurrentPoints(prev => Math.max(0, prev - taskToDelete.points));
-      setCompletedTasks(prev => prev.filter(task => task.id !== taskId));
-      setShowAchievement(false);
-    }
+  const deleteCompletedTask = (taskId: number) => {
+    deleteTaskMutation.mutate(taskId);
   };
 
   const resetWeek = () => {
     if (window.confirm('Are you sure you want to reset this week? This will clear all progress.')) {
-      setCurrentPoints(0);
-      setCompletedTasks([]);
-      setShowAchievement(false);
+      clearAllTasksMutation.mutate();
     }
   };
 
@@ -346,7 +376,12 @@ export default function MomentumTracker() {
               </div>
               
               <div className="space-y-3">
-                {completedTasks.length === 0 ? (
+                {isLoading ? (
+                  <div className="text-center py-8 text-slate-400">
+                    <div className="animate-spin w-8 h-8 border-2 border-slate-300 border-t-blue-600 rounded-full mx-auto mb-3"></div>
+                    <p className="text-sm">Loading tasks...</p>
+                  </div>
+                ) : completedTasks.length === 0 ? (
                   <div className="text-center py-8 text-slate-400">
                     <ClipboardList className="w-12 h-12 mx-auto mb-3 opacity-50" />
                     <p className="text-sm">No tasks completed yet</p>
@@ -365,9 +400,16 @@ export default function MomentumTracker() {
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-emerald-800">{task.name}</p>
                           <div className="flex items-center space-x-2 text-xs text-emerald-600">
-                            <span>{task.date}</span>
+                            <span>{new Date(task.completedAt).toLocaleDateString([], {
+                              weekday: 'short',
+                              month: 'short', 
+                              day: 'numeric'
+                            })}</span>
                             <span>•</span>
-                            <span>{task.timestamp}</span>
+                            <span>{new Date(task.completedAt).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}</span>
                           </div>
                           {task.note && (
                             <div className="flex items-center space-x-1 mt-1">
