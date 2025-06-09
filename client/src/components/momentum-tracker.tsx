@@ -443,11 +443,21 @@ export default function MomentumTracker() {
         <Card className="mb-8">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold text-slate-800">Weekly Progress</h2>
+              <div className="flex flex-col">
+                <h2 className="text-xl font-semibold text-slate-800">Weekly Progress</h2>
+                {dynamicGoalData && dynamicGoalData.goal !== 15 && (
+                  <div className="flex items-center space-x-2 mt-1">
+                    <BarChart3 className="w-4 h-4 text-blue-500" />
+                    <span className="text-sm text-slate-600">
+                      Adaptive goal: {dynamicGoalData.goal} points
+                    </span>
+                  </div>
+                )}
+              </div>
               <div className="flex items-center space-x-2">
                 <span className="text-2xl font-bold text-blue-600">{currentPoints}</span>
                 <span className="text-slate-500">/</span>
-                <span className="text-2xl font-bold text-slate-400">15</span>
+                <span className="text-2xl font-bold text-slate-400">{maxPoints}</span>
                 <span className="text-sm text-slate-500 ml-1">points</span>
               </div>
             </div>
