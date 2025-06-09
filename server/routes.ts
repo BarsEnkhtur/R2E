@@ -174,8 +174,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get dynamic goal for a specific week
   app.get("/api/dynamic-goal/:week", async (req, res) => {
     try {
+      const userId = getUserId(req);
       const { week } = req.params;
-      const dynamicGoal = await storage.calculateDynamicGoal(week);
+      const dynamicGoal = await storage.calculateDynamicGoal(userId, week);
       res.json({ goal: dynamicGoal });
     } catch (error) {
       console.error(`Error calculating dynamic goal: ${error}`);
@@ -186,7 +187,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get custom tasks
   app.get("/api/custom-tasks", async (req, res) => {
     try {
-      const tasks = await storage.getCustomTasks();
+      const userId = getUserId(req);
+      const tasks = await storage.getCustomTasks(userId);
       res.json(tasks);
     } catch (error) {
       console.error(`Error fetching custom tasks: ${error}`);
@@ -197,7 +199,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create custom task
   app.post("/api/custom-tasks", async (req, res) => {
     try {
-      const taskData = insertCustomTaskSchema.parse(req.body);
+      const userId = getUserId(req);
+      const taskData = { ...req.body, userId };
       const task = await storage.createCustomTask(taskData);
       res.status(201).json(task);
     } catch (error) {
@@ -242,6 +245,156 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error deleting custom task: ${error}`);
       res.status(500).json({ error: "Failed to delete custom task" });
+    }
+  });
+
+  // PUBLIC SHARE SYSTEM ROUTES
+
+  // Create a public share of current week's progress
+  app.post("/api/shares", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { title, description, weekStartDate } = req.body;
+      
+      // Generate unique share token
+      const token = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      
+      // Gather current week's data
+      const [completedTasks, taskStats, weeklyHistory, customTasks] = await Promise.all([
+        storage.getCompletedTasks(userId, weekStartDate),
+        storage.getTaskStats(userId, weekStartDate),
+        storage.getWeeklyHistory(userId),
+        storage.getCustomTasks(userId)
+      ]);
+      
+      const weekHistory = weeklyHistory.find(w => w.weekStartDate === weekStartDate);
+      const dynamicGoal = await storage.calculateDynamicGoal(userId, weekStartDate);
+      
+      // Create snapshot data
+      const snapshotData = {
+        completedTasks,
+        taskStats,
+        weekHistory,
+        customTasks,
+        dynamicGoal,
+        weekStartDate,
+        totalPoints: completedTasks.reduce((sum, task) => sum + task.points, 0),
+        tasksCompleted: completedTasks.length
+      };
+      
+      const share = await storage.createShare({
+        token,
+        userId,
+        weekStartDate,
+        title: title || `Week of ${weekStartDate}`,
+        description,
+        data: snapshotData
+      });
+      
+      res.status(201).json({ 
+        shareUrl: `/share/${token}`,
+        share 
+      });
+    } catch (error) {
+      console.error(`Error creating share: ${error}`);
+      res.status(500).json({ error: "Failed to create share" });
+    }
+  });
+
+  // Get public share by token (read-only)
+  app.get("/api/shares/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      const share = await storage.getShare(token);
+      
+      if (!share) {
+        return res.status(404).json({ error: "Share not found" });
+      }
+      
+      res.json(share);
+    } catch (error) {
+      console.error(`Error fetching share: ${error}`);
+      res.status(500).json({ error: "Failed to fetch share" });
+    }
+  });
+
+  // Fork a shared week (authenticated users only)
+  app.post("/api/shares/:token/fork", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { token } = req.params;
+      
+      // For demo, return unauthorized - in production this would check authentication
+      if (userId === DEMO_USER_ID) {
+        return res.status(401).json({ 
+          error: "Authentication required", 
+          message: "Sign in to fork this setup to your own account" 
+        });
+      }
+      
+      const share = await storage.getShare(token);
+      if (!share) {
+        return res.status(404).json({ error: "Share not found" });
+      }
+      
+      const shareData = share.data as any;
+      const newWeekStartDate = getWeekStartDate(new Date());
+      
+      // Fork custom tasks to user's account
+      const customTasks = shareData.customTasks || [];
+      for (const task of customTasks) {
+        try {
+          await storage.createCustomTask({
+            userId,
+            taskId: `${task.taskId}_forked_${Date.now()}`,
+            name: task.name,
+            description: `${task.description} (forked)`,
+            points: task.points,
+            icon: task.icon,
+            color: task.color,
+            isActive: true
+          });
+        } catch (error) {
+          // Skip if task already exists
+        }
+      }
+      
+      res.json({ 
+        message: "Setup forked successfully",
+        redirectTo: `/dashboard/weeks/${newWeekStartDate}`
+      });
+    } catch (error) {
+      console.error(`Error forking share: ${error}`);
+      res.status(500).json({ error: "Failed to fork share" });
+    }
+  });
+
+  // Get user's active shares (authenticated users only)
+  app.get("/api/shares", async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      
+      if (userId === DEMO_USER_ID) {
+        return res.json([]); // Demo users have no shares
+      }
+      
+      const shares = await storage.getActiveShares(userId);
+      res.json(shares);
+    } catch (error) {
+      console.error(`Error fetching user shares: ${error}`);
+      res.status(500).json({ error: "Failed to fetch shares" });
+    }
+  });
+
+  // Deactivate a share
+  app.delete("/api/shares/:token", async (req, res) => {
+    try {
+      const { token } = req.params;
+      await storage.deactivateShare(token);
+      res.status(204).send();
+    } catch (error) {
+      console.error(`Error deactivating share: ${error}`);
+      res.status(500).json({ error: "Failed to deactivate share" });
     }
   });
 
