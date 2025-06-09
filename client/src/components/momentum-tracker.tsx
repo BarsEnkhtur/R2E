@@ -657,7 +657,6 @@ export default function MomentumTracker() {
                         </div>
                         <Button 
                           onClick={() => addPoints(task)}
-                          disabled={currentPoints >= maxPoints}
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-700 text-white"
                         >
@@ -665,7 +664,6 @@ export default function MomentumTracker() {
                         </Button>
                         <Button 
                           onClick={() => openTaskDialog(task)}
-                          disabled={currentPoints >= maxPoints}
                           variant="outline"
                           size="sm"
                           className="border-slate-300 hover:bg-slate-50"
