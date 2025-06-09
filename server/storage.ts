@@ -373,9 +373,7 @@ export class DatabaseStorage implements IStorage {
       }
     ];
 
-    for (const task of completedTasksData) {
-      await db.insert(completedTasks).values(task);
-    }
+    await db.insert(completedTasks).values(completedTasksData);
 
     // Create task stats showing progression
     const taskStatsData = [
@@ -426,14 +424,12 @@ export class DatabaseStorage implements IStorage {
         basePoints: 2,
         currentValue: 2.1,
         timesThisWeek: 1,
-        lastCompleted: new Date(currentWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        lastCompleted: new Date(currentWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000),
         weekStartDate
       }
     ];
 
-    for (const stats of taskStatsData) {
-      await db.insert(taskStats).values(stats);
-    }
+    await db.insert(taskStats).values(taskStatsData);
 
     // Create weekly history showing past progress
     const weeklyHistoryData = [
@@ -467,9 +463,7 @@ export class DatabaseStorage implements IStorage {
       }
     ];
 
-    for (const history of weeklyHistoryData) {
-      await db.insert(weeklyHistory).values(history);
-    }
+    await db.insert(weeklyHistory).values(weeklyHistoryData);
 
     // Create a custom task example
     await db.insert(customTasks).values({

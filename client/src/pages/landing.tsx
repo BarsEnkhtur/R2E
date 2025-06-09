@@ -19,6 +19,10 @@ export default function Landing() {
     window.location.href = "/api/login";
   };
 
+  const handleDemo = () => {
+    window.location.href = "/api/demo";
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
@@ -60,10 +64,10 @@ export default function Landing() {
             <Button 
               size="lg" 
               variant="outline"
-              onClick={() => document.getElementById('demo')?.scrollIntoView({ behavior: 'smooth' })}
+              onClick={handleDemo}
               className="text-lg px-8 py-3"
             >
-              See Demo
+              Try Demo
             </Button>
           </div>
         </div>
@@ -158,14 +162,20 @@ export default function Landing() {
           <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-8 text-center">
             <Target className="h-16 w-16 text-blue-600 mx-auto mb-4" />
             <h4 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              Interactive Demo Coming Soon
+              Try the Interactive Demo
             </h4>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Experience the full momentum tracking system with your own data
+              Experience the momentum tracker with realistic job search progress data
             </p>
-            <Button onClick={handleLogin} size="lg" className="bg-blue-600 hover:bg-blue-700">
-              Get Started Now
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button onClick={handleDemo} size="lg" className="bg-blue-600 hover:bg-blue-700">
+                Launch Demo
+                <ArrowRight className="ml-2 h-5 w-5" />
+              </Button>
+              <Button onClick={handleLogin} size="lg" variant="outline">
+                Sign Up Free
+              </Button>
+            </div>
           </div>
         </div>
       </section>
