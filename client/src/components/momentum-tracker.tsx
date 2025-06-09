@@ -281,8 +281,8 @@ export default function MomentumTracker() {
   });
 
   // Calculate points and progress with proper fallbacks
-  const maxPoints = dynamicGoalData?.goal ?? 15;
   const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum, task) => sum + task.points, 0) : 0;
+  const maxPoints = dynamicGoalData?.goal ?? 15;
   const progressPercentage = maxPoints > 0 ? Math.min((currentPoints / maxPoints) * 100, 100) : 0;
 
   // Helper function to get task stats for a specific task
