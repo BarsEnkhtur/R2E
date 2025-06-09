@@ -119,6 +119,19 @@ export async function setupAuth(app: Express) {
       res.redirect("/");
     });
   });
+
+  // Demo mode route
+  app.get("/api/demo", async (req, res) => {
+    try {
+      (req.session as any).userId = "demo_user";
+      // Initialize demo data for the demo user
+      await storage.initializeDemoData("demo_user");
+      res.redirect("/");
+    } catch (error) {
+      console.error("Error initializing demo data:", error);
+      res.redirect("/?error=demo-init-failed");
+    }
+  });
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {

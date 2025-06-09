@@ -30,6 +30,9 @@ export interface IStorage {
   getShare(token: string): Promise<Share | undefined>;
   getActiveShares(userId: string): Promise<Share[]>;
   deactivateShare(token: string): Promise<void>;
+  
+  // Demo data operations
+  initializeDemoData(userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -297,6 +300,189 @@ export class DatabaseStorage implements IStorage {
       .update(shares)
       .set({ isActive: false })
       .where(eq(shares.token, token));
+  }
+
+  async initializeDemoData(userId: string): Promise<void> {
+    // Clear existing demo data first
+    await this.clearAllCompletedTasks(userId);
+    await db.delete(taskStats).where(eq(taskStats.userId, userId));
+    await db.delete(weeklyHistory).where(eq(weeklyHistory.userId, userId));
+    await db.delete(customTasks).where(eq(customTasks.userId, userId));
+
+    const now = new Date();
+    const currentWeekStart = new Date(now);
+    currentWeekStart.setDate(now.getDate() - now.getDay());
+    currentWeekStart.setHours(0, 0, 0, 0);
+    const weekStartDate = currentWeekStart.toISOString().split('T')[0];
+
+    // Create realistic completed tasks for this week
+    const completedTasksData = [
+      {
+        userId,
+        taskId: "job-application",
+        name: "Job Application",
+        points: 3,
+        note: "Applied to Senior Developer position at TechCorp",
+        completedAt: new Date(currentWeekStart.getTime() + 1 * 24 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "networking",
+        name: "Professional Networking",
+        points: 2,
+        note: "Connected with 3 engineers on LinkedIn",
+        completedAt: new Date(currentWeekStart.getTime() + 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "code-push",
+        name: "Code Push",
+        points: 3,
+        note: "Completed authentication system for portfolio project",
+        completedAt: new Date(currentWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "skill-practice",
+        name: "Skill Practice",
+        points: 2,
+        note: "Completed React Testing Library tutorial",
+        completedAt: new Date(currentWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "interview-prep",
+        name: "Interview Prep",
+        points: 2,
+        note: "Practiced system design questions",
+        completedAt: new Date(currentWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "job-application",
+        name: "Job Application",
+        points: 3,
+        note: "Applied to Frontend Engineer role at StartupXYZ",
+        completedAt: new Date(currentWeekStart.getTime() + 4 * 24 * 60 * 60 * 1000),
+        weekStartDate
+      }
+    ];
+
+    for (const task of completedTasksData) {
+      await db.insert(completedTasks).values(task);
+    }
+
+    // Create task stats showing progression
+    const taskStatsData = [
+      {
+        userId,
+        taskId: "job-application",
+        taskName: "Job Application",
+        basePoints: 3,
+        currentValue: 3.5,
+        timesThisWeek: 2,
+        lastCompleted: new Date(currentWeekStart.getTime() + 4 * 24 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "networking",
+        taskName: "Professional Networking",
+        basePoints: 2,
+        currentValue: 2.2,
+        timesThisWeek: 1,
+        lastCompleted: new Date(currentWeekStart.getTime() + 1 * 24 * 60 * 60 * 1000 + 2 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "code-push",
+        taskName: "Code Push",
+        basePoints: 3,
+        currentValue: 3.2,
+        timesThisWeek: 1,
+        lastCompleted: new Date(currentWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "skill-practice",
+        taskName: "Skill Practice",
+        basePoints: 2,
+        currentValue: 2.1,
+        timesThisWeek: 1,
+        lastCompleted: new Date(currentWeekStart.getTime() + 2 * 24 * 60 * 60 * 1000 + 3 * 60 * 60 * 1000),
+        weekStartDate
+      },
+      {
+        userId,
+        taskId: "interview-prep",
+        taskName: "Interview Prep",
+        basePoints: 2,
+        currentValue: 2.1,
+        timesThisWeek: 1,
+        lastCompleted: new Date(currentWeekStart.getTime() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        weekStartDate
+      }
+    ];
+
+    for (const stats of taskStatsData) {
+      await db.insert(taskStats).values(stats);
+    }
+
+    // Create weekly history showing past progress
+    const weeklyHistoryData = [
+      {
+        userId,
+        weekStartDate: new Date(currentWeekStart.getTime() - 3 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        totalPoints: 18,
+        tasksCompleted: 8,
+        createdAt: new Date(currentWeekStart.getTime() - 3 * 7 * 24 * 60 * 60 * 1000)
+      },
+      {
+        userId,
+        weekStartDate: new Date(currentWeekStart.getTime() - 2 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        totalPoints: 22,
+        tasksCompleted: 10,
+        createdAt: new Date(currentWeekStart.getTime() - 2 * 7 * 24 * 60 * 60 * 1000)
+      },
+      {
+        userId,
+        weekStartDate: new Date(currentWeekStart.getTime() - 1 * 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        totalPoints: 25,
+        tasksCompleted: 11,
+        createdAt: new Date(currentWeekStart.getTime() - 1 * 7 * 24 * 60 * 60 * 1000)
+      },
+      {
+        userId,
+        weekStartDate,
+        totalPoints: 15.8,
+        tasksCompleted: 6,
+        createdAt: now
+      }
+    ];
+
+    for (const history of weeklyHistoryData) {
+      await db.insert(weeklyHistory).values(history);
+    }
+
+    // Create a custom task example
+    await db.insert(customTasks).values({
+      userId,
+      taskId: "portfolio-update",
+      name: "Portfolio Update",
+      description: "Update portfolio website with latest projects",
+      points: 2,
+      icon: "Globe",
+      color: "bg-purple-500",
+      isActive: true,
+      createdAt: now
+    });
   }
 }
 
