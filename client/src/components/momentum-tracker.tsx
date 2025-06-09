@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -7,6 +7,25 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { apiRequest } from "@/lib/queryClient";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { 
   MessageCircle, 
   Code, 
@@ -41,7 +60,9 @@ import {
   Camera,
   Gamepad2,
   Palette,
-  X
+  X,
+  Search,
+  GripVertical
 } from "lucide-react";
 
 interface Task {
@@ -203,6 +224,100 @@ const pointsColorClasses = {
   cyan: "text-cyan-600"
 };
 
+// Sortable Task Item Component
+function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji }: {
+  task: Task;
+  openTaskDialog: (task: Task) => void;
+  getCurrentTaskValue: (task: Task) => number;
+  needsAttention: (taskId: string) => boolean;
+  getTaskStreak: (taskId: string) => number;
+  isOnStreak: (taskId: string) => boolean;
+  getStreakEmoji: (streak: number) => string;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const IconComponent = task.icon;
+  const currentValue = getCurrentTaskValue(task);
+  const hasAttention = needsAttention(task.id);
+  const streak = getTaskStreak(task.id);
+  const onStreak = isOnStreak(task.id);
+  const streakEmoji = getStreakEmoji(streak);
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`flex flex-col p-3 border rounded-lg hover:bg-slate-50 hover:shadow-sm transition-all h-full bg-[#F9FAFB] ${onStreak ? 'border-l-4 border-l-blue-400 bg-blue-50/30' : ''} ${hasAttention ? 'border-l-4 border-l-red-400 bg-red-50/30' : ''}`}
+    >
+      <div className="flex items-start gap-3 mb-2">
+        <div 
+          {...attributes} 
+          {...listeners}
+          className="p-1 rounded cursor-grab active:cursor-grabbing hover:bg-slate-200 transition-colors flex-shrink-0"
+        >
+          <GripVertical className="w-4 h-4 text-slate-400" />
+        </div>
+        <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0`}>
+          <IconComponent className="w-5 h-5" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-semibold text-sm">{task.name}</h3>
+            {streakEmoji && <span className="text-lg">{streakEmoji}</span>}
+          </div>
+          <p className="text-xs text-slate-600 leading-relaxed">{task.description}</p>
+        </div>
+      </div>
+      
+      <div className="flex items-center justify-between mt-auto">
+        <div className="flex items-center gap-2 flex-wrap">
+          {streak > 0 && (
+            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+              {streak}x
+            </span>
+          )}
+          {hasAttention && (
+            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+              ⚠️
+            </span>
+          )}
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <div className="text-right">
+            <span className={`font-bold ${hasAttention ? 'text-red-600' : onStreak ? 'text-blue-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
+              +{currentValue}
+            </span>
+            {currentValue > task.points && (
+              <div className="text-xs text-slate-500">
+                base: {task.points}
+              </div>
+            )}
+          </div>
+          <Button 
+            size="sm" 
+            onClick={() => openTaskDialog(task)}
+            className="h-8 hover:bg-blue-600 hover:shadow-sm transition-all"
+          >
+            Add
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function MomentumTracker() {
   const [showAchievement, setShowAchievement] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
@@ -211,6 +326,8 @@ export default function MomentumTracker() {
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   const [showCustomTaskForm, setShowCustomTaskForm] = useState(false);
   const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
+  const [searchFilter, setSearchFilter] = useState("");
+  const [taskOrder, setTaskOrder] = useState<string[]>([]);
   const [customTaskForm, setCustomTaskForm] = useState({
     name: "",
     description: "",
@@ -220,6 +337,66 @@ export default function MomentumTracker() {
   });
   
   const queryClient = useQueryClient();
+
+  // Set up drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Initialize task order on first load
+  React.useEffect(() => {
+    if (taskOrder.length === 0) {
+      setTaskOrder(tasks.map(task => task.id));
+    }
+  }, [taskOrder.length]);
+
+  // Handle drag end event
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (active.id !== over?.id) {
+      setTaskOrder((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over?.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  // Filter and sort tasks based on search and custom order
+  const getFilteredAndSortedTasks = () => {
+    let filteredTasks = tasks;
+    
+    // Apply search filter
+    if (searchFilter.trim()) {
+      const searchTerm = searchFilter.toLowerCase().trim();
+      filteredTasks = tasks.filter(task => 
+        task.name.toLowerCase().includes(searchTerm) ||
+        task.description.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Sort by custom order, then by original order for new tasks
+    return filteredTasks.sort((a, b) => {
+      const aIndex = taskOrder.indexOf(a.id);
+      const bIndex = taskOrder.indexOf(b.id);
+      
+      // If both tasks are in the custom order, use that order
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      
+      // If only one task is in custom order, prioritize it
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      
+      // If neither is in custom order, maintain original order
+      return 0;
+    });
+  };
 
   // Helper function to get current week start date (Monday) using UTC
   const getWeekStartFixed = (): string => {
@@ -501,69 +678,52 @@ export default function MomentumTracker() {
         <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">Tasks</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {tasks.map((task) => {
-                  const IconComponent = task.icon;
-                  const currentValue = getCurrentTaskValue(task);
-                  const hasAttention = needsAttention(task.id);
-                  const streak = getTaskStreak(task.id);
-                  const onStreak = isOnStreak(task.id);
-                  const streakEmoji = getStreakEmoji(streak);
-                  
-                  return (
-                    <div key={task.id} className={`flex flex-col p-3 border rounded-lg hover:bg-slate-50 hover:shadow-sm transition-all h-full bg-[#F9FAFB] ${onStreak ? 'border-l-4 border-l-blue-400 bg-blue-50/30' : ''} ${hasAttention ? 'border-l-4 border-l-red-400 bg-red-50/30' : ''}`}>
-                      <div className="flex items-start gap-3 mb-2">
-                        <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0`}>
-                          <IconComponent className="w-5 h-5" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-sm">{task.name}</h3>
-                            {streakEmoji && <span className="text-lg">{streakEmoji}</span>}
-                          </div>
-                          <p className="text-xs text-slate-600 leading-relaxed">{task.description}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center justify-between mt-auto">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          {streak > 0 && (
-                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                              {streak}x
-                            </span>
-                          )}
-                          {hasAttention && (
-                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                              ⚠️
-                            </span>
-                          )}
-                        </div>
-                        
-                        <div className="flex items-center gap-2">
-                          <div className="text-right">
-                            <span className={`font-bold ${hasAttention ? 'text-red-600' : onStreak ? 'text-blue-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
-                              +{currentValue}
-                            </span>
-                            {currentValue > task.points && (
-                              <div className="text-xs text-slate-500">
-                                base: {task.points}
-                              </div>
-                            )}
-                          </div>
-                          <Button 
-                            size="sm" 
-                            onClick={() => openTaskDialog(task)}
-                            className="h-8 hover:bg-blue-600 hover:shadow-sm transition-all"
-                          >
-                            Add
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">Tasks</h2>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                  <Input
+                    placeholder="Search tasks..."
+                    value={searchFilter}
+                    onChange={(e) => setSearchFilter(e.target.value)}
+                    className="pl-10 w-48 h-9"
+                  />
+                </div>
               </div>
+              
+              <DndContext 
+                sensors={sensors}
+                collisionDetection={closestCenter}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext 
+                  items={getFilteredAndSortedTasks().map(task => task.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {getFilteredAndSortedTasks().map((task) => (
+                      <SortableTaskItem
+                        key={task.id}
+                        task={task}
+                        openTaskDialog={openTaskDialog}
+                        getCurrentTaskValue={getCurrentTaskValue}
+                        needsAttention={needsAttention}
+                        getTaskStreak={getTaskStreak}
+                        isOnStreak={isOnStreak}
+                        getStreakEmoji={getStreakEmoji}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+              
+              {getFilteredAndSortedTasks().length === 0 && searchFilter.trim() && (
+                <div className="text-center py-8 text-slate-500">
+                  <Search className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                  <p>No tasks found matching "{searchFilter}"</p>
+                  <p className="text-sm mt-1">Try searching for task names or descriptions</p>
+                </div>
+              )}
             </CardContent>
           </Card>
 
