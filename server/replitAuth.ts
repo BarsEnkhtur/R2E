@@ -57,11 +57,20 @@ export async function setupAuth(app: Express) {
     return;
   }
 
-  // Configure Google OAuth strategy
+  // Get the base domain for OAuth configuration
+  const getBaseURL = () => {
+    const replitDomains = process.env.REPLIT_DOMAINS;
+    if (replitDomains) {
+      const domains = replitDomains.split(',');
+      return `https://${domains[0]}`;
+    }
+    return 'http://localhost:5000';
+  };
+
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,
     clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-    callbackURL: "/api/auth/google/callback"
+    callbackURL: `${getBaseURL()}/api/auth/google/callback`
   },
   async (accessToken: string, refreshToken: string, profile: any, done: any) => {
     try {
