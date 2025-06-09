@@ -356,6 +356,45 @@ export default function MomentumTracker() {
     }
   });
 
+  // Mutation to delete a completed task
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await fetch(`/api/completed-tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete task');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dynamic-goal'] });
+      setShowAchievement(false);
+    }
+  });
+
+  // Helper functions for week navigation
+  const formatWeekDisplay = (weekStart: string): string => {
+    const start = new Date(weekStart);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+  };
+
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    const current = new Date(currentWeek);
+    const newDate = new Date(current);
+    newDate.setDate(current.getDate() + (direction === 'next' ? 7 : -7));
+    setSelectedWeek(newDate.toISOString().split('T')[0]);
+  };
+
+  const goToCurrentWeek = () => {
+    setSelectedWeek("");
+  };
+
+  const isCurrentWeek = currentWeek === getWeekStartFixed();
+
   // Show loading state if essential data is still loading
   if (isLoading || isGoalLoading) {
     return (
@@ -375,6 +414,40 @@ export default function MomentumTracker() {
       <div className="max-w-4xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4">Momentum Tracker</h1>
+          
+          {/* Week Navigation */}
+          <div className="flex items-center justify-center gap-4 mb-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWeek('prev')}
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+            
+            <div className="text-center">
+              <div className="text-lg font-semibold">{formatWeekDisplay(currentWeek)}</div>
+              {!isCurrentWeek && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={goToCurrentWeek}
+                  className="text-blue-600 text-sm"
+                >
+                  Go to current week
+                </Button>
+              )}
+            </div>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateWeek('next')}
+            >
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </div>
+
           <div className="text-lg mb-6">
             <span className="text-2xl font-bold text-blue-600">{currentPoints}</span>
             <span className="text-slate-600"> / {maxPoints} points</span>
@@ -428,12 +501,32 @@ export default function MomentumTracker() {
               <h2 className="text-xl font-semibold mb-4">This Week's Progress</h2>
               <div className="space-y-2">
                 {completedTasks.map((task) => (
-                  <div key={task.id} className="flex items-center justify-between p-2 bg-slate-50 rounded">
-                    <div>
+                  <div key={task.id} className="flex items-center justify-between p-2 bg-slate-50 rounded hover:bg-slate-100">
+                    <div className="flex-1">
                       <span className="font-medium">{task.name}</span>
                       {task.note && <p className="text-sm text-slate-600">{task.note}</p>}
+                      <p className="text-xs text-slate-400">
+                        {new Date(task.completedAt).toLocaleDateString('en-US', { 
+                          weekday: 'short', 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit'
+                        })}
+                      </p>
                     </div>
-                    <span className="font-semibold text-blue-600">+{task.points}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-blue-600">+{task.points}</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteTaskMutation.mutate(task.id)}
+                        disabled={deleteTaskMutation.isPending}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
                 {completedTasks.length === 0 && (
