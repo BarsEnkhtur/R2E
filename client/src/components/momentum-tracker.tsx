@@ -473,6 +473,7 @@ export default function MomentumTracker() {
               variant="outline"
               size="sm"
               onClick={() => navigateWeek('next')}
+              className="hover:bg-slate-50 hover:shadow-sm transition-all"
             >
               <ChevronRight className="w-4 h-4" />
             </Button>
