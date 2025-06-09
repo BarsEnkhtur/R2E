@@ -500,7 +500,7 @@ export default function MomentumTracker() {
           <Card>
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">Tasks</h2>
-              <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {tasks.map((task) => {
                   const IconComponent = task.icon;
                   const currentValue = getCurrentTaskValue(task);
@@ -510,47 +510,53 @@ export default function MomentumTracker() {
                   const streakEmoji = getStreakEmoji(streak);
                   
                   return (
-                    <div key={task.id} className={`flex items-start justify-between p-4 border rounded-lg hover:bg-slate-50 ${onStreak ? 'border-l-4 border-l-yellow-400 bg-blue-50/30' : ''} ${hasAttention ? 'border-l-4 border-l-red-400 bg-red-50/30' : ''}`}>
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className={`p-3 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0`}>
-                          <IconComponent className="w-6 h-6" />
+                    <div key={task.id} className={`flex flex-col p-3 border rounded-lg hover:bg-slate-50 h-full ${onStreak ? 'border-l-4 border-l-yellow-400 bg-blue-50/30' : ''} ${hasAttention ? 'border-l-4 border-l-red-400 bg-red-50/30' : ''}`}>
+                      <div className="flex items-start gap-3 mb-2">
+                        <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0`}>
+                          <IconComponent className="w-5 h-5" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">
-                            <h3 className="font-semibold text-base">{task.name}</h3>
-                            {streakEmoji && <span className="text-xl">{streakEmoji}</span>}
+                            <h3 className="font-semibold text-sm">{task.name}</h3>
+                            {streakEmoji && <span className="text-lg">{streakEmoji}</span>}
                           </div>
-                          <p className="text-sm text-slate-600 mb-2 leading-relaxed">{task.description}</p>
-                          <div className="flex items-center gap-2 flex-wrap">
-                            {streak > 0 && (
-                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                                {streak}x this week
-                              </span>
-                            )}
-                            {hasAttention && (
-                              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-                                ⚠️ Needs attention
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-xs text-slate-600 leading-relaxed">{task.description}</p>
                         </div>
                       </div>
-                      <div className="flex flex-col items-end gap-2 ml-4">
-                        <span className={`font-bold text-lg ${hasAttention ? 'text-red-600' : onStreak ? 'text-yellow-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
-                          +{currentValue}
-                        </span>
-                        {currentValue > task.points && (
-                          <span className="text-xs text-slate-500">
-                            base: {task.points}
-                          </span>
-                        )}
-                        <Button 
-                          size="sm" 
-                          onClick={() => openTaskDialog(task)}
-                          className="mt-1"
-                        >
-                          Add
-                        </Button>
+                      
+                      <div className="flex items-center justify-between mt-auto">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {streak > 0 && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                              {streak}x
+                            </span>
+                          )}
+                          {hasAttention && (
+                            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                              ⚠️
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-2">
+                          <div className="text-right">
+                            <span className={`font-bold ${hasAttention ? 'text-red-600' : onStreak ? 'text-yellow-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
+                              +{currentValue}
+                            </span>
+                            {currentValue > task.points && (
+                              <div className="text-xs text-slate-500">
+                                base: {task.points}
+                              </div>
+                            )}
+                          </div>
+                          <Button 
+                            size="sm" 
+                            onClick={() => openTaskDialog(task)}
+                            className="h-8"
+                          >
+                            Add
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   );
@@ -571,28 +577,12 @@ export default function MomentumTracker() {
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold">{task.name}</span>
                         <span className="font-bold text-blue-600">+{task.points}</span>
-                        {task.note && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleNoteExpansion(task.id)}
-                            className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600"
-                          >
-                            <StickyNote className="w-3 h-3" />
-                          </Button>
-                        )}
                       </div>
                       
-                      {task.note && expandedNotes.has(task.id) && (
+                      {task.note && (
                         <div className="mb-2 p-2 bg-white rounded border-l-2 border-blue-200">
                           <p className="text-sm text-slate-700 italic">"{task.note}"</p>
                         </div>
-                      )}
-                      
-                      {task.note && !expandedNotes.has(task.id) && (
-                        <p className="text-xs text-slate-500 italic truncate mb-1">
-                          "{task.note.length > 40 ? task.note.substring(0, 40) + '...' : task.note}"
-                        </p>
                       )}
                       
                       <p className="text-xs text-slate-400">
