@@ -261,7 +261,7 @@ export default function MomentumTracker() {
   });
 
   // Fetch dynamic goal for current week
-  const { data: dynamicGoalData } = useQuery({
+  const { data: dynamicGoalData, isLoading: isGoalLoading } = useQuery({
     queryKey: ['/api/dynamic-goal', currentWeek],
     queryFn: async (): Promise<{ goal: number }> => {
       const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
@@ -280,13 +280,14 @@ export default function MomentumTracker() {
     }
   });
 
-  const maxPoints = dynamicGoalData?.goal || 15;
-  const currentPoints = completedTasks.reduce((sum, task) => sum + task.points, 0);
-  const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
+  // Calculate points and progress with proper fallbacks
+  const maxPoints = dynamicGoalData?.goal ?? 15;
+  const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum, task) => sum + task.points, 0) : 0;
+  const progressPercentage = maxPoints > 0 ? Math.min((currentPoints / maxPoints) * 100, 100) : 0;
 
   // Helper function to get task stats for a specific task
   const getTaskStats = (taskId: string): TaskStats | undefined => {
-    return taskStats.find(stat => stat.taskId === taskId);
+    return Array.isArray(taskStats) ? taskStats.find(stat => stat.taskId === taskId) : undefined;
   };
 
   // Helper function to check if task needs attention (4+ days since last completion)
@@ -331,7 +332,7 @@ export default function MomentumTracker() {
       queryClient.invalidateQueries({ queryKey: ['/api/task-stats', currentWeek] });
       queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
       // Show achievement if goal reached
-      const currentMaxPoints = dynamicGoalData?.goal || 15;
+      const currentMaxPoints = dynamicGoalData?.goal ?? 15;
       const newPoints = currentPoints + (selectedTask ? getCurrentTaskValue(selectedTask) : 0);
       if (newPoints >= currentMaxPoints) {
         setTimeout(() => {
@@ -501,7 +502,21 @@ export default function MomentumTracker() {
   };
 
   // Combine default tasks with custom tasks
-  const allTasks = [...tasks, ...convertCustomTasksToTasks(customTasks)];
+  const allTasks = [...tasks, ...convertCustomTasksToTasks(Array.isArray(customTasks) ? customTasks : [])];
+
+  // Show loading state if essential data is still loading
+  if (isLoading || isGoalLoading) {
+    return (
+      <div className="min-h-screen py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="text-center py-12">
+            <div className="animate-spin w-12 h-12 border-4 border-slate-300 border-t-blue-600 rounded-full mx-auto mb-4"></div>
+            <p className="text-slate-600">Loading momentum tracker...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen py-8 px-4">
@@ -590,7 +605,7 @@ export default function MomentumTracker() {
             <div className="flex justify-between items-center text-sm text-slate-600">
               <div className="flex items-center space-x-4">
                 <span>Started: <span className="font-medium">This Week</span></span>
-                {taskStats.length > 0 && (
+                {Array.isArray(taskStats) && taskStats.length > 0 && (
                   <div className="flex items-center space-x-2">
                     <TrendingUp className="w-4 h-4 text-green-600" />
                     <span className="text-green-600 font-medium">
