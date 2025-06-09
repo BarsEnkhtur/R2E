@@ -749,51 +749,126 @@ export default function MomentumTracker() {
                     <p className="text-xs mt-1">Start building momentum!</p>
                   </div>
                 ) : (
-                  completedTasks.map((task) => (
-                    <div 
-                      key={task.id}
-                      className="animate-fade-in flex items-center justify-between p-3 rounded-lg bg-emerald-50 border border-emerald-200"
-                    >
-                      <div className="flex items-center space-x-3 flex-1">
-                        <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
-                          <CheckCircle2 className="w-4 h-4 text-white" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-emerald-800">{task.name}</p>
-                          <div className="flex items-center space-x-2 text-xs text-emerald-600">
-                            <span>{new Date(task.completedAt).toLocaleDateString([], {
-                              weekday: 'short',
-                              month: 'short', 
-                              day: 'numeric'
-                            })}</span>
-                            <span>•</span>
-                            <span>{new Date(task.completedAt).toLocaleTimeString([], { 
-                              hour: '2-digit', 
-                              minute: '2-digit' 
-                            })}</span>
-                          </div>
-                          {task.note && (
-                            <div className="flex items-center space-x-1 mt-1">
-                              <StickyNote className="w-3 h-3 text-emerald-500" />
-                              <p className="text-xs text-emerald-700 italic truncate">{task.note}</p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <div className="text-emerald-700 font-semibold text-sm">+{task.points}</div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => deleteCompletedTask(task.id)}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50 h-7 w-7 p-0"
-                          title="Delete task"
+                  [...completedTasks]
+                    .sort((a, b) => {
+                      if (b.points !== a.points) return b.points - a.points;
+                      return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime();
+                    })
+                    .map((task) => {
+                      const maxPoints = Math.max(...completedTasks.map(t => t.points));
+                      const minPoints = Math.min(...completedTasks.map(t => t.points));
+                      const pointRange = maxPoints - minPoints || 1;
+                      const heatLevel = (task.points - minPoints) / pointRange;
+                      
+                      const getHeatStyles = (heat: number) => {
+                        if (heat >= 0.8) {
+                          return {
+                            container: "bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-md",
+                            icon: "bg-gradient-to-br from-red-500 to-orange-500 shadow-lg",
+                            text: "text-red-800",
+                            subtext: "text-red-600",
+                            points: "text-red-700 font-bold text-lg",
+                            note: "text-red-700",
+                            noteIcon: "text-red-500"
+                          };
+                        } else if (heat >= 0.6) {
+                          return {
+                            container: "bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200 shadow-sm",
+                            icon: "bg-gradient-to-br from-orange-500 to-yellow-500",
+                            text: "text-orange-800",
+                            subtext: "text-orange-600",
+                            points: "text-orange-700 font-semibold text-lg",
+                            note: "text-orange-700",
+                            noteIcon: "text-orange-500"
+                          };
+                        } else if (heat >= 0.4) {
+                          return {
+                            container: "bg-gradient-to-r from-yellow-50 to-green-50 border-yellow-200",
+                            icon: "bg-gradient-to-br from-yellow-500 to-green-500",
+                            text: "text-yellow-800",
+                            subtext: "text-yellow-600",
+                            points: "text-yellow-700 font-semibold",
+                            note: "text-yellow-700",
+                            noteIcon: "text-yellow-500"
+                          };
+                        } else {
+                          return {
+                            container: "bg-emerald-50 border-emerald-200",
+                            icon: "bg-emerald-500",
+                            text: "text-emerald-800",
+                            subtext: "text-emerald-600",
+                            points: "text-emerald-700 font-semibold text-sm",
+                            note: "text-emerald-700",
+                            noteIcon: "text-emerald-500"
+                          };
+                        }
+                      };
+
+                      const styles = getHeatStyles(heatLevel);
+                      
+                      return (
+                        <div 
+                          key={task.id}
+                          className={`animate-fade-in flex items-center justify-between p-4 rounded-lg transition-all duration-200 ${styles.container}`}
                         >
-                          <Trash2 className="w-3 h-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))
+                          <div className="flex items-center space-x-3 flex-1">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center relative ${styles.icon}`}>
+                              <CheckCircle2 className="w-5 h-5 text-white" />
+                              {heatLevel >= 0.8 && (
+                                <Flame className="w-3 h-3 text-white absolute -top-1 -right-1" />
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center space-x-2">
+                                <p className={`font-medium ${styles.text}`}>{task.name}</p>
+                                {heatLevel >= 0.8 && (
+                                  <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                                    <Star className="w-3 h-3" />
+                                    <span>High Value</span>
+                                  </div>
+                                )}
+                                {heatLevel >= 0.6 && heatLevel < 0.8 && (
+                                  <div className="flex items-center space-x-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
+                                    <TrendingUp className="w-3 h-3" />
+                                    <span>Good</span>
+                                  </div>
+                                )}
+                              </div>
+                              <div className={`flex items-center space-x-2 text-xs ${styles.subtext}`}>
+                                <span>{new Date(task.completedAt).toLocaleDateString([], {
+                                  weekday: 'short',
+                                  month: 'short', 
+                                  day: 'numeric'
+                                })}</span>
+                                <span>•</span>
+                                <span>{new Date(task.completedAt).toLocaleTimeString([], { 
+                                  hour: '2-digit', 
+                                  minute: '2-digit' 
+                                })}</span>
+                              </div>
+                              {task.note && (
+                                <div className="flex items-center space-x-1 mt-1">
+                                  <StickyNote className={`w-3 h-3 ${styles.noteIcon}`} />
+                                  <p className={`text-xs ${styles.note} italic truncate`}>{task.note}</p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-3">
+                            <div className={styles.points}>+{task.points}</div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => deleteCompletedTask(task.id)}
+                              className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                              title="Delete task"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })
                 )}
               </div>
 
