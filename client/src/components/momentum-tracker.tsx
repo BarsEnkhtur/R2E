@@ -450,6 +450,7 @@ export default function MomentumTracker() {
               variant="outline"
               size="sm"
               onClick={() => navigateWeek('prev')}
+              className="hover:bg-slate-50 hover:shadow-sm transition-all"
             >
               <ChevronLeft className="w-4 h-4" />
             </Button>
@@ -461,7 +462,7 @@ export default function MomentumTracker() {
                   variant="link"
                   size="sm"
                   onClick={goToCurrentWeek}
-                  className="text-blue-600 text-sm"
+                  className="text-blue-600 text-sm hover:text-blue-700 hover:underline transition-all"
                 >
                   Go to current week
                 </Button>
@@ -510,7 +511,7 @@ export default function MomentumTracker() {
                   const streakEmoji = getStreakEmoji(streak);
                   
                   return (
-                    <div key={task.id} className={`flex flex-col p-3 border rounded-lg hover:bg-slate-50 h-full ${onStreak ? 'border-l-4 border-l-yellow-400 bg-blue-50/30' : ''} ${hasAttention ? 'border-l-4 border-l-red-400 bg-red-50/30' : ''}`}>
+                    <div key={task.id} className={`flex flex-col p-3 border rounded-lg hover:bg-slate-50 hover:shadow-sm transition-all h-full bg-[#F9FAFB] ${onStreak ? 'border-l-4 border-l-blue-400 bg-blue-50/30' : ''} ${hasAttention ? 'border-l-4 border-l-red-400 bg-red-50/30' : ''}`}>
                       <div className="flex items-start gap-3 mb-2">
                         <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0`}>
                           <IconComponent className="w-5 h-5" />
@@ -540,7 +541,7 @@ export default function MomentumTracker() {
                         
                         <div className="flex items-center gap-2">
                           <div className="text-right">
-                            <span className={`font-bold ${hasAttention ? 'text-red-600' : onStreak ? 'text-yellow-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
+                            <span className={`font-bold ${hasAttention ? 'text-red-600' : onStreak ? 'text-blue-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
                               +{currentValue}
                             </span>
                             {currentValue > task.points && (
@@ -552,7 +553,7 @@ export default function MomentumTracker() {
                           <Button 
                             size="sm" 
                             onClick={() => openTaskDialog(task)}
-                            className="h-8"
+                            className="h-8 hover:bg-blue-600 hover:shadow-sm transition-all"
                           >
                             Add
                           </Button>
@@ -572,7 +573,7 @@ export default function MomentumTracker() {
                 {completedTasks
                   .sort((a, b) => b.points - a.points) // Sort by highest points first
                   .map((task) => (
-                  <div key={task.id} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 border border-slate-200">
+                  <div key={task.id} className="flex items-start justify-between p-3 bg-[#F9FAFB] rounded-lg hover:bg-slate-50 hover:shadow-sm transition-all border border-slate-200">
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="font-semibold">{task.name}</span>
@@ -580,9 +581,7 @@ export default function MomentumTracker() {
                       </div>
                       
                       {task.note && (
-                        <div className="mb-2 p-2 bg-white rounded border-l-2 border-blue-200">
-                          <p className="text-sm text-slate-700 italic">"{task.note}"</p>
-                        </div>
+                        <p className="task-note text-sm text-slate-700 italic mb-2">"{task.note}"</p>
                       )}
                       
                       <p className="text-xs text-slate-400">
@@ -601,7 +600,7 @@ export default function MomentumTracker() {
                         size="sm"
                         onClick={() => deleteTaskMutation.mutate(task.id)}
                         disabled={deleteTaskMutation.isPending}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:shadow-sm transition-all h-8 w-8 p-0"
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
