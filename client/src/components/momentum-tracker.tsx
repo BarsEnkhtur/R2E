@@ -328,17 +328,14 @@ export default function MomentumTracker() {
       return response.json();
     },
     onSuccess: () => {
+      // Always navigate to current week after adding a task
+      setSelectedWeek("");
+      
       // Invalidate all relevant caches
       queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
       queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
       queryClient.invalidateQueries({ queryKey: ['/api/dynamic-goal'] });
-      
-      // Navigate to current week to show the newly added task
-      const actualCurrentWeek = getCurrentWeekStart();
-      if (currentWeek !== actualCurrentWeek) {
-        setSelectedWeek("");
-      }
       
       // Show achievement if goal reached
       const currentMaxPoints = dynamicGoalData?.goal ?? 15;
