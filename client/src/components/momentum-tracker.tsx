@@ -1239,7 +1239,7 @@ Keep the momentum going! 💼
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
               <Target className="h-6 w-6 text-blue-600" />
-              <span className="text-lg font-semibold text-gray-900">Road2Employment</span>
+              <span className="text-lg font-semibold text-gray-900">Adulting XP</span>
             </div>
             <div className="flex items-center space-x-2">
               <span className="text-sm text-gray-600 hidden sm:block">Demo User</span>
