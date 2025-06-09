@@ -220,19 +220,30 @@ export default function MomentumTracker() {
   
   const queryClient = useQueryClient();
 
-  // Helper function to get current week start date
+  // Helper function to get current week start date (Monday)
   const getCurrentWeekStart = (): string => {
-    const d = new Date();
-    const day = d.getDay() || 7;
-    d.setDate(d.getDate() - day + 1);
-    return d.toISOString().split('T')[0];
+    const today = new Date();
+    const currentDay = today.getDay(); // 0=Sunday, 1=Monday, etc.
+    
+    // Calculate days to subtract to get to Monday
+    let daysToSubtract;
+    if (currentDay === 0) { // Sunday
+      daysToSubtract = 6;
+    } else { // Monday (1) to Saturday (6)
+      daysToSubtract = currentDay - 1;
+    }
+    
+    const monday = new Date(today);
+    monday.setDate(today.getDate() - daysToSubtract);
+    return monday.toISOString().split('T')[0];
   };
 
   const currentWeek = selectedWeek || getCurrentWeekStart();
 
   // Debug logging
+  const calculatedWeekStart = getCurrentWeekStart();
   console.log('Current selectedWeek:', selectedWeek);
-  console.log('getCurrentWeekStart():', getCurrentWeekStart());
+  console.log('getCurrentWeekStart():', calculatedWeekStart);
   console.log('Final currentWeek:', currentWeek);
 
   // Fetch completed tasks from database
