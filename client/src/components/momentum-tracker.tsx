@@ -64,7 +64,8 @@ import {
   X,
   Search,
   GripVertical,
-  Edit
+  Edit,
+  Share
 } from "lucide-react";
 
 interface Task {
@@ -500,6 +501,7 @@ export default function MomentumTracker() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [showShareSnapshot, setShowShareSnapshot] = useState(false);
   const [customTaskForm, setCustomTaskForm] = useState({
     id: "",
     name: "",
@@ -876,6 +878,82 @@ export default function MomentumTracker() {
     return powerHours;
   };
 
+  // Generate shareable snapshot text
+  const generateSnapshot = () => {
+    const stats = calculateWeeklyStats();
+    const userStats = calculateUserStats();
+    const unlockedBadges = getUnlockedBadges();
+    const streakInfo = getCurrentStreak();
+    const weekDisplay = formatWeekDisplay(currentWeek);
+    
+    const topTasks = completedTasks
+      .sort((a, b) => b.points - a.points)
+      .slice(0, 3)
+      .map(task => `• ${task.name} (+${task.points} pts)`)
+      .join('\n');
+    
+    const badgesList = unlockedBadges.length > 0 
+      ? unlockedBadges.slice(-3).map(badge => `${badge.icon} ${badge.name}`).join(' ')
+      : 'Working toward first achievements';
+    
+    return `🚀 Road2Employment - Week of ${weekDisplay}
+
+📊 This Week's Progress:
+• ${stats.totalPoints}/${maxPoints} points (${Math.round(progressPercentage)}%)
+• ${stats.tasksCompleted} tasks completed
+• ${stats.uniqueTaskTypes} different task types
+${streakInfo.streak > 0 ? `• ${streakInfo.streakIcon} ${streakInfo.streakText}` : ''}
+
+🏆 Top Completed Tasks:
+${topTasks || '• No tasks completed this week'}
+
+🎯 Recent Achievements:
+${badgesList}
+
+💪 Total Stats:
+• ${userStats.totalTasks} total tasks completed
+• ${userStats.longestStreak} day longest streak
+• ${userStats.bestWeekPoints} points best week
+
+Keep the momentum going! 💼
+
+#Road2Employment #ProductivityTracker #CareerGrowth`;
+  };
+
+  // Copy snapshot to clipboard
+  const copySnapshot = async () => {
+    try {
+      await navigator.clipboard.writeText(generateSnapshot());
+      // Could add a toast notification here
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = generateSnapshot();
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+    }
+  };
+
+  // Share via Web Share API or fallback to copy
+  const shareSnapshot = async () => {
+    const snapshotText = generateSnapshot();
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Road2Employment - Weekly Progress',
+          text: snapshotText,
+        });
+      } catch (err) {
+        await copySnapshot();
+      }
+    } else {
+      await copySnapshot();
+    }
+  };
+
   // Get unlocked badges
   const getUnlockedBadges = () => {
     const stats = calculateUserStats();
@@ -1171,8 +1249,8 @@ export default function MomentumTracker() {
               </Button>
             </div>
 
-            {/* Weekly Stats Button */}
-            <div className="flex justify-center">
+            {/* Weekly Stats and Share Buttons */}
+            <div className="flex justify-center gap-3">
               <Button
                 onClick={() => setShowWeeklyStats(true)}
                 variant="outline"
@@ -1181,6 +1259,15 @@ export default function MomentumTracker() {
               >
                 <BarChart3 className="w-4 h-4 mr-2" />
                 View Weekly Stats
+              </Button>
+              <Button
+                onClick={() => setShowShareSnapshot(true)}
+                variant="outline"
+                size="sm"
+                className="hover:bg-green-50 hover:border-green-300 transition-all text-xs lg:text-sm"
+              >
+                <Share className="w-4 h-4 mr-2" />
+                Share Progress
               </Button>
             </div>
           </div>
@@ -1686,6 +1773,63 @@ export default function MomentumTracker() {
                         </div>
                       </div>
                     )}
+                  </>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Share Snapshot Modal */}
+        <Dialog open={showShareSnapshot} onOpenChange={setShowShareSnapshot}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Share className="w-5 h-5 text-green-500" />
+                Share Weekly Progress
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {(() => {
+                const snapshotText = generateSnapshot();
+                
+                return (
+                  <>
+                    {/* Preview of the snapshot */}
+                    <div className="bg-slate-50 p-4 rounded-lg border">
+                      <h3 className="font-medium mb-3 text-slate-700">Preview:</h3>
+                      <div className="whitespace-pre-line text-sm text-slate-600 font-mono leading-relaxed">
+                        {snapshotText}
+                      </div>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <Button
+                        onClick={shareSnapshot}
+                        className="flex-1 bg-green-600 hover:bg-green-700"
+                      >
+                        <Share className="w-4 h-4 mr-2" />
+                        Share Progress
+                      </Button>
+                      <Button
+                        onClick={copySnapshot}
+                        variant="outline"
+                        className="flex-1"
+                      >
+                        Copy to Clipboard
+                      </Button>
+                    </div>
+
+                    {/* Social sharing suggestions */}
+                    <div className="text-center">
+                      <p className="text-sm text-slate-500 mb-2">
+                        Share your progress on social media to inspire others!
+                      </p>
+                      <div className="text-xs text-slate-400">
+                        Perfect for LinkedIn, Twitter, or team updates
+                      </div>
+                    </div>
                   </>
                 );
               })()}
