@@ -62,7 +62,8 @@ import {
   Palette,
   X,
   Search,
-  GripVertical
+  GripVertical,
+  Edit
 } from "lucide-react";
 
 interface Task {
@@ -377,7 +378,7 @@ const badges: Badge[] = [
 ];
 
 // Sortable Task Item Component
-function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji }: {
+function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji, openTaskForm }: {
   task: Task;
   openTaskDialog: (task: Task) => void;
   getCurrentTaskValue: (task: Task) => number;
@@ -385,6 +386,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
   getTaskStreak: (taskId: string) => number;
   isOnStreak: (taskId: string) => boolean;
   getStreakEmoji: (streak: number) => string;
+  openTaskForm: (task?: Task) => void;
 }) {
   const {
     attributes,
@@ -464,6 +466,15 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
               className="h-8 hover:bg-blue-600 hover:shadow-sm transition-all"
             >
               Add
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openTaskForm(task)}
+              className="h-8 opacity-60 hover:opacity-100 text-slate-500 hover:text-slate-700"
+              title="Edit task"
+            >
+              <Edit className="w-4 h-4" />
             </Button>
           </div>
         </div>
@@ -1181,7 +1192,7 @@ export default function MomentumTracker() {
           </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
+        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-[3fr_2fr]">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -1510,6 +1521,89 @@ export default function MomentumTracker() {
                         Continue to Next Week
                       </Button>
                     </div>
+                  </>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Achievements Modal */}
+        <Dialog open={showAchievements} onOpenChange={setShowAchievements}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-yellow-500" />
+                Achievements
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {(() => {
+                const stats = calculateUserStats();
+                const unlockedBadges = getUnlockedBadges();
+                const lockedBadges = badges.filter(badge => !unlockedBadges.includes(badge));
+                
+                return (
+                  <>
+                    {/* Achievement Statistics */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-lg">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-blue-600">{stats.totalTasks}</div>
+                        <div className="text-sm text-slate-600">Total Tasks</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-green-600">{stats.longestStreak}</div>
+                        <div className="text-sm text-slate-600">Longest Streak</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-purple-600">{stats.bestWeekPoints}</div>
+                        <div className="text-sm text-slate-600">Best Week</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-yellow-600">{unlockedBadges.length}/{badges.length}</div>
+                        <div className="text-sm text-slate-600">Badges</div>
+                      </div>
+                    </div>
+
+                    {/* Unlocked Badges */}
+                    {unlockedBadges.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3 text-green-700">Unlocked Badges ({unlockedBadges.length})</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {unlockedBadges.map(badge => (
+                            <div
+                              key={badge.id}
+                              className="p-4 bg-green-50 border border-green-200 rounded-lg text-center hover:bg-green-100 transition-colors"
+                            >
+                              <div className="text-3xl mb-2">{badge.icon}</div>
+                              <div className="font-medium text-green-800">{badge.name}</div>
+                              <div className="text-xs text-green-600 mt-1">{badge.criteria}</div>
+                              <div className="text-xs text-slate-600 mt-2">{badge.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Locked Badges */}
+                    {lockedBadges.length > 0 && (
+                      <div>
+                        <h3 className="text-lg font-semibold mb-3 text-slate-600">Locked Badges ({lockedBadges.length})</h3>
+                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                          {lockedBadges.map(badge => (
+                            <div
+                              key={badge.id}
+                              className="p-4 bg-slate-50 border border-slate-200 rounded-lg text-center opacity-60"
+                            >
+                              <div className="text-3xl mb-2 grayscale">{badge.icon}</div>
+                              <div className="font-medium text-slate-600">{badge.name}</div>
+                              <div className="text-xs text-slate-500 mt-1">{badge.criteria}</div>
+                              <div className="text-xs text-slate-500 mt-2">{badge.description}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </>
                 );
               })()}
