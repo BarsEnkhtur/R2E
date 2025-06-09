@@ -3,6 +3,15 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCompletedTaskSchema, insertCustomTaskSchema } from "@shared/schema";
 
+// Demo user ID for unauthenticated users
+const DEMO_USER_ID = "demo_user";
+
+// Helper to get user ID (demo for unauthenticated, real for authenticated)
+function getUserId(req: any): string {
+  // For now, return demo user - we'll add auth later
+  return DEMO_USER_ID;
+}
+
 // Helper function to get current week start date (Monday)
 function getWeekStartDate(date: Date): string {
   const d = new Date(date);
@@ -15,9 +24,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get completed tasks (optionally filtered by week)
   app.get("/api/completed-tasks", async (req, res) => {
     try {
+      const userId = getUserId(req);
       const weekStartDate = req.query.week as string | undefined;
       const currentWeek = weekStartDate || getWeekStartDate(new Date());
-      const tasks = await storage.getCompletedTasks(currentWeek);
+      const tasks = await storage.getCompletedTasks(userId, currentWeek);
       res.json(tasks);
     } catch (error) {
       console.error(`Error fetching completed tasks: ${error}`);
@@ -28,16 +38,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Create a new completed task with compounding logic
   app.post("/api/completed-tasks", async (req, res) => {
     try {
+      const userId = getUserId(req);
       const { taskId, name, points: basePoints, note } = req.body;
       const now = new Date();
       const weekStartDate = getWeekStartDate(now);
 
       // Get or create task stats for this week
-      let taskStat = await storage.getTaskStatByTaskId(taskId, weekStartDate);
+      let taskStat = await storage.getTaskStatByTaskId(userId, taskId, weekStartDate);
       
       if (!taskStat) {
         // First time doing this task this week
         taskStat = await storage.createTaskStats({
+          userId,
           taskId,
           taskName: name,
           basePoints,
@@ -52,7 +64,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const compoundingBonus = Math.min((newTimesThisWeek - 1) * 0.5, basePoints); // Cap at 2x base
         const newCurrentValue = Math.min(basePoints + compoundingBonus, basePoints * 2);
         
-        taskStat = await storage.updateTaskStats(taskId, weekStartDate, {
+        taskStat = await storage.updateTaskStats(userId, taskId, weekStartDate, {
           currentValue: newCurrentValue,
           timesThisWeek: newTimesThisWeek,
           lastCompleted: now
@@ -61,6 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Create completed task with current value
       const task = await storage.createCompletedTask({
+        userId,
         taskId,
         name,
         points: taskStat.currentValue,
@@ -69,9 +82,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       // Update weekly history
-      const weekTasks = await storage.getCompletedTasks(weekStartDate);
+      const weekTasks = await storage.getCompletedTasks(userId, weekStartDate);
       const totalPoints = weekTasks.reduce((sum, t) => sum + t.points, 0);
       await storage.createOrUpdateWeeklyHistory({
+        userId,
         weekStartDate,
         totalPoints,
         tasksCompleted: weekTasks.length
@@ -133,8 +147,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get task stats for current week (for frontend display)
   app.get("/api/task-stats", async (req, res) => {
     try {
+      const userId = getUserId(req);
       const weekStartDate = req.query.week as string || getWeekStartDate(new Date());
-      const stats = await storage.getTaskStats(weekStartDate);
+      const stats = await storage.getTaskStats(userId, weekStartDate);
       res.json(stats);
     } catch (error) {
       console.error(`Error fetching task stats: ${error}`);
@@ -145,7 +160,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Get weekly history
   app.get("/api/weekly-history", async (req, res) => {
     try {
-      const history = await storage.getWeeklyHistory();
+      const userId = getUserId(req);
+      const history = await storage.getWeeklyHistory(userId);
       res.json(history);
     } catch (error) {
       console.error(`Error fetching weekly history: ${error}`);
