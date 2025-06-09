@@ -188,7 +188,6 @@ export default function MomentumTracker() {
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   
   const queryClient = useQueryClient();
-  const maxPoints = 15;
 
   // Helper function to get current week start date
   const getCurrentWeekStart = (): string => {
@@ -230,6 +229,17 @@ export default function MomentumTracker() {
     }
   });
 
+  // Fetch dynamic goal for current week
+  const { data: dynamicGoalData } = useQuery({
+    queryKey: ['/api/dynamic-goal', currentWeek],
+    queryFn: async (): Promise<{ goal: number }> => {
+      const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
+      if (!response.ok) throw new Error('Failed to fetch dynamic goal');
+      return await response.json();
+    }
+  });
+
+  const maxPoints = dynamicGoalData?.goal || 15;
   const currentPoints = completedTasks.reduce((sum, task) => sum + task.points, 0);
   const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
 
@@ -280,8 +290,9 @@ export default function MomentumTracker() {
       queryClient.invalidateQueries({ queryKey: ['/api/task-stats', currentWeek] });
       queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
       // Show achievement if goal reached
+      const currentMaxPoints = dynamicGoalData?.goal || 15;
       const newPoints = currentPoints + (selectedTask ? getCurrentTaskValue(selectedTask) : 0);
-      if (newPoints >= maxPoints) {
+      if (newPoints >= currentMaxPoints) {
         setTimeout(() => {
           setShowAchievement(true);
         }, 500);
@@ -322,7 +333,8 @@ export default function MomentumTracker() {
   });
 
   const addPoints = (task: Task, note?: string) => {
-    if (currentPoints >= maxPoints) return;
+    const currentMaxPoints = dynamicGoalData?.goal || 15;
+    if (currentPoints >= currentMaxPoints) return;
     
     createTaskMutation.mutate({
       taskId: task.id,

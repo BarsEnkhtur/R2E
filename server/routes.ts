@@ -153,6 +153,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get dynamic goal for a specific week
+  app.get("/api/dynamic-goal/:week", async (req, res) => {
+    try {
+      const { week } = req.params;
+      const dynamicGoal = await storage.calculateDynamicGoal(week);
+      res.json({ goal: dynamicGoal });
+    } catch (error) {
+      console.error(`Error calculating dynamic goal: ${error}`);
+      res.status(500).json({ error: "Failed to calculate dynamic goal" });
+    }
+  });
+
   const httpServer = createServer(app);
 
   return httpServer;
