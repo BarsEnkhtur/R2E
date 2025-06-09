@@ -421,9 +421,10 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
         <div 
           {...attributes} 
           {...listeners}
-          className="p-1 rounded cursor-grab active:cursor-grabbing hover:bg-slate-200 transition-colors flex-shrink-0"
+          className="p-2 rounded cursor-grab active:cursor-grabbing hover:bg-slate-200 transition-colors flex-shrink-0 touch-manipulation"
+          style={{ touchAction: 'none' }}
         >
-          <GripVertical className="w-4 h-4 text-slate-400" />
+          <GripVertical className="w-5 h-5 text-slate-400" />
         </div>
         <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0`}>
           <IconComponent className="w-5 h-5" />
@@ -466,7 +467,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
             <Button 
               size="sm" 
               onClick={() => openTaskDialog(task)}
-              className="h-8 hover:bg-blue-600 hover:shadow-sm transition-all"
+              className="h-10 px-4 hover:bg-blue-600 hover:shadow-sm transition-all touch-manipulation min-w-[60px]"
             >
               Add
             </Button>
@@ -474,7 +475,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
               variant="ghost"
               size="sm"
               onClick={() => openTaskForm(task)}
-              className="h-8 opacity-60 hover:opacity-100 text-slate-500 hover:text-slate-700"
+              className="h-10 w-10 opacity-60 hover:opacity-100 text-slate-500 hover:text-slate-700 touch-manipulation"
               title="Edit task"
             >
               <Edit className="w-4 h-4" />
@@ -520,9 +521,13 @@ export default function MomentumTracker() {
   const urlParams = new URLSearchParams(window.location.search);
   const isDemoMode = urlParams.has('demo');
 
-  // Set up drag and drop sensors
+  // Set up drag and drop sensors with mobile optimization
   const sensors = useSensors(
-    useSensor(PointerSensor),
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px movement before starting drag
+      },
+    }),
     useSensor(KeyboardSensor, {
       coordinateGetter: sortableKeyboardCoordinates,
     })
@@ -1482,7 +1487,7 @@ Keep the momentum going! 💼
 
         <div className="grid gap-6 xl:grid-cols-[3fr_2fr]">
           <Card>
-            <CardContent className="p-6">
+            <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Tasks</h2>
                 <div className="flex items-center gap-3">
