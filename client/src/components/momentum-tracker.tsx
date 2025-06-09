@@ -1129,58 +1129,67 @@ export default function MomentumTracker() {
   }
 
   return (
-    <div className="min-h-screen py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4">Road2Employment</h1>
-          
-          {/* Week Navigation */}
-          <div className="flex items-center justify-center gap-4 mb-6">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigateWeek('prev')}
-              className="hover:bg-slate-50 hover:shadow-sm transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
-            </Button>
+    <div className="min-h-screen">
+      {/* Sticky Header */}
+      <div className="sticky top-0 bg-white z-40 border-b border-slate-200 py-4 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center">
+            <h1 className="text-2xl lg:text-4xl font-bold mb-4">Road2Employment</h1>
             
-            <div className="text-center">
-              <div className="text-lg font-semibold">{formatWeekDisplay(currentWeek)}</div>
-              {!isCurrentWeek && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={goToCurrentWeek}
-                  className="text-blue-600 text-sm hover:text-blue-700 hover:underline transition-all"
-                >
-                  Go to current week
-                </Button>
-              )}
+            {/* Week Navigation */}
+            <div className="flex items-center justify-center gap-2 lg:gap-4 mb-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateWeek('prev')}
+                className="hover:bg-slate-50 hover:shadow-sm transition-all"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </Button>
+              
+              <div className="text-center min-w-[160px] lg:min-w-[200px]">
+                <div className="text-sm lg:text-lg font-semibold">{formatWeekDisplay(currentWeek)}</div>
+                {!isCurrentWeek && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={goToCurrentWeek}
+                    className="text-blue-600 text-xs lg:text-sm hover:text-blue-700 hover:underline transition-all"
+                  >
+                    Go to current week
+                  </Button>
+                )}
+              </div>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateWeek('next')}
+                className="hover:bg-slate-50 hover:shadow-sm transition-all"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </Button>
             </div>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigateWeek('next')}
-              className="hover:bg-slate-50 hover:shadow-sm transition-all"
-            >
-              <ChevronRight className="w-4 h-4" />
-            </Button>
-          </div>
 
-          {/* Weekly Stats Button */}
-          <div className="flex justify-center mb-6">
-            <Button
-              onClick={() => setShowWeeklyStats(true)}
-              variant="outline"
-              size="sm"
-              className="hover:bg-blue-50 hover:border-blue-300 transition-all"
-            >
-              <BarChart3 className="w-4 h-4 mr-2" />
-              View Weekly Stats
-            </Button>
+            {/* Weekly Stats Button */}
+            <div className="flex justify-center">
+              <Button
+                onClick={() => setShowWeeklyStats(true)}
+                variant="outline"
+                size="sm"
+                className="hover:bg-blue-50 hover:border-blue-300 transition-all text-xs lg:text-sm"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                View Weekly Stats
+              </Button>
+            </div>
           </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="px-4 py-6">
+        <div className="max-w-6xl mx-auto">
 
           {/* Compact Progress Module */}
           <div className="flex items-center justify-center gap-4 mb-4 max-w-2xl mx-auto">
@@ -1193,11 +1202,6 @@ export default function MomentumTracker() {
             <div className="text-sm text-slate-600 whitespace-nowrap">
               {Math.round(progressPercentage)}%
             </div>
-            {Array.isArray(taskStats) && taskStats.filter(stat => stat.timesThisWeek >= 3).length > 0 && (
-              <div className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs whitespace-nowrap">
-                🔥 {taskStats.filter(stat => stat.timesThisWeek >= 3).length}
-              </div>
-            )}
           </div>
 
           {/* Streak and Badge Widget */}
@@ -1269,7 +1273,7 @@ export default function MomentumTracker() {
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-1 lg:grid-cols-[3fr_2fr]">
+        <div className="grid gap-6 xl:grid-cols-[3fr_2fr]">
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
@@ -1289,7 +1293,7 @@ export default function MomentumTracker() {
                       placeholder="Search tasks..."
                       value={searchFilter}
                       onChange={(e) => setSearchFilter(e.target.value)}
-                      className="pl-10 w-48 h-9"
+                      className="pl-10 w-36 lg:w-48 h-9"
                     />
                   </div>
                 </div>
@@ -1304,7 +1308,7 @@ export default function MomentumTracker() {
                   items={getFilteredAndSortedTasks().map(task => task.id)}
                   strategy={verticalListSortingStrategy}
                 >
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                     {getFilteredAndSortedTasks().map((task) => (
                       <SortableTaskItem
                         key={task.id}
