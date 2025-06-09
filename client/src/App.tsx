@@ -11,10 +11,16 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
+  
+  // Check for demo mode in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const isDemoMode = urlParams.has('demo');
 
   return (
     <Switch>
-      {isLoading || !isAuthenticated ? (
+      {isDemoMode ? (
+        <Route path="/" component={Home} />
+      ) : isLoading || !isAuthenticated ? (
         <Route path="/" component={Landing} />
       ) : (
         <>

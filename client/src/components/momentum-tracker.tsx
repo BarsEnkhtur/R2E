@@ -515,6 +515,10 @@ export default function MomentumTracker() {
   
   const queryClient = useQueryClient();
   const { user, isLoading: isAuthLoading } = useAuth();
+  
+  // Check for demo mode in URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const isDemoMode = urlParams.has('demo');
 
   // Set up drag and drop sensors
   const sensors = useSensors(
@@ -587,6 +591,10 @@ export default function MomentumTracker() {
     queryKey: ['/api/completed-tasks', currentWeek],
     queryFn: async (): Promise<CompletedTask[]> => {
       console.log('Fetching tasks for week:', currentWeek);
+      if (isDemoMode && !user) {
+        // In demo mode without authentication, return empty array
+        return [];
+      }
       const response = await fetch(`/api/completed-tasks?week=${currentWeek}`);
       if (!response.ok) throw new Error('Failed to fetch tasks');
       const data = await response.json();
@@ -599,6 +607,7 @@ export default function MomentumTracker() {
   const { data: taskStats = [] } = useQuery({
     queryKey: ['/api/task-stats', currentWeek],
     queryFn: async (): Promise<TaskStats[]> => {
+      if (isDemoMode && !user) return [];
       const response = await fetch(`/api/task-stats?week=${currentWeek}`);
       if (!response.ok) throw new Error('Failed to fetch task stats');
       return await response.json();
@@ -609,6 +618,7 @@ export default function MomentumTracker() {
   const { data: weeklyHistory = [] } = useQuery({
     queryKey: ['/api/weekly-history'],
     queryFn: async (): Promise<WeeklyHistory[]> => {
+      if (isDemoMode && !user) return [];
       const response = await fetch('/api/weekly-history');
       if (!response.ok) throw new Error('Failed to fetch weekly history');
       return await response.json();
@@ -619,6 +629,7 @@ export default function MomentumTracker() {
   const { data: dynamicGoalData, isLoading: isGoalLoading } = useQuery({
     queryKey: ['/api/dynamic-goal', currentWeek],
     queryFn: async (): Promise<{ goal: number }> => {
+      if (isDemoMode && !user) return { goal: 15 };
       const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
       if (!response.ok) throw new Error('Failed to fetch dynamic goal');
       return await response.json();
@@ -629,6 +640,7 @@ export default function MomentumTracker() {
   const { data: customTasks = [] } = useQuery({
     queryKey: ['/api/custom-tasks'],
     queryFn: async (): Promise<CustomTask[]> => {
+      if (isDemoMode && !user) return [];
       const response = await fetch('/api/custom-tasks');
       if (!response.ok) throw new Error('Failed to fetch custom tasks');
       return await response.json();
@@ -1244,7 +1256,35 @@ Keep the momentum going! 💼
               <span className="text-lg font-semibold text-gray-900">Road2Employment</span>
             </div>
             <div className="flex items-center space-x-2">
-              {user ? (
+              {user && !isDemoMode ? (
+                <>
+                  {(user as any)?.id !== 'demo_user' && (
+                    <span className="text-sm text-gray-600 hidden sm:block">
+                      {(user as any)?.email || (user as any)?.id || 'User'}
+                    </span>
+                  )}
+                  {(user as any)?.id === 'demo_user' && (
+                    <span className="text-sm text-gray-600 hidden sm:block">Demo User</span>
+                  )}
+                  <Button
+                    onClick={() => window.location.href = '/api/logout'}
+                    variant="outline"
+                    size="sm"
+                    className="text-sm"
+                  >
+                    Sign Out
+                  </Button>
+                </>
+              ) : isDemoMode && !user ? (
+                <Button
+                  onClick={() => window.location.href = '/api/login'}
+                  variant="outline"
+                  size="sm"
+                  className="text-sm"
+                >
+                  Sign In
+                </Button>
+              ) : user ? (
                 <>
                   {(user as any)?.id !== 'demo_user' && (
                     <span className="text-sm text-gray-600 hidden sm:block">
