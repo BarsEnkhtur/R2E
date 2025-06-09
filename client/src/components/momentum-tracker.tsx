@@ -398,9 +398,6 @@ export default function MomentumTracker() {
   });
 
   const addPoints = (task: Task, note?: string) => {
-    const currentMaxPoints = dynamicGoalData?.goal || 15;
-    if (currentPoints >= currentMaxPoints) return;
-    
     createTaskMutation.mutate({
       taskId: task.id,
       name: task.name,
