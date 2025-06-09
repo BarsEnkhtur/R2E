@@ -220,31 +220,24 @@ export default function MomentumTracker() {
   
   const queryClient = useQueryClient();
 
-  // Helper function to get current week start date (Monday)
-  const getCurrentWeekStart = (): string => {
-    const today = new Date();
-    const currentDay = today.getDay(); // 0=Sunday, 1=Monday, etc.
+  // Helper function to get current week start date (Monday) using UTC
+  const getWeekStartFixed = (): string => {
+    const now = new Date();
+    // Use UTC to match server timezone
+    const utcDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const dayOfWeek = utcDate.getDay(); // 0=Sunday, 1=Monday, etc.
     
-    // Calculate days to subtract to get to Monday
-    let daysToSubtract;
-    if (currentDay === 0) { // Sunday
-      daysToSubtract = 6;
-    } else { // Monday (1) to Saturday (6)
-      daysToSubtract = currentDay - 1;
-    }
+    // Calculate days to go back to Monday
+    const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     
-    const monday = new Date(today);
-    monday.setDate(today.getDate() - daysToSubtract);
-    return monday.toISOString().split('T')[0];
+    const weekStart = new Date(utcDate);
+    weekStart.setDate(utcDate.getDate() - daysBack);
+    return weekStart.toISOString().split('T')[0];
   };
 
-  const currentWeek = selectedWeek || getCurrentWeekStart();
+  const currentWeek = selectedWeek || getWeekStartFixed();
 
-  // Debug logging
-  const calculatedWeekStart = getCurrentWeekStart();
-  console.log('Current selectedWeek:', selectedWeek);
-  console.log('getCurrentWeekStart():', calculatedWeekStart);
-  console.log('Final currentWeek:', currentWeek);
+
 
   // Fetch completed tasks from database
   const { data: completedTasks = [], isLoading } = useQuery({
@@ -348,7 +341,7 @@ export default function MomentumTracker() {
     },
     onSuccess: () => {
       // Always navigate to current week after adding a task
-      const actualCurrentWeek = getCurrentWeekStart();
+      const actualCurrentWeek = getWeekStartFixed();
       setSelectedWeek("");
       
       // Force refetch by removing all cached data
