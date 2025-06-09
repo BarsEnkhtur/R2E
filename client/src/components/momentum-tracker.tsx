@@ -862,7 +862,7 @@ export default function MomentumTracker() {
                               variant="ghost"
                               size="sm"
                               onClick={() => deleteCompletedTask(task.id)}
-                              className="text-red-500 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
+                              className="btn-ghost text-red-500 hover:text-red-700 h-8 w-8 p-0"
                               title="Delete task"
                             >
                               <Trash2 className="w-3 h-3" />
@@ -922,12 +922,13 @@ export default function MomentumTracker() {
                   <Button 
                     variant="outline" 
                     onClick={() => setIsDialogOpen(false)}
+                    className="btn-ghost"
                   >
                     Cancel
                   </Button>
                   <Button 
                     onClick={handleTaskSubmit}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    className="btn-primary"
                   >
                     Add Task
                   </Button>
@@ -948,7 +949,7 @@ export default function MomentumTracker() {
               <p className="text-slate-600 mb-4">You've reached your 15-point goal. Amazing momentum!</p>
               <Button 
                 onClick={closeAchievement}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+                className="btn-primary px-6 py-2"
               >
                 Continue
               </Button>
@@ -1036,7 +1037,7 @@ export default function MomentumTracker() {
               <div className="flex space-x-2 pt-4">
                 <Button 
                   type="submit"
-                  className="flex-1"
+                  className="btn-primary flex-1"
                   disabled={createCustomTaskMutation.isPending}
                 >
                   {createCustomTaskMutation.isPending ? "Creating..." : "Create Task"}
@@ -1045,6 +1046,7 @@ export default function MomentumTracker() {
                   type="button"
                   variant="outline" 
                   onClick={() => setShowCustomTaskForm(false)}
+                  className="btn-ghost"
                 >
                   Cancel
                 </Button>
