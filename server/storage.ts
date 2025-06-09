@@ -1,4 +1,4 @@
-import { users, completedTasks, taskStats, weeklyHistory, type User, type InsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats, type WeeklyHistory, type InsertWeeklyHistory } from "@shared/schema";
+import { users, completedTasks, taskStats, weeklyHistory, customTasks, type User, type InsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats, type WeeklyHistory, type InsertWeeklyHistory, type CustomTask, type InsertCustomTask } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt } from "drizzle-orm";
 
@@ -17,6 +17,10 @@ export interface IStorage {
   getWeeklyHistory(): Promise<WeeklyHistory[]>;
   createOrUpdateWeeklyHistory(weekData: InsertWeeklyHistory): Promise<WeeklyHistory>;
   calculateDynamicGoal(weekStartDate: string): Promise<number>;
+  getCustomTasks(): Promise<CustomTask[]>;
+  createCustomTask(task: InsertCustomTask): Promise<CustomTask>;
+  updateCustomTask(id: number, updates: Partial<CustomTask>): Promise<CustomTask>;
+  deleteCustomTask(id: number): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -189,6 +193,38 @@ export class DatabaseStorage implements IStorage {
     }
     
     return Math.round(newGoal * 2) / 2; // Round to nearest 0.5
+  }
+
+  async getCustomTasks(): Promise<CustomTask[]> {
+    return await db
+      .select()
+      .from(customTasks)
+      .where(eq(customTasks.isActive, true))
+      .orderBy(desc(customTasks.createdAt));
+  }
+
+  async createCustomTask(task: InsertCustomTask): Promise<CustomTask> {
+    const [created] = await db
+      .insert(customTasks)
+      .values(task)
+      .returning();
+    return created;
+  }
+
+  async updateCustomTask(id: number, updates: Partial<CustomTask>): Promise<CustomTask> {
+    const [updated] = await db
+      .update(customTasks)
+      .set(updates)
+      .where(eq(customTasks.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteCustomTask(id: number): Promise<void> {
+    await db
+      .update(customTasks)
+      .set({ isActive: false })
+      .where(eq(customTasks.id, id));
   }
 }
 

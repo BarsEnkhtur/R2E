@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertCompletedTaskSchema } from "@shared/schema";
+import { insertCompletedTaskSchema, insertCustomTaskSchema } from "@shared/schema";
 
 // Helper function to get current week start date (Monday)
 function getWeekStartDate(date: Date): string {
@@ -162,6 +162,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error calculating dynamic goal: ${error}`);
       res.status(500).json({ error: "Failed to calculate dynamic goal" });
+    }
+  });
+
+  // Get custom tasks
+  app.get("/api/custom-tasks", async (req, res) => {
+    try {
+      const tasks = await storage.getCustomTasks();
+      res.json(tasks);
+    } catch (error) {
+      console.error(`Error fetching custom tasks: ${error}`);
+      res.status(500).json({ error: "Failed to fetch custom tasks" });
+    }
+  });
+
+  // Create custom task
+  app.post("/api/custom-tasks", async (req, res) => {
+    try {
+      const taskData = insertCustomTaskSchema.parse(req.body);
+      const task = await storage.createCustomTask(taskData);
+      res.status(201).json(task);
+    } catch (error) {
+      console.error(`Error creating custom task: ${error}`);
+      res.status(500).json({ error: "Failed to create custom task" });
+    }
+  });
+
+  // Update custom task
+  app.put("/api/custom-tasks/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      const updates = req.body;
+      const task = await storage.updateCustomTask(parseInt(id), updates);
+      res.json(task);
+    } catch (error) {
+      console.error(`Error updating custom task: ${error}`);
+      res.status(500).json({ error: "Failed to update custom task" });
+    }
+  });
+
+  // Delete custom task
+  app.delete("/api/custom-tasks/:id", async (req, res) => {
+    try {
+      const { id } = req.params;
+      await storage.deleteCustomTask(parseInt(id));
+      res.status(204).send();
+    } catch (error) {
+      console.error(`Error deleting custom task: ${error}`);
+      res.status(500).json({ error: "Failed to delete custom task" });
     }
   });
 

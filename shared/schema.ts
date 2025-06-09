@@ -39,6 +39,18 @@ export const weeklyHistory = pgTable("weekly_history", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const customTasks = pgTable("custom_tasks", {
+  id: serial("id").primaryKey(),
+  taskId: text("task_id").notNull().unique(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  points: real("points").notNull(),
+  icon: text("icon").notNull().default("Circle"),
+  color: text("color").notNull().default("blue"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -70,6 +82,16 @@ export const insertWeeklyHistorySchema = createInsertSchema(weeklyHistory).pick(
   goalAchieved: true,
 });
 
+export const insertCustomTaskSchema = createInsertSchema(customTasks).pick({
+  taskId: true,
+  name: true,
+  description: true,
+  points: true,
+  icon: true,
+  color: true,
+  isActive: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertCompletedTask = z.infer<typeof insertCompletedTaskSchema>;
@@ -78,3 +100,5 @@ export type InsertTaskStats = z.infer<typeof insertTaskStatsSchema>;
 export type TaskStats = typeof taskStats.$inferSelect;
 export type InsertWeeklyHistory = z.infer<typeof insertWeeklyHistorySchema>;
 export type WeeklyHistory = typeof weeklyHistory.$inferSelect;
+export type InsertCustomTask = z.infer<typeof insertCustomTaskSchema>;
+export type CustomTask = typeof customTasks.$inferSelect;
