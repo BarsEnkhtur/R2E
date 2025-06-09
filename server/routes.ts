@@ -207,9 +207,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { id } = req.params;
       const { note } = req.body;
       
-      // Update the completed task note (implementation depends on storage method)
-      // For now, just return success as the main functionality works
-      res.json({ success: true, id, note });
+      const updatedTask = await storage.updateCompletedTask(parseInt(id), { note });
+      res.json(updatedTask);
     } catch (error) {
       console.error(`Error updating completed task: ${error}`);
       res.status(500).json({ error: "Failed to update completed task" });

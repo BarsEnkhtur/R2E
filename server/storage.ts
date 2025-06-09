@@ -8,6 +8,7 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getCompletedTasks(weekStartDate?: string): Promise<CompletedTask[]>;
   createCompletedTask(task: InsertCompletedTask): Promise<CompletedTask>;
+  updateCompletedTask(id: number, updates: Partial<CompletedTask>): Promise<CompletedTask>;
   deleteCompletedTask(id: number): Promise<void>;
   clearAllCompletedTasks(weekStartDate?: string): Promise<void>;
   getTaskStats(weekStartDate: string): Promise<TaskStats[]>;
@@ -60,6 +61,15 @@ export class DatabaseStorage implements IStorage {
       .values(task)
       .returning();
     return createdTask;
+  }
+
+  async updateCompletedTask(id: number, updates: Partial<CompletedTask>): Promise<CompletedTask> {
+    const [updatedTask] = await db
+      .update(completedTasks)
+      .set(updates)
+      .where(eq(completedTasks.id, id))
+      .returning();
+    return updatedTask;
   }
 
   async deleteCompletedTask(id: number): Promise<void> {
