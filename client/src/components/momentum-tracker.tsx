@@ -1164,11 +1164,13 @@ Keep the momentum going! 💼
   // Mutation to create share
   const createShareMutation = useMutation({
     mutationFn: async (shareData: { title: string; description?: string; weekStartDate: string }) => {
-      return await apiRequest('/api/shares', {
+      const response = await fetch('/api/shares', {
         method: 'POST',
-        body: JSON.stringify(shareData),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(shareData)
       });
+      if (!response.ok) throw new Error('Failed to create share');
+      return response.json();
     },
     onSuccess: (data) => {
       setShareData({
@@ -1856,6 +1858,105 @@ Keep the momentum going! 💼
                 );
               })()}
             </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Share Dialog */}
+        <Dialog open={showShareSnapshot} onOpenChange={setShowShareSnapshot}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Share className="h-5 w-5" />
+                Share Weekly Progress
+              </DialogTitle>
+            </DialogHeader>
+            
+            {!shareData ? (
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="share-title">Title</Label>
+                  <Input
+                    id="share-title"
+                    placeholder="My progress this week"
+                    defaultValue={`Week of ${formatWeekDisplay(currentWeek)}`}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="share-description">Description (optional)</Label>
+                  <Input
+                    id="share-description"
+                    placeholder="Add a note about your achievements..."
+                  />
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={() => {
+                      const title = (document.getElementById('share-title') as HTMLInputElement)?.value || `Week of ${formatWeekDisplay(currentWeek)}`;
+                      const description = (document.getElementById('share-description') as HTMLInputElement)?.value || undefined;
+                      
+                      createShareMutation.mutate({
+                        title,
+                        description,
+                        weekStartDate: currentWeek
+                      });
+                    }}
+                    disabled={createShareMutation.isPending}
+                    className="flex-1"
+                  >
+                    {createShareMutation.isPending ? "Creating..." : "Create Share Link"}
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowShareSnapshot(false)}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="font-semibold text-green-800 mb-2">Share Link Created!</h4>
+                  <p className="text-sm text-green-700 mb-3">
+                    Anyone with this link can view your progress for this week.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={shareData.url}
+                      readOnly
+                      className="text-sm"
+                    />
+                    <Button
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(shareData.url);
+                          // You could add a toast here
+                        } catch (err) {
+                          console.error('Failed to copy:', err);
+                        }
+                      }}
+                    >
+                      Copy
+                    </Button>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      setShareData(null);
+                      setShowShareSnapshot(false);
+                    }}
+                    className="flex-1"
+                  >
+                    Done
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => window.open(shareData.url, '_blank')}
+                  >
+                    View Share
+                  </Button>
+                </div>
+              </div>
+            )}
           </DialogContent>
         </Dialog>
 

@@ -36,9 +36,15 @@ export default function ShareView() {
 
   const forkMutation = useMutation({
     mutationFn: async () => {
-      return await apiRequest(`/api/shares/${token}/fork`, {
+      const response = await fetch(`/api/shares/${token}/fork`, {
         method: "POST",
+        headers: { 'Content-Type': 'application/json' }
       });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(`${response.status}: ${error.message || 'Fork failed'}`);
+      }
+      return response.json();
     },
     onSuccess: (data) => {
       toast({
@@ -118,7 +124,7 @@ export default function ShareView() {
     );
   }
 
-  const shareData = share.data as any;
+  const shareData = (share as any).data || {};
   const { completedTasks, taskStats, weekHistory, customTasks, dynamicGoal, totalPoints, tasksCompleted } = shareData;
 
   return (
@@ -165,17 +171,17 @@ export default function ShareView() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {share.title}
+                {(share as any).title || "Shared Progress"}
               </h2>
-              {share.description && (
+              {(share as any).description && (
                 <p className="text-gray-600 dark:text-gray-400">
-                  {share.description}
+                  {(share as any).description}
                 </p>
               )}
             </div>
             <Badge variant="secondary" className="flex items-center">
               <Calendar className="h-4 w-4 mr-1" />
-              Week of {share.weekStartDate}
+              Week of {(share as any).weekStartDate || "Unknown"}
             </Badge>
           </div>
 
@@ -186,7 +192,7 @@ export default function ShareView() {
             </span>
             <span>•</span>
             <span>
-              {new Date(share.createdAt).toLocaleDateString()}
+              {new Date().toLocaleDateString()}
             </span>
           </div>
         </div>
