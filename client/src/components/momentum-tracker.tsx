@@ -30,7 +30,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Calendar,
-  BarChart3
+  BarChart3,
+  Settings,
+  Circle,
+  Coffee,
+  Briefcase,
+  BookOpen,
+  Target,
+  Music,
+  Camera,
+  Gamepad2,
+  Palette,
+  X
 } from "lucide-react";
 
 interface Task {
@@ -68,6 +79,18 @@ interface WeeklyHistory {
   weekStartDate: string;
   totalPoints: number;
   tasksCompleted: number;
+  createdAt: string;
+}
+
+interface CustomTask {
+  id: number;
+  taskId: string;
+  name: string;
+  description: string;
+  points: number;
+  icon: string;
+  color: string;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -186,6 +209,14 @@ export default function MomentumTracker() {
   const [taskNote, setTaskNote] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
+  const [showCustomTaskForm, setShowCustomTaskForm] = useState(false);
+  const [customTaskForm, setCustomTaskForm] = useState({
+    name: "",
+    description: "",
+    points: 1,
+    icon: "Circle",
+    color: "blue"
+  });
   
   const queryClient = useQueryClient();
 
@@ -235,6 +266,16 @@ export default function MomentumTracker() {
     queryFn: async (): Promise<{ goal: number }> => {
       const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
       if (!response.ok) throw new Error('Failed to fetch dynamic goal');
+      return await response.json();
+    }
+  });
+
+  // Fetch custom tasks
+  const { data: customTasks = [] } = useQuery({
+    queryKey: ['/api/custom-tasks'],
+    queryFn: async (): Promise<CustomTask[]> => {
+      const response = await fetch('/api/custom-tasks');
+      if (!response.ok) throw new Error('Failed to fetch custom tasks');
       return await response.json();
     }
   });
@@ -332,6 +373,30 @@ export default function MomentumTracker() {
     }
   });
 
+  // Mutation to create custom task
+  const createCustomTaskMutation = useMutation({
+    mutationFn: async (taskData: any) => {
+      const response = await fetch('/api/custom-tasks', {
+        method: 'POST',
+        body: JSON.stringify(taskData),
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to create custom task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+      setShowCustomTaskForm(false);
+      setCustomTaskForm({
+        name: "",
+        description: "",
+        points: 1,
+        icon: "Circle",
+        color: "blue"
+      });
+    }
+  });
+
   const addPoints = (task: Task, note?: string) => {
     const currentMaxPoints = dynamicGoalData?.goal || 15;
     if (currentPoints >= currentMaxPoints) return;
@@ -386,6 +451,60 @@ export default function MomentumTracker() {
   const goToCurrentWeek = () => {
     setSelectedWeek("");
   };
+
+  // Available icons for custom tasks
+  const availableIcons = [
+    { name: "Circle", component: Circle },
+    { name: "Coffee", component: Coffee },
+    { name: "Briefcase", component: Briefcase },
+    { name: "BookOpen", component: BookOpen },
+    { name: "Target", component: Target },
+    { name: "Music", component: Music },
+    { name: "Camera", component: Camera },
+    { name: "Gamepad2", component: Gamepad2 },
+    { name: "Palette", component: Palette },
+    { name: "Heart", component: Heart },
+    { name: "Code", component: Code },
+    { name: "MessageCircle", component: MessageCircle },
+    { name: "Lightbulb", component: Lightbulb },
+    { name: "Monitor", component: Monitor },
+  ];
+
+  // Handle custom task form submission
+  const handleCustomTaskSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customTaskForm.name.trim() || !customTaskForm.description.trim()) return;
+
+    const taskId = customTaskForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
+    createCustomTaskMutation.mutate({
+      taskId,
+      name: customTaskForm.name,
+      description: customTaskForm.description,
+      points: customTaskForm.points,
+      icon: customTaskForm.icon,
+      color: customTaskForm.color,
+      isActive: true
+    });
+  };
+
+  // Convert custom tasks to Task format
+  const convertCustomTasksToTasks = (customTasks: CustomTask[]): Task[] => {
+    return customTasks.map(ct => {
+      const iconComponent = availableIcons.find(icon => icon.name === ct.icon)?.component || Circle;
+      return {
+        id: ct.taskId,
+        name: ct.name,
+        description: ct.description,
+        points: ct.points,
+        icon: iconComponent,
+        color: ct.color
+      };
+    });
+  };
+
+  // Combine default tasks with custom tasks
+  const allTasks = [...tasks, ...convertCustomTasksToTasks(customTasks)];
 
   return (
     <div className="min-h-screen py-8 px-4">
@@ -495,7 +614,7 @@ export default function MomentumTracker() {
               <h2 className="text-xl font-semibold text-slate-800 mb-6">Momentum Tasks</h2>
               
               <div className="space-y-3">
-                {tasks.map((task) => {
+                {allTasks.map((task) => {
                   const IconComponent = task.icon;
                   return (
                     <div 
