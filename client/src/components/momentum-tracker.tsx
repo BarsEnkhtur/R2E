@@ -676,6 +676,18 @@ export default function MomentumTracker() {
                     </div>
                   );
                 })}
+                
+                {/* Add Custom Task Button */}
+                <div className="pt-4 border-t border-slate-200">
+                  <Button
+                    onClick={() => setShowCustomTaskForm(true)}
+                    variant="outline"
+                    className="w-full flex items-center space-x-2 py-6 border-dashed border-slate-300 hover:border-slate-400"
+                  >
+                    <Plus className="w-5 h-5" />
+                    <span>Create Custom Task</span>
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -838,6 +850,103 @@ export default function MomentumTracker() {
             </div>
           </div>
         )}
+
+        {/* Custom Task Creation Dialog */}
+        <Dialog open={showCustomTaskForm} onOpenChange={setShowCustomTaskForm}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Create Custom Task</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleCustomTaskSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="taskName">Task Name</Label>
+                <Input
+                  id="taskName"
+                  value={customTaskForm.name}
+                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Read 30 minutes"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="taskDescription">Description</Label>
+                <Input
+                  id="taskDescription"
+                  value={customTaskForm.description}
+                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="e.g., Daily reading habit for personal growth"
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="taskPoints">Points (1-5)</Label>
+                <Input
+                  id="taskPoints"
+                  type="number"
+                  min="1"
+                  max="5"
+                  value={customTaskForm.points}
+                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, points: parseInt(e.target.value) || 1 }))}
+                  required
+                />
+              </div>
+              <div>
+                <Label>Icon</Label>
+                <div className="grid grid-cols-7 gap-2 mt-2">
+                  {availableIcons.map((icon) => {
+                    const IconComponent = icon.component;
+                    return (
+                      <Button
+                        key={icon.name}
+                        type="button"
+                        variant={customTaskForm.icon === icon.name ? "default" : "outline"}
+                        size="sm"
+                        className="h-10 w-10 p-0"
+                        onClick={() => setCustomTaskForm(prev => ({ ...prev, icon: icon.name }))}
+                      >
+                        <IconComponent className="w-4 h-4" />
+                      </Button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div>
+                <Label>Color</Label>
+                <div className="grid grid-cols-4 gap-2 mt-2">
+                  {Object.keys(colorClasses).map((color) => (
+                    <Button
+                      key={color}
+                      type="button"
+                      variant={customTaskForm.color === color ? "default" : "outline"}
+                      size="sm"
+                      className="capitalize"
+                      onClick={() => setCustomTaskForm(prev => ({ ...prev, color }))}
+                    >
+                      <div className={`w-4 h-4 rounded-full mr-2 ${colorClasses[color as keyof typeof colorClasses]}`}></div>
+                      {color}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex space-x-2 pt-4">
+                <Button 
+                  type="submit"
+                  className="flex-1"
+                  disabled={createCustomTaskMutation.isPending}
+                >
+                  {createCustomTaskMutation.isPending ? "Creating..." : "Create Task"}
+                </Button>
+                <Button 
+                  type="button"
+                  variant="outline" 
+                  onClick={() => setShowCustomTaskForm(false)}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
