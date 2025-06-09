@@ -719,18 +719,18 @@ export default function MomentumTracker() {
           <div className="card">
             <div className="flex items-center justify-between mb-6">
               <h2>Completed This Week</h2>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={resetWeek}
-                  className="btn-ghost"
-                >
-                  <RotateCcw className="w-4 h-4 mr-1" />
-                  Reset Week
-                </Button>
-              </div>
-              
-              <div className="space-y-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={resetWeek}
+                className="btn-ghost"
+              >
+                <RotateCcw className="w-4 h-4 mr-1" />
+                Reset Week
+              </Button>
+            </div>
+            
+            <div className="space-y-3">
                 {isLoading ? (
                   <div className="text-center py-8 text-slate-400">
                     <div className="animate-spin w-8 h-8 border-2 border-slate-300 border-t-blue-600 rounded-full mx-auto mb-3"></div>
@@ -816,9 +816,8 @@ export default function MomentumTracker() {
                               <div className="flex items-center space-x-2">
                                 <p className={`font-medium ${styles.text}`}>{task.name}</p>
                                 {heatLevel >= 0.8 && (
-                                  <span className="badge-high flex items-center space-x-1 text-xs">
-                                    <Star className="w-3 h-3" />
-                                    <span>High Value</span>
+                                  <span className="badge-high">
+                                    High Value
                                   </span>
                                 )}
                                 {heatLevel >= 0.6 && heatLevel < 0.8 && (
@@ -842,8 +841,8 @@ export default function MomentumTracker() {
                               </div>
                               {task.note && (
                                 <div className="flex items-center space-x-1 mt-1">
-                                  <StickyNote className={`w-3 h-3 ${styles.noteIcon}`} />
-                                  <p className={`text-xs ${styles.note} italic truncate`}>{task.note}</p>
+                                  <StickyNote className="w-3 h-3" />
+                                  <p className="task-note truncate">{task.note}</p>
                                 </div>
                               )}
                             </div>
