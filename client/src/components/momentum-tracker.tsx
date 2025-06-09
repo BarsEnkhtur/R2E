@@ -1897,6 +1897,9 @@ Keep the momentum going! 💼
                 <Share className="h-5 w-5" />
                 Share Weekly Progress
               </DialogTitle>
+              <DialogDescription>
+                Create a shareable link to showcase your weekly achievements.
+              </DialogDescription>
             </DialogHeader>
             
             {!shareData ? (
