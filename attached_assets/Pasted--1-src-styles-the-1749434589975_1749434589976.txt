@@ -1,0 +1,147 @@
+/* ───────────────────────────────────────────────────────────────────────── */
+/* 1) src/styles/theme.css                                                  */
+/* ───────────────────────────────────────────────────────────────────────── */
+:root {
+  /* COLORS */
+  --color-bg:              #F7F7F7;   /* page background */
+  --color-card-bg:         #FFFFFF;   /* panels/cards */
+  --color-border:          #E0E0E0;   /* subtle lines */
+  --color-text-primary:    #333333;   /* main text */
+  --color-text-secondary:  #666666;   /* muted text */
+  --color-accent:          #4C9A85;   /* highlight & buttons */
+
+  /* TYPOGRAPHY */
+  --font-sans:             'Inter', sans-serif;
+  --text-base-size:        16px;
+  --line-height:           1.5;
+  --h1-size:               2rem;      /* 32px */
+  --h2-size:               1.5rem;    /* 24px */
+  --h3-size:               1.25rem;   /* 20px */
+  --font-weight-regular:   400;
+  --font-weight-medium:    500;
+  --font-weight-bold:      600;
+
+  /* SPACING (8px scale) */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 40px;
+
+  /* RADIUS & SHADOW */
+  --radius:        8px;
+  --shadow-light:  0 2px 4px rgba(0,0,0,0.05);
+  --shadow-strong: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* 2) src/index.css (or your root CSS entry)                                */
+/* ───────────────────────────────────────────────────────────────────────── */
+@import './styles/theme.css';
+
+html {
+  font-size: var(--text-base-size);
+}
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  font-family: var(--font-sans);
+  line-height: var(--line-height);
+  color: var(--color-text-primary);
+}
+
+/* TYPOGRAPHY UTILITIES */
+h1 { font-size: var(--h1-size); font-weight: var(--font-weight-bold);    margin-bottom: var(--space-3); }
+h2 { font-size: var(--h2-size); font-weight: var(--font-weight-medium);  margin-bottom: var(--space-2); }
+h3 { font-size: var(--h3-size); font-weight: var(--font-weight-medium);  margin-bottom: var(--space-2); }
+p, li, label, span { font-weight: var(--font-weight-regular); }
+.small { font-size: 0.875rem; color: var(--color-text-secondary); }
+
+/* CARD COMPONENT */
+.card {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-light);
+  padding: var(--space-4);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card:hover {
+  box-shadow: var(--shadow-strong);
+  transform: translateY(-2px);
+}
+
+/* BUTTONS */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.btn-primary:hover { opacity: 0.9; }
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.btn-ghost:hover { background-color: var(--color-border); }
+
+/* PROGRESS BAR */
+.progress-bar {
+  background-color: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+  height: 10px;
+  margin-bottom: var(--space-3);
+}
+.progress-bar__inner {
+  background-color: var(--color-accent);
+  height: 100%;
+  width: 0; /* JS sets inline width="59%" */
+  transition: width 0.3s ease;
+}
+
+/* OPTIONAL SPACING HELPERS */
+.m-1 { margin: var(--space-1); }
+.m-2 { margin: var(--space-2); }
+.m-3 { margin: var(--space-3); }
+.p-1 { padding: var(--space-1); }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-3); }
+☑️ Agent To-Do Checklist
+Create src/styles/theme.css and paste the :root { … } block.
+
+Import it at the top of your root CSS/JS (@import './styles/theme.css'; or import './styles/theme.css';).
+
+Replace existing global rules with the html {…} / body {…} block.
+
+Copy over the “Typography utilities,” “Card,” “Buttons,” “Progress bar,” and (optionally) “Spacing helpers.”
+
+Wrap each dashboard panel (Weekly Progress, Momentum Tasks, Completed This Week) in <div class="card">…</div>.
+
+Give every “+” button class="btn-primary".
+
+Give every reset/trash icon class="btn-ghost".
+
+Change your progress bar markup to:
+
+html
+Copy
+Edit
+<div class="progress-bar">
+  <div class="progress-bar__inner" style="width: /* percent */;"></div>
+</div>
+Search & replace any hard-coded hex colors or px paddings in your CSS/JS to use the corresponding var(--…) and --space-… tokens.
