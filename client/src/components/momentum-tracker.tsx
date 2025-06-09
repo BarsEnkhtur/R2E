@@ -230,13 +230,21 @@ export default function MomentumTracker() {
 
   const currentWeek = selectedWeek || getCurrentWeekStart();
 
+  // Debug logging
+  console.log('Current selectedWeek:', selectedWeek);
+  console.log('getCurrentWeekStart():', getCurrentWeekStart());
+  console.log('Final currentWeek:', currentWeek);
+
   // Fetch completed tasks from database
   const { data: completedTasks = [], isLoading } = useQuery({
     queryKey: ['/api/completed-tasks', currentWeek],
     queryFn: async (): Promise<CompletedTask[]> => {
+      console.log('Fetching tasks for week:', currentWeek);
       const response = await fetch(`/api/completed-tasks?week=${currentWeek}`);
       if (!response.ok) throw new Error('Failed to fetch tasks');
-      return await response.json();
+      const data = await response.json();
+      console.log('Received tasks:', data);
+      return data;
     }
   });
 
