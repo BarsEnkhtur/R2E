@@ -54,12 +54,11 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getCompletedTasks(userId: string, weekStartDate?: string): Promise<CompletedTask[]> {
-    const query = db.select().from(completedTasks).where(eq(completedTasks.userId, userId));
+    let query = db.select().from(completedTasks).where(eq(completedTasks.userId, userId));
     
     if (weekStartDate) {
-      return await query
-        .where(and(eq(completedTasks.userId, userId), eq(completedTasks.weekStartDate, weekStartDate)))
-        .orderBy(desc(completedTasks.completedAt));
+      query = db.select().from(completedTasks)
+        .where(and(eq(completedTasks.userId, userId), eq(completedTasks.weekStartDate, weekStartDate)));
     }
     
     return await query.orderBy(desc(completedTasks.completedAt));
@@ -86,26 +85,33 @@ export class DatabaseStorage implements IStorage {
     await db.delete(completedTasks).where(eq(completedTasks.id, id));
   }
 
-  async clearAllCompletedTasks(weekStartDate?: string): Promise<void> {
+  async clearAllCompletedTasks(userId: string, weekStartDate?: string): Promise<void> {
     if (weekStartDate) {
-      await db.delete(completedTasks).where(eq(completedTasks.weekStartDate, weekStartDate));
+      await db.delete(completedTasks).where(and(
+        eq(completedTasks.userId, userId),
+        eq(completedTasks.weekStartDate, weekStartDate)
+      ));
     } else {
-      await db.delete(completedTasks);
+      await db.delete(completedTasks).where(eq(completedTasks.userId, userId));
     }
   }
 
-  async getTaskStats(weekStartDate: string): Promise<TaskStats[]> {
+  async getTaskStats(userId: string, weekStartDate: string): Promise<TaskStats[]> {
     return await db
       .select()
       .from(taskStats)
-      .where(eq(taskStats.weekStartDate, weekStartDate));
+      .where(and(
+        eq(taskStats.userId, userId),
+        eq(taskStats.weekStartDate, weekStartDate)
+      ));
   }
 
-  async getTaskStatByTaskId(taskId: string, weekStartDate: string): Promise<TaskStats | undefined> {
+  async getTaskStatByTaskId(userId: string, taskId: string, weekStartDate: string): Promise<TaskStats | undefined> {
     const [stat] = await db
       .select()
       .from(taskStats)
       .where(and(
+        eq(taskStats.userId, userId),
         eq(taskStats.taskId, taskId),
         eq(taskStats.weekStartDate, weekStartDate)
       ));
@@ -120,11 +126,12 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async updateTaskStats(taskId: string, weekStartDate: string, updates: Partial<TaskStats>): Promise<TaskStats> {
+  async updateTaskStats(userId: string, taskId: string, weekStartDate: string, updates: Partial<TaskStats>): Promise<TaskStats> {
     const [updated] = await db
       .update(taskStats)
       .set(updates)
       .where(and(
+        eq(taskStats.userId, userId),
         eq(taskStats.taskId, taskId),
         eq(taskStats.weekStartDate, weekStartDate)
       ))
@@ -132,10 +139,11 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async getWeeklyHistory(): Promise<WeeklyHistory[]> {
+  async getWeeklyHistory(userId: string): Promise<WeeklyHistory[]> {
     return await db
       .select()
       .from(weeklyHistory)
+      .where(eq(weeklyHistory.userId, userId))
       .orderBy(desc(weeklyHistory.weekStartDate));
   }
 
@@ -172,12 +180,15 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async calculateDynamicGoal(weekStartDate: string): Promise<number> {
+  async calculateDynamicGoal(userId: string, weekStartDate: string): Promise<number> {
     // Get the last 3 weeks of history for rolling average
     const history = await db
       .select()
       .from(weeklyHistory)
-      .where(lt(weeklyHistory.weekStartDate, weekStartDate))
+      .where(and(
+        eq(weeklyHistory.userId, userId),
+        lt(weeklyHistory.weekStartDate, weekStartDate)
+      ))
       .orderBy(desc(weeklyHistory.weekStartDate))
       .limit(3);
 
@@ -215,11 +226,14 @@ export class DatabaseStorage implements IStorage {
     return Math.round(newGoal * 2) / 2; // Round to nearest 0.5
   }
 
-  async getCustomTasks(): Promise<CustomTask[]> {
+  async getCustomTasks(userId: string): Promise<CustomTask[]> {
     return await db
       .select()
       .from(customTasks)
-      .where(eq(customTasks.isActive, true))
+      .where(and(
+        eq(customTasks.userId, userId),
+        eq(customTasks.isActive, true)
+      ))
       .orderBy(desc(customTasks.createdAt));
   }
 
@@ -245,6 +259,44 @@ export class DatabaseStorage implements IStorage {
       .update(customTasks)
       .set({ isActive: false })
       .where(eq(customTasks.id, id));
+  }
+
+  // Share operations for public sharing system
+  async createShare(share: InsertShare): Promise<Share> {
+    const [created] = await db
+      .insert(shares)
+      .values(share)
+      .returning();
+    return created;
+  }
+
+  async getShare(token: string): Promise<Share | undefined> {
+    const [share] = await db
+      .select()
+      .from(shares)
+      .where(and(
+        eq(shares.token, token),
+        eq(shares.isActive, true)
+      ));
+    return share;
+  }
+
+  async getActiveShares(userId: string): Promise<Share[]> {
+    return await db
+      .select()
+      .from(shares)
+      .where(and(
+        eq(shares.userId, userId),
+        eq(shares.isActive, true)
+      ))
+      .orderBy(desc(shares.createdAt));
+  }
+
+  async deactivateShare(token: string): Promise<void> {
+    await db
+      .update(shares)
+      .set({ isActive: false })
+      .where(eq(shares.token, token));
   }
 }
 

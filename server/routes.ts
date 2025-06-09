@@ -117,13 +117,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Clear all completed tasks and reset week
   app.delete("/api/completed-tasks", async (req, res) => {
     try {
+      const userId = getUserId(req);
       const weekStartDate = getWeekStartDate(new Date());
-      await storage.clearAllCompletedTasks(weekStartDate);
+      await storage.clearAllCompletedTasks(userId, weekStartDate);
       
       // Reset all task stats for the week
-      const taskStatsToReset = await storage.getTaskStats(weekStartDate);
+      const taskStatsToReset = await storage.getTaskStats(userId, weekStartDate);
       for (const stat of taskStatsToReset) {
-        await storage.updateTaskStats(stat.taskId, weekStartDate, {
+        await storage.updateTaskStats(userId, stat.taskId, weekStartDate, {
           currentValue: stat.basePoints,
           timesThisWeek: 0,
           lastCompleted: null
@@ -132,6 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Update weekly history
       await storage.createOrUpdateWeeklyHistory({
+        userId,
         weekStartDate,
         totalPoints: 0,
         tasksCompleted: 0
