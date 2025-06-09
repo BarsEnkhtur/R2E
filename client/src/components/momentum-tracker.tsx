@@ -243,6 +243,139 @@ const availableIcons = [
   { name: "Zap", component: Zap }
 ];
 
+// Badge definitions
+interface Badge {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+  criteria: string;
+  checkUnlocked: (stats: any) => boolean;
+}
+
+const badges: Badge[] = [
+  {
+    id: "first-step",
+    name: "First Step",
+    icon: "🏁",
+    description: "Complete your very first task",
+    criteria: "Complete 1 task",
+    checkUnlocked: (stats) => stats.totalTasks >= 1
+  },
+  {
+    id: "3-day-streak",
+    name: "3-Day Streak",
+    icon: "🔥",
+    description: "Complete at least 1 task per day for 3 days in a row",
+    criteria: "3-day streak",
+    checkUnlocked: (stats) => stats.longestStreak >= 3
+  },
+  {
+    id: "7-day-streak",
+    name: "7-Day Streak",
+    icon: "🔥🔥",
+    description: "Complete at least 1 task per day for 7 consecutive days",
+    criteria: "7-day streak",
+    checkUnlocked: (stats) => stats.longestStreak >= 7
+  },
+  {
+    id: "momentum-master",
+    name: "Momentum Master",
+    icon: "🚀",
+    description: "Hit a 3× multiplier on any task at least once",
+    criteria: "3× multiplier",
+    checkUnlocked: (stats) => stats.highestMultiplier >= 3
+  },
+  {
+    id: "consistency-champ",
+    name: "Consistency Champ",
+    icon: "📆",
+    description: "Earn 10 or more points in a single week",
+    criteria: "≥10 points per week",
+    checkUnlocked: (stats) => stats.bestWeekPoints >= 10
+  },
+  {
+    id: "monthly-hustler",
+    name: "Monthly Hustler",
+    icon: "💼",
+    description: "Earn 40 or more points in a calendar month",
+    criteria: "≥40 points per month",
+    checkUnlocked: (stats) => stats.bestMonthPoints >= 40
+  },
+  {
+    id: "first-10-tasks",
+    name: "First 10 Tasks",
+    icon: "🎯",
+    description: "Complete 10 total tasks",
+    criteria: "Complete 10 tasks",
+    checkUnlocked: (stats) => stats.totalTasks >= 10
+  },
+  {
+    id: "task-titan",
+    name: "Task Titan",
+    icon: "🏆",
+    description: "Complete 50 total tasks",
+    criteria: "Complete 50 tasks",
+    checkUnlocked: (stats) => stats.totalTasks >= 50
+  },
+  {
+    id: "networker",
+    name: "Networker",
+    icon: "💬",
+    description: "Log 10 networking tasks",
+    criteria: "10 networking tasks",
+    checkUnlocked: (stats) => (stats.taskCounts['networking'] || 0) >= 10
+  },
+  {
+    id: "code-committer",
+    name: "Code Committer",
+    icon: "💻",
+    description: "Push code 10 times",
+    criteria: "10 code pushes",
+    checkUnlocked: (stats) => (stats.taskCounts['code-push'] || 0) >= 10
+  },
+  {
+    id: "job-seeker",
+    name: "Job Seeker",
+    icon: "📝",
+    description: "Submit 5 job applications",
+    criteria: "5 job applications",
+    checkUnlocked: (stats) => (stats.taskCounts['job-application'] || 0) >= 5
+  },
+  {
+    id: "wellness-warrior",
+    name: "Wellness Warrior",
+    icon: "🧘",
+    description: "Complete 7 gym/recovery tasks",
+    criteria: "7 wellness tasks",
+    checkUnlocked: (stats) => (stats.taskCounts['gym-recovery'] || 0) >= 7
+  },
+  {
+    id: "reflection-guru",
+    name: "Reflection Guru",
+    icon: "📔",
+    description: "Log 10 journal/reflection entries",
+    criteria: "10 journal entries",
+    checkUnlocked: (stats) => (stats.taskCounts['journal'] || 0) >= 10
+  },
+  {
+    id: "on-fire",
+    name: "On Fire!",
+    icon: "🔥🔥🔥",
+    description: "Maintain a 5-day streak without missing a day",
+    criteria: "5-day streak",
+    checkUnlocked: (stats) => stats.longestStreak >= 5
+  },
+  {
+    id: "power-hour",
+    name: "Power Hour",
+    icon: "⏱️",
+    description: "Complete 3 tasks in under 1 hour",
+    criteria: "3 tasks in 1 hour",
+    checkUnlocked: (stats) => stats.powerHour >= 1
+  }
+];
+
 // Sortable Task Item Component
 function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji }: {
   task: Task;
@@ -354,6 +487,7 @@ export default function MomentumTracker() {
   const [showWeeklyStats, setShowWeeklyStats] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
+  const [showAchievements, setShowAchievements] = useState(false);
   const [customTaskForm, setCustomTaskForm] = useState({
     id: "",
     name: "",
@@ -623,6 +757,72 @@ export default function MomentumTracker() {
     };
   };
 
+  // Calculate comprehensive user statistics for badge tracking
+  const calculateUserStats = () => {
+    // Get all completed tasks across all weeks
+    const allWeeks = weeklyHistory || [];
+    const allCompletedTasks = completedTasks || [];
+    
+    // Calculate total tasks
+    const totalTasks = allCompletedTasks.length;
+    
+    // Calculate task counts by type
+    const taskCounts: Record<string, number> = {};
+    allCompletedTasks.forEach(task => {
+      taskCounts[task.taskId] = (taskCounts[task.taskId] || 0) + 1;
+    });
+    
+    // Calculate best week and month points
+    const bestWeekPoints = Math.max(...allWeeks.map(week => week.totalPoints), currentPoints);
+    const bestMonthPoints = allWeeks.reduce((max, week) => Math.max(max, week.totalPoints), currentPoints);
+    
+    // Calculate highest multiplier (simplified for now)
+    const highestMultiplier = Math.max(...taskStats.map(stat => stat.currentValue / stat.basePoints), 1);
+    
+    // Calculate longest streak (simplified - would need more complex logic for actual day streaks)
+    const longestStreak = Math.max(...taskStats.map(stat => stat.timesThisWeek), 0);
+    
+    // Power hour calculation (tasks completed within 1 hour - simplified)
+    const powerHour = 0; // Would need timestamp analysis for real implementation
+    
+    return {
+      totalTasks,
+      taskCounts,
+      bestWeekPoints,
+      bestMonthPoints,
+      highestMultiplier,
+      longestStreak,
+      powerHour
+    };
+  };
+
+  // Get unlocked badges
+  const getUnlockedBadges = () => {
+    const stats = calculateUserStats();
+    return badges.filter(badge => badge.checkUnlocked(stats));
+  };
+
+  // Get current streak info
+  const getCurrentStreak = () => {
+    const stats = calculateUserStats();
+    const streak = stats.longestStreak;
+    let streakIcon = "";
+    let streakText = "";
+    
+    if (streak >= 5) {
+      streakIcon = "🔥🔥🔥";
+      streakText = `${streak}-day streak`;
+    } else if (streak >= 3) {
+      streakIcon = "🔥🔥";
+      streakText = `${streak}-day streak`;
+    } else if (streak >= 1) {
+      streakIcon = "🔥";
+      streakText = `${streak}-day streak`;
+    }
+    
+    return { streakIcon, streakText, streak };
+  };
+
   // Helper function to get task stats for a specific task
   const getTaskStats = (taskId: string): TaskStats | undefined => {
     return Array.isArray(taskStats) ? taskStats.find(stat => stat.taskId === taskId) : undefined;
@@ -852,7 +1052,7 @@ export default function MomentumTracker() {
     <div className="min-h-screen py-8 px-4">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-4">Momentum Tracker</h1>
+          <h1 className="text-4xl font-bold mb-4">Road2Employment</h1>
           
           {/* Week Navigation */}
           <div className="flex items-center justify-center gap-4 mb-6">
@@ -918,6 +1118,66 @@ export default function MomentumTracker() {
                 🔥 {taskStats.filter(stat => stat.timesThisWeek >= 3).length}
               </div>
             )}
+          </div>
+
+          {/* Streak and Badge Widget */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6 max-w-2xl mx-auto">
+            {(() => {
+              const streakInfo = getCurrentStreak();
+              const unlockedBadges = getUnlockedBadges();
+              const topBadges = unlockedBadges.slice(-3); // Show latest 3 badges
+              
+              return (
+                <>
+                  {/* Streak Display */}
+                  {streakInfo.streak > 0 && (
+                    <div className="flex items-center gap-2 bg-orange-50 px-3 py-2 rounded-full border border-orange-200">
+                      <span className="text-lg">{streakInfo.streakIcon}</span>
+                      <span className="text-sm font-medium text-orange-800">{streakInfo.streakText}</span>
+                    </div>
+                  )}
+                  
+                  {/* Top Badges Preview */}
+                  {topBadges.length > 0 && (
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-600">Latest:</span>
+                      <div className="flex gap-1">
+                        {topBadges.map(badge => (
+                          <div
+                            key={badge.id}
+                            className="w-8 h-8 flex items-center justify-center bg-yellow-50 border border-yellow-200 rounded-full cursor-pointer hover:bg-yellow-100 transition-colors"
+                            title={`${badge.name}: ${badge.description}`}
+                          >
+                            <span className="text-sm">{badge.icon}</span>
+                          </div>
+                        ))}
+                      </div>
+                      <Button
+                        variant="link"
+                        size="sm"
+                        onClick={() => setShowAchievements(true)}
+                        className="text-blue-600 hover:text-blue-700 p-0 h-auto text-sm"
+                      >
+                        View all
+                      </Button>
+                    </div>
+                  )}
+                  
+                  {/* Achievements Button if no badges yet */}
+                  {topBadges.length === 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAchievements(true)}
+                      className="text-slate-600 hover:text-slate-700"
+                    >
+                      <Star className="w-4 h-4 mr-1" />
+                      View Achievements
+                    </Button>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
