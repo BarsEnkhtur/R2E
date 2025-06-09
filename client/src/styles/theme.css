@@ -1,24 +1,27 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
 :root {
-  /* COLORS */
-  --color-bg:              #F7F7F7;   /* page background */
-  --color-card-bg:         #FFFFFF;   /* panels/cards */
-  --color-border:          #E0E0E0;   /* subtle lines */
-  --color-text-primary:    #333333;   /* main text */
-  --color-text-secondary:  #666666;   /* muted text */
-  --color-accent:          #4C9A85;   /* highlight & buttons */
+  /* ─── COLORS ───────────────────────────────────────────────────────────── */
+  --color-bg:               #ECEFF4;   /* page background */
+  --color-card-bg:          #E5E9F0;   /* panels/cards */
+  --color-border:           #D8DEE9;   /* subtle lines & dividers */
+  --color-text-primary:     #2E3440;   /* main text */
+  --color-text-secondary:   #4C566A;   /* muted text */
+  --color-accent:           #5E81AC;   /* buttons, progress bar, highlights */
+  --color-accent-light:     rgba(94,129,172,0.15); /* for badge backgrounds */
 
-  /* TYPOGRAPHY */
-  --font-sans:             'Inter', sans-serif;
-  --text-base-size:        16px;
-  --line-height:           1.5;
-  --h1-size:               2rem;      /* 32px */
-  --h2-size:               1.5rem;    /* 24px */
-  --h3-size:               1.25rem;   /* 20px */
-  --font-weight-regular:   400;
-  --font-weight-medium:    500;
-  --font-weight-bold:      600;
+  /* ─── TYPOGRAPHY ───────────────────────────────────────────────────────── */
+  --font-sans:              'Inter', sans-serif;
+  --text-base-size:         16px;
+  --line-height:            1.5;
+  --h1-size:                2.5rem;    /* 40px for a stronger title */
+  --h2-size:                1.75rem;   /* 28px */
+  --h3-size:                1.25rem;   /* 20px */
+  --font-weight-regular:    400;
+  --font-weight-medium:     500;
+  --font-weight-bold:       700;
 
-  /* SPACING (8px scale) */
+  /* ─── SPACING (8px grid) ───────────────────────────────────────────────── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 16px;
@@ -26,7 +29,7 @@
   --space-5: 32px;
   --space-6: 40px;
 
-  /* RADIUS & SHADOW */
+  /* ─── RADIUS & SHADOW ──────────────────────────────────────────────────── */
   --radius:        8px;
   --shadow-light:  0 2px 4px rgba(0,0,0,0.05);
   --shadow-strong: 0 4px 8px rgba(0,0,0,0.1);

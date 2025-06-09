@@ -1,0 +1,193 @@
+/* ───────────────────────────────────────────────────────────────────────── */
+/* 1) src/styles/theme.css                                                  */
+/* ───────────────────────────────────────────────────────────────────────── */
+/*  • Single neutral palette based on a soft “Nord” gray/blue theme         */
+/*  • One accent (slate-blue)                                               */
+/*  • Proper Inter import so text renders correctly                         */
+/* ───────────────────────────────────────────────────────────────────────── */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  /* ─── COLORS ───────────────────────────────────────────────────────────── */
+  --color-bg:               #ECEFF4;   /* page background */
+  --color-card-bg:          #E5E9F0;   /* panels/cards */
+  --color-border:           #D8DEE9;   /* subtle lines & dividers */
+  --color-text-primary:     #2E3440;   /* main text */
+  --color-text-secondary:   #4C566A;   /* muted text */
+  --color-accent:           #5E81AC;   /* buttons, progress bar, highlights */
+  --color-accent-light:     rgba(94,129,172,0.15); /* for badge backgrounds */
+
+  /* ─── TYPOGRAPHY ───────────────────────────────────────────────────────── */
+  --font-sans:              'Inter', sans-serif;
+  --text-base-size:         16px;
+  --line-height:            1.5;
+  --h1-size:                2.5rem;    /* 40px for a stronger title */
+  --h2-size:                1.75rem;   /* 28px */
+  --h3-size:                1.25rem;   /* 20px */
+  --font-weight-regular:    400;
+  --font-weight-medium:     500;
+  --font-weight-bold:       700;
+
+  /* ─── SPACING (8px grid) ───────────────────────────────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 40px;
+
+  /* ─── RADIUS & SHADOW ──────────────────────────────────────────────────── */
+  --radius:        8px;
+  --shadow-light:  0 2px 4px rgba(0,0,0,0.05);
+  --shadow-strong: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* ───────────────────────────────────────────────────────────────────────── */
+/* 2) src/index.css (or your root CSS)                                      */
+/* ───────────────────────────────────────────────────────────────────────── */
+@import './styles/theme.css';
+
+html {
+  font-size: var(--text-base-size);
+}
+body {
+  margin: 0;
+  padding: 0;
+  background-color: var(--color-bg);
+  font-family: var(--font-sans);
+  line-height: var(--line-height);
+  color: var(--color-text-primary);
+}
+
+/* ─── TYPOGRAPHY UTILITIES ───────────────────────────────────────────────── */
+h1, .page-title {
+  font-size: var(--h1-size);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: -0.5px;
+  margin-bottom: var(--space-3);
+  color: var(--color-text-primary);
+}
+h2 {
+  font-size: var(--h2-size);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+  color: var(--color-text-primary);
+}
+h3 {
+  font-size: var(--h3-size);
+  font-weight: var(--font-weight-medium);
+  margin-bottom: var(--space-2);
+  color: var(--color-text-primary);
+}
+p, li, label, span {
+  font-weight: var(--font-weight-regular);
+  color: var(--color-text-primary);
+}
+.small {
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+}
+
+/* ─── CARD COMPONENT ─────────────────────────────────────────────────────── */
+.card {
+  background-color: var(--color-card-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-light);
+  padding: var(--space-4);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card:hover {
+  box-shadow: var(--shadow-strong);
+  transform: translateY(-2px);
+}
+
+/* ─── BUTTON STYLES ─────────────────────────────────────────────────────── */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-accent);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius);
+  padding: var(--space-2) var(--space-3);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+.btn-primary:hover {
+  opacity: 0.9;
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  color: var(--color-text-secondary);
+  cursor: pointer;
+}
+.btn-ghost:hover {
+  background-color: var(--color-border);
+}
+
+/* ─── PROGRESS BAR ──────────────────────────────────────────────────────── */
+.progress-bar {
+  background-color: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+  height: 10px;
+  margin-bottom: var(--space-3);
+}
+.progress-bar__inner {
+  background-color: var(--color-accent);
+  height: 100%;
+  width: 0; /* JS sets inline width="xx%" */
+  transition: width 0.3s ease;
+}
+
+/* ─── BADGE: HIGH VALUE ─────────────────────────────────────────────────── */
+.badge-high {
+  background-color: var(--color-accent-light);
+  color: var(--color-accent);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--radius);
+  padding: var(--space-1) var(--space-2);
+  display: inline-block;
+}
+
+/* ─── OPTIONAL SPACING HELPERS ──────────────────────────────────────────── */
+.m-1 { margin: var(--space-1); }
+.m-2 { margin: var(--space-2); }
+.m-3 { margin: var(--space-3); }
+.p-1 { padding: var(--space-1); }
+.p-2 { padding: var(--space-2); }
+.p-3 { padding: var(--space-3); }
+☑️ Agent Checklist
+Overwrite your old src/styles/theme.css with the block above.
+
+Import it in your root CSS/JS (if not already):
+
+css
+Copy
+Edit
+@import './styles/theme.css';
+Replace your existing global rules with the html {…} / body {…} section.
+
+Copy in the typography utilities, card, button, progress-bar, badge-high, and spacing helpers.
+
+Wrap each panel in <div class="card">…</div>.
+
+Give every “+” the class btn-primary; every reset/trash icon btn-ghost.
+
+Switch your high-value badge markup to:
+
+html
+Copy
+Edit
+<span class="badge-high">High Value</span>
+Ensure your <h1> (or title element) uses either <h1 class="page-title">Road2Employment</h1> or the global h1 style.
+
+Rebuild and confirm all text is using Inter and your new slate-blue accent.

@@ -541,7 +541,7 @@ export default function MomentumTracker() {
       <div className="max-w-4xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-slate-800 mb-2">
+          <h1 className="page-title">
             Road2Employment
           </h1>
           <p className="text-slate-600">Build momentum with consistent daily actions</p>
@@ -824,10 +824,10 @@ export default function MomentumTracker() {
                               <div className="flex items-center space-x-2">
                                 <p className={`font-medium ${styles.text}`}>{task.name}</p>
                                 {heatLevel >= 0.8 && (
-                                  <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs font-medium">
+                                  <span className="badge-high flex items-center space-x-1 text-xs">
                                     <Star className="w-3 h-3" />
                                     <span>High Value</span>
-                                  </div>
+                                  </span>
                                 )}
                                 {heatLevel >= 0.6 && heatLevel < 0.8 && (
                                   <div className="flex items-center space-x-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
