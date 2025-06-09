@@ -1,15 +1,42 @@
-import { pgTable, text, serial, integer, timestamp, real, boolean } from "drizzle-orm/pg-core";
+import {
+  pgTable,
+  text,
+  varchar,
+  serial,
+  integer,
+  timestamp,
+  real,
+  boolean,
+  jsonb,
+  index,
+} from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
 export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  id: text("id").primaryKey(),
+  email: text("email").unique(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  profileImageUrl: text("profile_image_url"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+// Session storage table for Replit Auth
+export const sessions = pgTable(
+  "sessions",
+  {
+    sid: varchar("sid").primaryKey(),
+    sess: jsonb("sess").notNull(),
+    expire: timestamp("expire").notNull(),
+  },
+  (table) => [index("IDX_session_expire").on(table.expire)],
+);
 
 export const completedTasks = pgTable("completed_tasks", {
   id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
   taskId: text("task_id").notNull(),
   name: text("name").notNull(),
   points: real("points").notNull(),
@@ -20,6 +47,7 @@ export const completedTasks = pgTable("completed_tasks", {
 
 export const taskStats = pgTable("task_stats", {
   id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
   taskId: text("task_id").notNull(),
   taskName: text("task_name").notNull(),
   basePoints: real("base_points").notNull(),
@@ -31,7 +59,8 @@ export const taskStats = pgTable("task_stats", {
 
 export const weeklyHistory = pgTable("weekly_history", {
   id: serial("id").primaryKey(),
-  weekStartDate: text("week_start_date").notNull().unique(),
+  userId: text("user_id").notNull().references(() => users.id),
+  weekStartDate: text("week_start_date").notNull(),
   totalPoints: real("total_points").notNull().default(0),
   tasksCompleted: integer("tasks_completed").notNull().default(0),
   weeklyGoal: real("weekly_goal").notNull().default(15),
@@ -41,7 +70,8 @@ export const weeklyHistory = pgTable("weekly_history", {
 
 export const customTasks = pgTable("custom_tasks", {
   id: serial("id").primaryKey(),
-  taskId: text("task_id").notNull().unique(),
+  userId: text("user_id").notNull().references(() => users.id),
+  taskId: text("task_id").notNull(),
   name: text("name").notNull(),
   description: text("description").notNull(),
   points: real("points").notNull(),
@@ -51,17 +81,52 @@ export const customTasks = pgTable("custom_tasks", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Public shares table for read-only snapshots
+export const shares = pgTable("shares", {
+  id: serial("id").primaryKey(),
+  token: text("token").notNull().unique(),
+  userId: text("user_id").notNull().references(() => users.id),
+  weekStartDate: text("week_start_date").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  data: jsonb("data").notNull(), // Snapshot of week's data
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  expiresAt: timestamp("expires_at"), // Optional expiration
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
+});
+
+export const upsertUserSchema = createInsertSchema(users).pick({
+  id: true,
+  email: true,
+  firstName: true,
+  lastName: true,
+  profileImageUrl: true,
 });
 
 export const insertCompletedTaskSchema = createInsertSchema(completedTasks).pick({
+  userId: true,
   taskId: true,
   name: true,
   points: true,
   note: true,
   weekStartDate: true,
+});
+
+export const insertShareSchema = createInsertSchema(shares).pick({
+  token: true,
+  userId: true,
+  weekStartDate: true,
+  title: true,
+  description: true,
+  data: true,
+  expiresAt: true,
 });
 
 export const insertTaskStatsSchema = createInsertSchema(taskStats).pick({
