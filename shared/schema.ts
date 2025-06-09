@@ -1,4 +1,4 @@
-import { pgTable, text, serial, integer, timestamp, real } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, timestamp, real, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -34,6 +34,8 @@ export const weeklyHistory = pgTable("weekly_history", {
   weekStartDate: text("week_start_date").notNull().unique(),
   totalPoints: real("total_points").notNull().default(0),
   tasksCompleted: integer("tasks_completed").notNull().default(0),
+  weeklyGoal: real("weekly_goal").notNull().default(15),
+  goalAchieved: boolean("goal_achieved").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -64,6 +66,8 @@ export const insertWeeklyHistorySchema = createInsertSchema(weeklyHistory).pick(
   weekStartDate: true,
   totalPoints: true,
   tasksCompleted: true,
+  weeklyGoal: true,
+  goalAchieved: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

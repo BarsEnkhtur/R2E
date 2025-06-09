@@ -16,6 +16,7 @@ export interface IStorage {
   updateTaskStats(taskId: string, weekStartDate: string, updates: Partial<TaskStats>): Promise<TaskStats>;
   getWeeklyHistory(): Promise<WeeklyHistory[]>;
   createOrUpdateWeeklyHistory(weekData: InsertWeeklyHistory): Promise<WeeklyHistory>;
+  calculateDynamicGoal(weekStartDate: string): Promise<number>;
 }
 
 export class DatabaseStorage implements IStorage {
