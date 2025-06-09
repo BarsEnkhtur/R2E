@@ -589,7 +589,7 @@ export default function MomentumTracker() {
         </div>
 
         {/* Progress Section */}
-        <Card className="mb-8">
+        <Card className="mb-8 card">
           <CardContent className="p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="flex flex-col">
@@ -613,10 +613,12 @@ export default function MomentumTracker() {
             
             {/* Progress Bar */}
             <div className="mb-4">
-              <Progress 
-                value={progressPercentage} 
-                className="h-4 bg-slate-200"
-              />
+              <div className="progress-bar">
+                <div 
+                  className="progress-bar__inner" 
+                  style={{ width: `${progressPercentage}%` }}
+                ></div>
+              </div>
             </div>
             
             {/* Progress Stats and Compounding Info */}
@@ -639,7 +641,7 @@ export default function MomentumTracker() {
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Tasks Section */}
-          <Card>
+          <Card className="card">
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold text-slate-800 mb-6">Momentum Tasks</h2>
               
@@ -688,7 +690,7 @@ export default function MomentumTracker() {
                         <Button 
                           onClick={() => addPoints(task)}
                           size="sm"
-                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                          className="btn-primary"
                         >
                           <Plus className="w-4 h-4" />
                         </Button>
@@ -696,7 +698,7 @@ export default function MomentumTracker() {
                           onClick={() => openTaskDialog(task)}
                           variant="outline"
                           size="sm"
-                          className="border-slate-300 hover:bg-slate-50"
+                          className="btn-ghost"
                         >
                           <StickyNote className="w-4 h-4" />
                         </Button>
@@ -721,7 +723,7 @@ export default function MomentumTracker() {
           </Card>
 
           {/* Completed Tasks Log */}
-          <Card>
+          <Card className="card">
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-semibold text-slate-800">Completed This Week</h2>
@@ -729,7 +731,7 @@ export default function MomentumTracker() {
                   variant="ghost"
                   size="sm"
                   onClick={resetWeek}
-                  className="text-slate-500 hover:text-slate-700"
+                  className="btn-ghost"
                 >
                   <RotateCcw className="w-4 h-4 mr-1" />
                   Reset Week
