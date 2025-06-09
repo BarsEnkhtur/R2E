@@ -44,7 +44,7 @@ export async function setupAuth(app: Express) {
     
     // Setup demo authentication routes
     app.get("/api/login", (req, res) => {
-      req.session.userId = "demo_user";
+      (req.session as any).userId = "demo_user";
       res.redirect("/");
     });
 
@@ -113,15 +113,20 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  if (!req.isAuthenticated() || !req.user) {
-    return res.status(401).json({ message: "Unauthorized" });
+  // Check for Google OAuth authentication
+  if (req.isAuthenticated() && req.user) {
+    return next();
   }
-  return next();
+  
+  // Check for demo session authentication
+  if (req.session && (req.session as any).userId) {
+    req.user = { id: (req.session as any).userId };
+    return next();
+  }
+  
+  return res.status(401).json({ message: "Unauthorized" });
 };
 
-// Demo user ID for unauthenticated users
-export const DEMO_USER_ID = "demo_user";
-
 export const getUserId = (req: any): string => {
-  return req.user?.id;
+  return req.user?.id || (req.session as any)?.userId || "demo_user";
 };
