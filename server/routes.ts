@@ -2,15 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCompletedTaskSchema, insertCustomTaskSchema } from "@shared/schema";
-
-// Demo user ID for unauthenticated users
-const DEMO_USER_ID = "demo_user";
-
-// Helper to get user ID (demo for unauthenticated, real for authenticated)
-function getUserId(req: any): string {
-  // For now, return demo user - we'll add auth later
-  return DEMO_USER_ID;
-}
+import { setupAuth, isAuthenticated, getUserId } from "./replitAuth";
 
 // Helper function to get current week start date (Monday)
 function getWeekStartDate(date: Date): string {
@@ -21,39 +13,26 @@ function getWeekStartDate(date: Date): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Demo authentication routes using cookies
-  app.get('/api/login', (req, res) => {
-    // Set cookie to indicate user is authenticated
-    res.cookie('authenticated', 'true', { 
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-      httpOnly: true 
-    });
-    res.redirect('/');
-  });
+  // Setup Google OAuth authentication
+  await setupAuth(app);
 
-  app.get('/api/logout', (req, res) => {
-    // Clear authentication cookie
-    res.clearCookie('authenticated');
-    res.redirect('/');
-  });
-
-  app.get('/api/auth/user', (req, res) => {
-    // Check if user is authenticated via cookie
-    const isAuthenticated = req.cookies.authenticated === 'true';
-    
-    if (isAuthenticated) {
-      res.json({
-        id: DEMO_USER_ID,
-        email: 'demo@example.com',
-        name: 'Demo User'
-      });
-    } else {
-      res.status(401).json({ message: 'Not authenticated' });
+  // Auth route
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const user = await storage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching user:", error);
+      res.status(500).json({ message: "Failed to fetch user" });
     }
   });
 
   // Get completed tasks (optionally filtered by week)
-  app.get("/api/completed-tasks", async (req, res) => {
+  app.get("/api/completed-tasks", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const weekStartDate = req.query.week as string | undefined;
@@ -67,7 +46,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create a new completed task with compounding logic
-  app.post("/api/completed-tasks", async (req, res) => {
+  app.post("/api/completed-tasks", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const { taskId, name, points: basePoints, note } = req.body;
@@ -178,7 +157,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get task stats for current week (for frontend display)
-  app.get("/api/task-stats", async (req, res) => {
+  app.get("/api/task-stats", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const weekStartDate = req.query.week as string || getWeekStartDate(new Date());
@@ -191,7 +170,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get weekly history
-  app.get("/api/weekly-history", async (req, res) => {
+  app.get("/api/weekly-history", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const history = await storage.getWeeklyHistory(userId);
@@ -203,7 +182,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get dynamic goal for a specific week
-  app.get("/api/dynamic-goal/:week", async (req, res) => {
+  app.get("/api/dynamic-goal/:week", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const { week } = req.params;
@@ -216,7 +195,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get custom tasks
-  app.get("/api/custom-tasks", async (req, res) => {
+  app.get("/api/custom-tasks", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const tasks = await storage.getCustomTasks(userId);
