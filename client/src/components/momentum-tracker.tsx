@@ -1238,6 +1238,7 @@ export default function MomentumTracker() {
                         getTaskStreak={getTaskStreak}
                         isOnStreak={isOnStreak}
                         getStreakEmoji={getStreakEmoji}
+                        openTaskForm={openTaskForm}
                       />
                     ))}
                   </div>
