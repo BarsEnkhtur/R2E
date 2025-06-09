@@ -310,6 +310,24 @@ export default function MomentumTracker() {
     return daysSince >= 4;
   };
 
+  // Helper function to calculate streak for a task
+  const getTaskStreak = (taskId: string): number => {
+    const stats = getTaskStats(taskId);
+    return stats?.timesThisWeek || 0;
+  };
+
+  // Helper function to check if task is on a streak (3+ completions this week)
+  const isOnStreak = (taskId: string): boolean => {
+    return getTaskStreak(taskId) >= 3;
+  };
+
+  // Helper function to get streak emoji
+  const getStreakEmoji = (streak: number): string => {
+    if (streak >= 5) return "🔥";
+    if (streak >= 3) return "⚡";
+    return "";
+  };
+
   // Helper function to calculate current task value with compounding
   const getCurrentTaskValue = (task: Task): number => {
     const stats = getTaskStats(task.id);
@@ -454,6 +472,22 @@ export default function MomentumTracker() {
           </div>
           <Progress value={progressPercentage} className="w-full max-w-md mx-auto h-4 mb-4" />
           <p className="text-slate-600">{Math.round(progressPercentage)}% complete</p>
+          
+          {/* Streak Summary */}
+          {Array.isArray(taskStats) && taskStats.length > 0 && (
+            <div className="mt-4 flex justify-center gap-4 text-sm">
+              {taskStats.filter(stat => stat.timesThisWeek >= 3).length > 0 && (
+                <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
+                  🔥 {taskStats.filter(stat => stat.timesThisWeek >= 3).length} task{taskStats.filter(stat => stat.timesThisWeek >= 3).length !== 1 ? 's' : ''} on fire
+                </div>
+              )}
+              {taskStats.filter(stat => stat.timesThisWeek >= 5).length > 0 && (
+                <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full">
+                  ⚡ {taskStats.filter(stat => stat.timesThisWeek >= 5).length} epic streak{taskStats.filter(stat => stat.timesThisWeek >= 5).length !== 1 ? 's' : ''}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="grid gap-6 md:grid-cols-2">
@@ -465,21 +499,40 @@ export default function MomentumTracker() {
                   const IconComponent = task.icon;
                   const currentValue = getCurrentTaskValue(task);
                   const hasAttention = needsAttention(task.id);
+                  const streak = getTaskStreak(task.id);
+                  const onStreak = isOnStreak(task.id);
+                  const streakEmoji = getStreakEmoji(streak);
                   
                   return (
-                    <div key={task.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50">
+                    <div key={task.id} className={`flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 ${onStreak ? 'border-yellow-300 bg-yellow-50' : ''} ${hasAttention ? 'border-red-300 bg-red-50' : ''}`}>
                       <div className="flex items-center gap-3">
                         <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]}`}>
                           <IconComponent className="w-5 h-5" />
                         </div>
                         <div>
-                          <h3 className="font-medium">{task.name}</h3>
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-medium">{task.name}</h3>
+                            {streakEmoji && <span className="text-lg">{streakEmoji}</span>}
+                            {streak > 0 && (
+                              <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                                {streak}x this week
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-slate-600">{task.description}</p>
+                          {hasAttention && (
+                            <p className="text-xs text-red-600 font-medium">⚠️ Needs attention</p>
+                          )}
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <span className={`font-semibold ${hasAttention ? 'text-red-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
+                        <span className={`font-semibold ${hasAttention ? 'text-red-600' : onStreak ? 'text-yellow-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
                           +{currentValue}
+                          {currentValue > task.points && (
+                            <span className="text-xs text-slate-500 ml-1">
+                              (base: {task.points})
+                            </span>
+                          )}
                         </span>
                         <Button 
                           size="sm" 
@@ -500,7 +553,9 @@ export default function MomentumTracker() {
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">This Week's Progress</h2>
               <div className="space-y-2">
-                {completedTasks.map((task) => (
+                {completedTasks
+                  .sort((a, b) => b.points - a.points) // Sort by highest points first
+                  .map((task) => (
                   <div key={task.id} className="flex items-center justify-between p-2 bg-slate-50 rounded hover:bg-slate-100">
                     <div className="flex-1">
                       <span className="font-medium">{task.name}</span>
