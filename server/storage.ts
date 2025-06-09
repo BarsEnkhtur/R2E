@@ -465,15 +465,15 @@ export class DatabaseStorage implements IStorage {
 
     await db.insert(weeklyHistory).values(weeklyHistoryData);
 
-    // Create a custom task example
+    // Create a custom task example with unique ID
     await db.insert(customTasks).values({
       userId,
-      taskId: "portfolio-update",
+      taskId: "custom-portfolio-update",
       name: "Portfolio Update",
       description: "Update portfolio website with latest projects",
       points: 2,
       icon: "Globe",
-      color: "bg-purple-500",
+      color: "purple",
       isActive: true,
       createdAt: now
     });

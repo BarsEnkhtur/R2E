@@ -5,7 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
 import {
@@ -1568,6 +1568,9 @@ Keep the momentum going! 💼
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Complete Task: {selectedTask?.name}</DialogTitle>
+              <DialogDescription>
+                Add a note about your progress and complete this task.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
@@ -1611,6 +1614,9 @@ Keep the momentum going! 💼
           <DialogContent>
             <DialogHeader>
               <DialogTitle>{editingTask ? "Edit Task" : "Create New Task"}</DialogTitle>
+              <DialogDescription>
+                {editingTask ? "Modify your custom task settings." : "Create a personalized task for your goals."}
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleTaskFormSubmit} className="space-y-4">
               <div>
@@ -1748,6 +1754,9 @@ Keep the momentum going! 💼
                 <Star className="w-5 h-5 text-yellow-500" />
                 Achievements
               </DialogTitle>
+              <DialogDescription>
+                View your unlocked badges and track your progress towards new achievements.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-6">
               {(() => {
