@@ -324,13 +324,15 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
               </div>
             )}
           </div>
-          <Button 
-            size="sm" 
-            onClick={() => openTaskDialog(task)}
-            className="h-8 hover:bg-blue-600 hover:shadow-sm transition-all"
-          >
-            Add
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button 
+              size="sm" 
+              onClick={() => openTaskDialog(task)}
+              className="h-8 hover:bg-blue-600 hover:shadow-sm transition-all"
+            >
+              Add
+            </Button>
+          </div>
         </div>
       </div>
     </div>
@@ -887,6 +889,19 @@ export default function MomentumTracker() {
             </Button>
           </div>
 
+          {/* Weekly Stats Button */}
+          <div className="flex justify-center mb-6">
+            <Button
+              onClick={() => setShowWeeklyStats(true)}
+              variant="outline"
+              size="sm"
+              className="hover:bg-blue-50 hover:border-blue-300 transition-all"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              View Weekly Stats
+            </Button>
+          </div>
+
           {/* Compact Progress Module */}
           <div className="flex items-center justify-center gap-4 mb-4 max-w-2xl mx-auto">
             <div className="text-lg font-bold text-blue-600">
@@ -982,8 +997,56 @@ export default function MomentumTracker() {
                         <span className="font-bold text-blue-600">+{task.points}</span>
                       </div>
                       
-                      {task.note && (
-                        <p className="task-note text-sm text-slate-700 italic mb-2">"{task.note}"</p>
+                      {task.note && editingNote !== task.id && (
+                        <p 
+                          className="task-note text-sm text-slate-700 italic mb-2 cursor-pointer hover:bg-slate-100 rounded px-1 py-0.5 transition-colors"
+                          onClick={() => startEditingNote(task)}
+                          title="Click to edit note"
+                        >
+                          "{task.note}"
+                        </p>
+                      )}
+                      
+                      {!task.note && editingNote !== task.id && (
+                        <p 
+                          className="text-sm text-slate-400 italic mb-2 cursor-pointer hover:bg-slate-100 rounded px-1 py-0.5 transition-colors"
+                          onClick={() => startEditingNote(task)}
+                          title="Click to add note"
+                        >
+                          Add note...
+                        </p>
+                      )}
+                      
+                      {editingNote === task.id && (
+                        <div className="mb-2 flex gap-2">
+                          <Input
+                            value={editNoteValue}
+                            onChange={(e) => setEditNoteValue(e.target.value)}
+                            placeholder="Add a note..."
+                            className="text-sm"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') saveNoteEdit();
+                              if (e.key === 'Escape') cancelNoteEdit();
+                            }}
+                            autoFocus
+                          />
+                          <Button
+                            size="sm"
+                            onClick={saveNoteEdit}
+                            disabled={updateTaskNoteMutation.isPending}
+                            className="h-8"
+                          >
+                            {updateTaskNoteMutation.isPending ? "..." : "Save"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={cancelNoteEdit}
+                            className="h-8"
+                          >
+                            Cancel
+                          </Button>
+                        </div>
                       )}
                       
                       <p className="text-xs text-slate-400">
@@ -1060,6 +1123,140 @@ export default function MomentumTracker() {
           </DialogContent>
         </Dialog>
 
+        {/* Task Management Modal */}
+        <Dialog open={showTaskForm} onOpenChange={setShowTaskForm}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>{editingTask ? "Edit Task" : "Create New Task"}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleTaskFormSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="taskName">Task Name</Label>
+                <Input
+                  id="taskName"
+                  value={customTaskForm.name}
+                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, name: e.target.value }))}
+                  placeholder="e.g., Morning workout"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="taskDescription">Description</Label>
+                <Input
+                  id="taskDescription"
+                  value={customTaskForm.description}
+                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="e.g., 30 minutes of cardio or strength training"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="taskPoints">Points</Label>
+                <Input
+                  id="taskPoints"
+                  type="number"
+                  min="1"
+                  max="10"
+                  value={customTaskForm.points}
+                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, points: parseInt(e.target.value) || 1 }))}
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="taskIcon">Icon</Label>
+                <select
+                  id="taskIcon"
+                  value={customTaskForm.icon}
+                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, icon: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                >
+                  {availableIcons.map(icon => (
+                    <option key={icon.name} value={icon.name}>{icon.name}</option>
+                  ))}
+                </select>
+              </div>
+              
+              <div>
+                <Label htmlFor="taskColor">Color</Label>
+                <select
+                  id="taskColor"
+                  value={customTaskForm.color}
+                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, color: e.target.value }))}
+                  className="w-full p-2 border rounded-md"
+                >
+                  <option value="blue">Blue</option>
+                  <option value="emerald">Emerald</option>
+                  <option value="purple">Purple</option>
+                  <option value="yellow">Yellow</option>
+                  <option value="red">Red</option>
+                  <option value="indigo">Indigo</option>
+                  <option value="green">Green</option>
+                  <option value="orange">Orange</option>
+                  <option value="pink">Pink</option>
+                  <option value="cyan">Cyan</option>
+                </select>
+              </div>
+              
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" onClick={() => setShowTaskForm(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={createCustomTaskMutation.isPending || updateCustomTaskMutation.isPending}
+                >
+                  {editingTask ? "Update Task" : "Create Task"}
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Weekly Stats Modal */}
+        <Dialog open={showWeeklyStats} onOpenChange={setShowWeeklyStats}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Weekly Summary</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {(() => {
+                const stats = calculateWeeklyStats();
+                return (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{stats.totalPoints}</div>
+                        <div className="text-sm text-blue-800">Total Points</div>
+                      </div>
+                      <div className="text-center p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{stats.tasksCompleted}</div>
+                        <div className="text-sm text-green-800">Tasks Completed</div>
+                      </div>
+                      <div className="text-center p-4 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">{stats.uniqueTaskTypes}</div>
+                        <div className="text-sm text-purple-800">Unique Tasks</div>
+                      </div>
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="text-2xl font-bold text-orange-600">{stats.newStreaks}</div>
+                        <div className="text-sm text-orange-800">New Streaks</div>
+                      </div>
+                    </div>
+                    
+                    <div className="text-center">
+                      <Button onClick={() => setShowWeeklyStats(false)}>
+                        Continue to Next Week
+                      </Button>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Achievement Modal */}
         {showAchievement && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -1069,9 +1266,17 @@ export default function MomentumTracker() {
               <p className="text-slate-600 mb-6">
                 You've reached your {maxPoints} point goal for this week!
               </p>
-              <Button onClick={() => setShowAchievement(false)}>
-                Continue
-              </Button>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={() => setShowAchievement(false)}>
+                  Continue
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  setShowAchievement(false);
+                  setShowWeeklyStats(true);
+                }}>
+                  View Stats
+                </Button>
+              </div>
             </div>
           </div>
         )}
