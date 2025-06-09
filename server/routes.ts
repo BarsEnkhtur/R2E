@@ -21,22 +21,32 @@ function getWeekStartDate(date: Date): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Demo authentication routes
+  // Demo authentication routes with session management
   app.get('/api/login', (req, res) => {
+    // Set session to indicate user is authenticated
+    (req as any).session = { authenticated: true };
     res.redirect('/');
   });
 
   app.get('/api/logout', (req, res) => {
+    // Clear session to indicate user is logged out
+    (req as any).session = { authenticated: false };
     res.redirect('/');
   });
 
   app.get('/api/auth/user', (req, res) => {
-    // Return demo user for now
-    res.json({
-      id: DEMO_USER_ID,
-      email: 'demo@example.com',
-      name: 'Demo User'
-    });
+    // Check if user is authenticated via session
+    const isAuthenticated = (req as any).session?.authenticated;
+    
+    if (isAuthenticated) {
+      res.json({
+        id: DEMO_USER_ID,
+        email: 'demo@example.com',
+        name: 'Demo User'
+      });
+    } else {
+      res.status(401).json({ message: 'Not authenticated' });
+    }
   });
 
   // Get completed tasks (optionally filtered by week)

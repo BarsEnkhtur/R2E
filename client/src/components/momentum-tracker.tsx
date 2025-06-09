@@ -1235,8 +1235,27 @@ Keep the momentum going! 💼
       {/* Sticky Header */}
       <div className="sticky top-0 bg-white z-40 border-b border-slate-200 py-4 px-4">
         <div className="max-w-6xl mx-auto">
+          {/* Top Navigation Bar */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center space-x-2">
+              <Target className="h-6 w-6 text-blue-600" />
+              <span className="text-lg font-semibold text-gray-900">Road2Employment</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-gray-600 hidden sm:block">Demo User</span>
+              <Button
+                onClick={() => window.location.href = '/api/logout'}
+                variant="outline"
+                size="sm"
+                className="text-sm"
+              >
+                Sign Out
+              </Button>
+            </div>
+          </div>
+          
           <div className="text-center">
-            <h1 className="text-2xl lg:text-4xl font-bold mb-4">Road2Employment</h1>
+            <h1 className="text-xl lg:text-3xl font-bold mb-4">Momentum Tracker</h1>
             
             {/* Week Navigation */}
             <div className="flex items-center justify-center gap-2 lg:gap-4 mb-4">
