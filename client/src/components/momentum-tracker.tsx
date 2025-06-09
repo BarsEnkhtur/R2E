@@ -502,6 +502,7 @@ export default function MomentumTracker() {
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [showShareSnapshot, setShowShareSnapshot] = useState(false);
+  const [shareData, setShareData] = useState<{url: string; token: string} | null>(null);
   const [customTaskForm, setCustomTaskForm] = useState({
     id: "",
     name: "",
@@ -1157,6 +1158,27 @@ Keep the momentum going! 💼
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+    }
+  });
+
+  // Mutation to create share
+  const createShareMutation = useMutation({
+    mutationFn: async (shareData: { title: string; description?: string; weekStartDate: string }) => {
+      return await apiRequest('/api/shares', {
+        method: 'POST',
+        body: JSON.stringify(shareData),
+        headers: { 'Content-Type': 'application/json' }
+      });
+    },
+    onSuccess: (data) => {
+      setShareData({
+        url: `${window.location.origin}${data.shareUrl}`,
+        token: data.share.token
+      });
+      setShowShareSnapshot(true);
+    },
+    onError: (error: any) => {
+      console.error('Failed to create share:', error);
     }
   });
 
