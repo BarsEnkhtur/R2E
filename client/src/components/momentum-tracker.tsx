@@ -408,6 +408,120 @@ export default function MomentumTracker() {
 
 
 
+
+
+
+
+  // Helper function to get current week start date (Monday) using UTC
+  const getWeekStartFixed = (): string => {
+    const now = new Date();
+    // Use UTC to match server timezone
+    const utcDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+    const dayOfWeek = utcDate.getDay(); // 0=Sunday, 1=Monday, etc.
+    
+    // Calculate days to go back to Monday
+    const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+    
+    const weekStart = new Date(utcDate);
+    weekStart.setDate(utcDate.getDate() - daysBack);
+    return weekStart.toISOString().split('T')[0];
+  };
+
+  const currentWeek = selectedWeek || getWeekStartFixed();
+
+  // Fetch completed tasks from database
+  const { data: completedTasks = [], isLoading } = useQuery({
+    queryKey: ['/api/completed-tasks', currentWeek],
+    queryFn: async (): Promise<CompletedTask[]> => {
+      console.log('Fetching tasks for week:', currentWeek);
+      const response = await fetch(`/api/completed-tasks?week=${currentWeek}`);
+      if (!response.ok) throw new Error('Failed to fetch tasks');
+      const data = await response.json();
+      console.log('Received tasks:', data);
+      return data;
+    }
+  });
+
+  // Fetch task stats for current week
+  const { data: taskStats = [] } = useQuery({
+    queryKey: ['/api/task-stats', currentWeek],
+    queryFn: async (): Promise<TaskStats[]> => {
+      const response = await fetch(`/api/task-stats?week=${currentWeek}`);
+      if (!response.ok) throw new Error('Failed to fetch task stats');
+      return await response.json();
+    }
+  });
+
+  // Fetch weekly history
+  const { data: weeklyHistory = [] } = useQuery({
+    queryKey: ['/api/weekly-history'],
+    queryFn: async (): Promise<WeeklyHistory[]> => {
+      const response = await fetch('/api/weekly-history');
+      if (!response.ok) throw new Error('Failed to fetch weekly history');
+      return await response.json();
+    }
+  });
+
+  // Fetch dynamic goal for current week
+  const { data: dynamicGoalData, isLoading: isGoalLoading } = useQuery({
+    queryKey: ['/api/dynamic-goal', currentWeek],
+    queryFn: async (): Promise<{ goal: number }> => {
+      const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
+      if (!response.ok) throw new Error('Failed to fetch dynamic goal');
+      return await response.json();
+    }
+  });
+
+  // Fetch custom tasks
+  const { data: customTasks = [] } = useQuery({
+    queryKey: ['/api/custom-tasks'],
+    queryFn: async (): Promise<CustomTask[]> => {
+      const response = await fetch('/api/custom-tasks');
+      if (!response.ok) throw new Error('Failed to fetch custom tasks');
+      return await response.json();
+    }
+  });
+
+  // Calculate points and progress with proper fallbacks
+  const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum, task) => sum + task.points, 0) : 0;
+  const maxPoints = dynamicGoalData?.goal || 15;
+  const progressPercentage = maxPoints > 0 ? Math.min((currentPoints / maxPoints) * 100, 100) : 0;
+
+  // Combine default tasks with custom tasks (after customTasks is defined)
+  const allTasks = [...tasks, ...convertCustomTasksToTasks(Array.isArray(customTasks) ? customTasks : [])];
+
+  // Filter and sort tasks based on search and custom order
+  const getFilteredAndSortedTasks = () => {
+    let filteredTasks = allTasks;
+    
+    // Apply search filter
+    if (searchFilter.trim()) {
+      const searchTerm = searchFilter.toLowerCase().trim();
+      filteredTasks = allTasks.filter(task => 
+        task.name.toLowerCase().includes(searchTerm) ||
+        task.description.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Sort by custom order, then by original order for new tasks
+    return filteredTasks.sort((a, b) => {
+      const aIndex = taskOrder.indexOf(a.id);
+      const bIndex = taskOrder.indexOf(b.id);
+      
+      // If both tasks are in the custom order, use that order
+      if (aIndex !== -1 && bIndex !== -1) {
+        return aIndex - bIndex;
+      }
+      
+      // If only one task is in custom order, prioritize it
+      if (aIndex !== -1) return -1;
+      if (bIndex !== -1) return 1;
+      
+      // If neither is in custom order, maintain original order
+      return 0;
+    });
+  };
+
   // Helper functions for task management
   const openTaskForm = (task?: Task) => {
     if (task) {
@@ -506,81 +620,6 @@ export default function MomentumTracker() {
       newStreaks: streaks
     };
   };
-
-  // Helper function to get current week start date (Monday) using UTC
-  const getWeekStartFixed = (): string => {
-    const now = new Date();
-    // Use UTC to match server timezone
-    const utcDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const dayOfWeek = utcDate.getDay(); // 0=Sunday, 1=Monday, etc.
-    
-    // Calculate days to go back to Monday
-    const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    
-    const weekStart = new Date(utcDate);
-    weekStart.setDate(utcDate.getDate() - daysBack);
-    return weekStart.toISOString().split('T')[0];
-  };
-
-  const currentWeek = selectedWeek || getWeekStartFixed();
-
-  // Fetch completed tasks from database
-  const { data: completedTasks = [], isLoading } = useQuery({
-    queryKey: ['/api/completed-tasks', currentWeek],
-    queryFn: async (): Promise<CompletedTask[]> => {
-      console.log('Fetching tasks for week:', currentWeek);
-      const response = await fetch(`/api/completed-tasks?week=${currentWeek}`);
-      if (!response.ok) throw new Error('Failed to fetch tasks');
-      const data = await response.json();
-      console.log('Received tasks:', data);
-      return data;
-    }
-  });
-
-  // Fetch task stats for current week
-  const { data: taskStats = [] } = useQuery({
-    queryKey: ['/api/task-stats', currentWeek],
-    queryFn: async (): Promise<TaskStats[]> => {
-      const response = await fetch(`/api/task-stats?week=${currentWeek}`);
-      if (!response.ok) throw new Error('Failed to fetch task stats');
-      return await response.json();
-    }
-  });
-
-  // Fetch weekly history
-  const { data: weeklyHistory = [] } = useQuery({
-    queryKey: ['/api/weekly-history'],
-    queryFn: async (): Promise<WeeklyHistory[]> => {
-      const response = await fetch('/api/weekly-history');
-      if (!response.ok) throw new Error('Failed to fetch weekly history');
-      return await response.json();
-    }
-  });
-
-  // Fetch dynamic goal for current week
-  const { data: dynamicGoalData, isLoading: isGoalLoading } = useQuery({
-    queryKey: ['/api/dynamic-goal', currentWeek],
-    queryFn: async (): Promise<{ goal: number }> => {
-      const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
-      if (!response.ok) throw new Error('Failed to fetch dynamic goal');
-      return await response.json();
-    }
-  });
-
-  // Fetch custom tasks
-  const { data: customTasks = [] } = useQuery({
-    queryKey: ['/api/custom-tasks'],
-    queryFn: async (): Promise<CustomTask[]> => {
-      const response = await fetch('/api/custom-tasks');
-      if (!response.ok) throw new Error('Failed to fetch custom tasks');
-      return await response.json();
-    }
-  });
-
-  // Calculate points and progress with proper fallbacks
-  const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum, task) => sum + task.points, 0) : 0;
-  const maxPoints = dynamicGoalData?.goal || 15;
-  const progressPercentage = maxPoints > 0 ? Math.min((currentPoints / maxPoints) * 100, 100) : 0;
 
   // Helper function to get task stats for a specific task
   const getTaskStats = (taskId: string): TaskStats | undefined => {
