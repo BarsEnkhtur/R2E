@@ -224,6 +224,25 @@ const pointsColorClasses = {
   cyan: "text-cyan-600"
 };
 
+// Available icons for custom tasks
+const availableIcons = [
+  { name: "Circle", component: Circle },
+  { name: "Heart", component: Heart },
+  { name: "Star", component: Star },
+  { name: "Coffee", component: Coffee },
+  { name: "Briefcase", component: Briefcase },
+  { name: "BookOpen", component: BookOpen },
+  { name: "Target", component: Target },
+  { name: "Music", component: Music },
+  { name: "Camera", component: Camera },
+  { name: "Gamepad2", component: Gamepad2 },
+  { name: "Palette", component: Palette },
+  { name: "Code", component: Code },
+  { name: "MessageCircle", component: MessageCircle },
+  { name: "Lightbulb", component: Lightbulb },
+  { name: "Zap", component: Zap }
+];
+
 // Sortable Task Item Component
 function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji }: {
   task: Task;
@@ -328,7 +347,13 @@ export default function MomentumTracker() {
   const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
   const [searchFilter, setSearchFilter] = useState("");
   const [taskOrder, setTaskOrder] = useState<string[]>([]);
+  const [editingNote, setEditingNote] = useState<number | null>(null);
+  const [editNoteValue, setEditNoteValue] = useState("");
+  const [showWeeklyStats, setShowWeeklyStats] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [showTaskForm, setShowTaskForm] = useState(false);
   const [customTaskForm, setCustomTaskForm] = useState({
+    id: "",
     name: "",
     description: "",
     points: 1,
@@ -366,36 +391,120 @@ export default function MomentumTracker() {
     }
   };
 
-  // Filter and sort tasks based on search and custom order
-  const getFilteredAndSortedTasks = () => {
-    let filteredTasks = tasks;
-    
-    // Apply search filter
-    if (searchFilter.trim()) {
-      const searchTerm = searchFilter.toLowerCase().trim();
-      filteredTasks = tasks.filter(task => 
-        task.name.toLowerCase().includes(searchTerm) ||
-        task.description.toLowerCase().includes(searchTerm)
-      );
-    }
-
-    // Sort by custom order, then by original order for new tasks
-    return filteredTasks.sort((a, b) => {
-      const aIndex = taskOrder.indexOf(a.id);
-      const bIndex = taskOrder.indexOf(b.id);
-      
-      // If both tasks are in the custom order, use that order
-      if (aIndex !== -1 && bIndex !== -1) {
-        return aIndex - bIndex;
-      }
-      
-      // If only one task is in custom order, prioritize it
-      if (aIndex !== -1) return -1;
-      if (bIndex !== -1) return 1;
-      
-      // If neither is in custom order, maintain original order
-      return 0;
+  // Convert custom tasks to Task format
+  const convertCustomTasksToTasks = (customTasks: CustomTask[]): Task[] => {
+    return customTasks.filter(ct => ct.isActive).map(ct => {
+      const iconComponent = availableIcons.find(icon => icon.name === ct.icon)?.component || Circle;
+      return {
+        id: ct.taskId,
+        name: ct.name,
+        description: ct.description,
+        points: ct.points,
+        icon: iconComponent,
+        color: ct.color
+      };
     });
+  };
+
+
+
+  // Helper functions for task management
+  const openTaskForm = (task?: Task) => {
+    if (task) {
+      // Editing existing task - find the custom task
+      const customTask = customTasks.find(ct => ct.taskId === task.id);
+      if (customTask) {
+        setEditingTask(task);
+        setCustomTaskForm({
+          id: customTask.id.toString(),
+          name: task.name,
+          description: task.description,
+          points: task.points,
+          icon: availableIcons.find(icon => icon.component === task.icon)?.name || "Circle",
+          color: task.color
+        });
+      }
+    } else {
+      // Creating new task
+      setEditingTask(null);
+      setCustomTaskForm({
+        id: "",
+        name: "",
+        description: "",
+        points: 1,
+        icon: "Circle",
+        color: "blue"
+      });
+    }
+    setShowTaskForm(true);
+  };
+
+  const handleTaskFormSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!customTaskForm.name.trim() || !customTaskForm.description.trim()) return;
+
+    if (editingTask && customTaskForm.id) {
+      // Update existing task
+      updateCustomTaskMutation.mutate({
+        id: parseInt(customTaskForm.id),
+        updates: {
+          name: customTaskForm.name,
+          description: customTaskForm.description,
+          points: customTaskForm.points,
+          icon: customTaskForm.icon,
+          color: customTaskForm.color
+        }
+      });
+    } else {
+      // Create new task
+      const taskId = customTaskForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      createCustomTaskMutation.mutate({
+        taskId,
+        name: customTaskForm.name,
+        description: customTaskForm.description,
+        points: customTaskForm.points,
+        icon: customTaskForm.icon,
+        color: customTaskForm.color,
+        isActive: true
+      });
+    }
+  };
+
+  // Inline note editing functions
+  const startEditingNote = (task: CompletedTask) => {
+    setEditingNote(task.id);
+    setEditNoteValue(task.note || "");
+  };
+
+  const saveNoteEdit = () => {
+    if (editingNote !== null) {
+      updateTaskNoteMutation.mutate({
+        id: editingNote,
+        note: editNoteValue.trim()
+      });
+    }
+  };
+
+  const cancelNoteEdit = () => {
+    setEditingNote(null);
+    setEditNoteValue("");
+  };
+
+  // Weekly stats calculation
+  const calculateWeeklyStats = () => {
+    const thisWeekTasks = completedTasks.filter(task => task.weekStartDate === currentWeek);
+    const totalPoints = thisWeekTasks.reduce((sum, task) => sum + task.points, 0);
+    const uniqueTaskTypes = new Set(thisWeekTasks.map(task => task.taskId)).size;
+    const streaks = Array.from(new Set(thisWeekTasks.map(task => task.taskId)))
+      .map(taskId => getTaskStreak(taskId))
+      .filter(streak => streak >= 3).length;
+
+    return {
+      totalPoints,
+      tasksCompleted: thisWeekTasks.length,
+      uniqueTaskTypes,
+      newStreaks: streaks
+    };
   };
 
   // Helper function to get current week start date (Monday) using UTC
@@ -569,6 +678,89 @@ export default function MomentumTracker() {
     }
   });
 
+  // Mutation to update a completed task's note
+  const updateTaskNoteMutation = useMutation({
+    mutationFn: async ({ id, note }: { id: number; note: string }) => {
+      const response = await fetch(`/api/completed-tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note })
+      });
+      if (!response.ok) throw new Error('Failed to update task note');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      setEditingNote(null);
+      setEditNoteValue("");
+    }
+  });
+
+  // Mutation to create custom task
+  const createCustomTaskMutation = useMutation({
+    mutationFn: async (taskData: any) => {
+      const response = await fetch('/api/custom-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+      });
+      if (!response.ok) throw new Error('Failed to create custom task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+      setShowTaskForm(false);
+      setEditingTask(null);
+      setCustomTaskForm({
+        id: "",
+        name: "",
+        description: "",
+        points: 1,
+        icon: "Circle",
+        color: "blue"
+      });
+    }
+  });
+
+  // Mutation to update custom task
+  const updateCustomTaskMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: number; updates: Partial<CustomTask> }) => {
+      const response = await fetch(`/api/custom-tasks/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (!response.ok) throw new Error('Failed to update custom task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+      setShowTaskForm(false);
+      setEditingTask(null);
+      setCustomTaskForm({
+        id: "",
+        name: "",
+        description: "",
+        points: 1,
+        icon: "Circle",
+        color: "blue"
+      });
+    }
+  });
+
+  // Mutation to delete custom task
+  const deleteCustomTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await fetch(`/api/custom-tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete custom task');
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+    }
+  });
+
   // Helper functions for week navigation
   const formatWeekDisplay = (weekStart: string): string => {
     const start = new Date(weekStart);
@@ -680,14 +872,24 @@ export default function MomentumTracker() {
             <CardContent className="p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-semibold">Tasks</h2>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                  <Input
-                    placeholder="Search tasks..."
-                    value={searchFilter}
-                    onChange={(e) => setSearchFilter(e.target.value)}
-                    className="pl-10 w-48 h-9"
-                  />
+                <div className="flex items-center gap-3">
+                  <Button
+                    onClick={() => openTaskForm()}
+                    size="sm"
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Add Task
+                  </Button>
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <Input
+                      placeholder="Search tasks..."
+                      value={searchFilter}
+                      onChange={(e) => setSearchFilter(e.target.value)}
+                      className="pl-10 w-48 h-9"
+                    />
+                  </div>
                 </div>
               </div>
               
