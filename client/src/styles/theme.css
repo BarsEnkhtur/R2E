@@ -2,23 +2,23 @@
 
 :root {
   /* ─── COLORS ───────────────────────────────────────────────────────────── */
-  --color-bg:               #F3ECD9;   /* Eggshell page background */
-  --color-card-bg:          #F0F1E3;   /* Ivory card background */
-  --color-border:           #D7E0D8;   /* Alabaster borders */
-  --color-accent:           #889C9B;   /* Cadet gray for buttons & highlights */
-  --color-text-primary:     #889C9B;   /* Cadet gray for ALL main text */
-  --color-text-secondary:   #C6D5D0;   /* Ash gray for truly secondary UI */
+  --color-bg:               #FFFFFF;   /* Pure white background */
+  --color-card-bg:          #F4F5F7;   /* Light gray cards with subtle tint */
+  --color-border:           #E5E7EB;   /* Light gray borders & dividers */
+  --color-accent:           #3B82F6;   /* Electric Blue for buttons & highlights */
+  --color-text-primary:     #1F2937;   /* Dark charcoal for primary text */
+  --color-text-secondary:   #4B5563;   /* Mid-gray for secondary text */
 
   /* ─── TYPOGRAPHY ───────────────────────────────────────────────────────── */
   --font-sans:              'Inter', sans-serif;
   --text-base-size:         16px;
   --line-height:            1.5;
-  --h1-size:                2.5rem;    /* 40px for a stronger title */
-  --h2-size:                1.75rem;   /* 28px */
+  --h1-size:                3rem;      /* 48px for stronger title */
+  --h2-size:                1.5rem;    /* 24px */
   --h3-size:                1.25rem;   /* 20px */
   --font-weight-regular:    400;
   --font-weight-medium:     500;
-  --font-weight-bold:       700;
+  --font-weight-bold:       800;
 
   /* ─── SPACING (8px grid) ───────────────────────────────────────────────── */
   --space-1: 4px;
@@ -30,6 +30,6 @@
 
   /* ─── RADIUS & SHADOW ──────────────────────────────────────────────────── */
   --radius:        8px;
-  --shadow-light:  0 2px 4px rgba(0,0,0,0.05);
-  --shadow-strong: 0 4px 8px rgba(0,0,0,0.1);
+  --shadow-light:  0 1px 3px rgba(0,0,0,0.1);
+  --shadow-strong: 0 4px 12px rgba(0,0,0,0.15);
 }

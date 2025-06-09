@@ -542,7 +542,7 @@ export default function MomentumTracker() {
           <h1 className="page-title">
             Road2Employment
           </h1>
-          <p>Build momentum with consistent daily actions</p>
+          <p className="text-slate-600">Build momentum with consistent daily actions</p>
           
           {/* Week Navigation */}
           <div className="flex items-center justify-center space-x-4 mt-6">
