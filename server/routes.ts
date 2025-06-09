@@ -21,6 +21,24 @@ function getWeekStartDate(date: Date): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Demo authentication routes
+  app.get('/api/login', (req, res) => {
+    res.redirect('/');
+  });
+
+  app.get('/api/logout', (req, res) => {
+    res.redirect('/');
+  });
+
+  app.get('/api/auth/user', (req, res) => {
+    // Return demo user for now
+    res.json({
+      id: DEMO_USER_ID,
+      email: 'demo@example.com',
+      name: 'Demo User'
+    });
+  });
+
   // Get completed tasks (optionally filtered by week)
   app.get("/api/completed-tasks", async (req, res) => {
     try {
