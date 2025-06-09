@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
 import {
   DndContext,
@@ -787,14 +788,14 @@ export default function MomentumTracker() {
     const bestWeekPoints = Math.max(...allWeeks.map(week => week.totalPoints), currentPoints);
     const bestMonthPoints = allWeeks.reduce((max, week) => Math.max(max, week.totalPoints), currentPoints);
     
-    // Calculate highest multiplier (simplified for now)
+    // Calculate highest multiplier
     const highestMultiplier = Math.max(...taskStats.map(stat => stat.currentValue / stat.basePoints), 1);
     
-    // Calculate longest streak (simplified - would need more complex logic for actual day streaks)
-    const longestStreak = Math.max(...taskStats.map(stat => stat.timesThisWeek), 0);
+    // Calculate actual date-based streak
+    const longestStreak = calculateDateBasedStreak();
     
-    // Power hour calculation (tasks completed within 1 hour - simplified)
-    const powerHour = 0; // Would need timestamp analysis for real implementation
+    // Power hour calculation (tasks completed within 1 hour)
+    const powerHour = calculatePowerHour();
     
     return {
       totalTasks,
@@ -805,6 +806,74 @@ export default function MomentumTracker() {
       longestStreak,
       powerHour
     };
+  };
+
+  // Calculate date-based streak
+  const calculateDateBasedStreak = () => {
+    if (!completedTasks || completedTasks.length === 0) return 0;
+    
+    // Group tasks by date
+    const tasksByDate: Record<string, number> = {};
+    completedTasks.forEach(task => {
+      const dateKey = new Date(task.completedAt).toDateString();
+      tasksByDate[dateKey] = (tasksByDate[dateKey] || 0) + 1;
+    });
+    
+    // Sort dates in descending order
+    const sortedDates = Object.keys(tasksByDate).sort((a, b) => 
+      new Date(b).getTime() - new Date(a).getTime()
+    );
+    
+    if (sortedDates.length === 0) return 0;
+    
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let previousDate = new Date(sortedDates[0]);
+    
+    for (const dateStr of sortedDates) {
+      const currentDate = new Date(dateStr);
+      const daysDiff = Math.floor((previousDate.getTime() - currentDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysDiff === 0) {
+        // Same day, continue streak
+        currentStreak = Math.max(currentStreak, 1);
+      } else if (daysDiff === 1) {
+        // Consecutive day, extend streak
+        currentStreak++;
+      } else {
+        // Gap in dates, reset streak
+        longestStreak = Math.max(longestStreak, currentStreak);
+        currentStreak = 1;
+      }
+      
+      previousDate = currentDate;
+    }
+    
+    return Math.max(longestStreak, currentStreak);
+  };
+
+  // Calculate power hour achievements (3 tasks within 1 hour)
+  const calculatePowerHour = () => {
+    if (!completedTasks || completedTasks.length < 3) return 0;
+    
+    const sortedTasks = [...completedTasks].sort((a, b) => 
+      new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
+    );
+    
+    let powerHours = 0;
+    
+    for (let i = 0; i <= sortedTasks.length - 3; i++) {
+      const firstTask = new Date(sortedTasks[i].completedAt);
+      const thirdTask = new Date(sortedTasks[i + 2].completedAt);
+      const timeDiff = thirdTask.getTime() - firstTask.getTime();
+      const hoursDiff = timeDiff / (1000 * 60 * 60);
+      
+      if (hoursDiff <= 1) {
+        powerHours++;
+      }
+    }
+    
+    return powerHours;
   };
 
   // Get unlocked badges
@@ -1152,17 +1221,25 @@ export default function MomentumTracker() {
                   {topBadges.length > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-slate-600">Latest:</span>
-                      <div className="flex gap-1">
-                        {topBadges.map(badge => (
-                          <div
-                            key={badge.id}
-                            className="w-8 h-8 flex items-center justify-center bg-yellow-50 border border-yellow-200 rounded-full cursor-pointer hover:bg-yellow-100 transition-colors"
-                            title={`${badge.name}: ${badge.description}`}
-                          >
-                            <span className="text-sm">{badge.icon}</span>
-                          </div>
-                        ))}
-                      </div>
+                      <TooltipProvider>
+                        <div className="flex gap-1">
+                          {topBadges.map(badge => (
+                            <Tooltip key={badge.id}>
+                              <TooltipTrigger asChild>
+                                <div className="w-8 h-8 flex items-center justify-center bg-yellow-50 border border-yellow-200 rounded-full cursor-pointer hover:bg-yellow-100 transition-colors">
+                                  <span className="text-sm">{badge.icon}</span>
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <div className="text-center">
+                                  <div className="font-medium">{badge.name}</div>
+                                  <div className="text-xs text-slate-500 mt-1">{badge.description}</div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
+                          ))}
+                        </div>
+                      </TooltipProvider>
                       <Button
                         variant="link"
                         size="sm"
