@@ -38,6 +38,25 @@ export async function setupAuth(app: Express) {
   app.use(passport.initialize());
   app.use(passport.session());
 
+  // Check if Google OAuth credentials are available
+  if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    console.log("Google OAuth credentials not found. Using demo authentication mode.");
+    
+    // Setup demo authentication routes
+    app.get("/api/login", (req, res) => {
+      req.session.userId = "demo_user";
+      res.redirect("/");
+    });
+
+    app.get("/api/logout", (req, res) => {
+      req.session.destroy(() => {
+        res.redirect("/");
+      });
+    });
+
+    return;
+  }
+
   // Configure Google OAuth strategy
   passport.use(new GoogleStrategy({
     clientID: process.env.GOOGLE_CLIENT_ID!,

@@ -109,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete a completed task
-  app.delete("/api/completed-tasks/:id", async (req, res) => {
+  app.delete("/api/completed-tasks/:id", isAuthenticated, async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -207,7 +207,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create custom task
-  app.post("/api/custom-tasks", async (req, res) => {
+  app.post("/api/custom-tasks", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       const taskData = { ...req.body, userId };
@@ -233,7 +233,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update completed task note
-  app.patch("/api/completed-tasks/:id", async (req, res) => {
+  app.patch("/api/completed-tasks/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const { note } = req.body;
@@ -334,13 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userId = getUserId(req);
       const { token } = req.params;
       
-      // For demo, return unauthorized - in production this would check authentication
-      if (userId === DEMO_USER_ID) {
-        return res.status(401).json({ 
-          error: "Authentication required", 
-          message: "Sign in to fork this setup to your own account" 
-        });
-      }
+      // Authentication is handled by middleware, user is already authenticated here
       
       const share = await storage.getShare(token);
       if (!share) {
@@ -380,13 +374,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get user's active shares (authenticated users only)
-  app.get("/api/shares", async (req, res) => {
+  app.get("/api/shares", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
       
-      if (userId === DEMO_USER_ID) {
-        return res.json([]); // Demo users have no shares
-      }
+      // User is authenticated, get their shares
       
       const shares = await storage.getActiveShares(userId);
       res.json(shares);
