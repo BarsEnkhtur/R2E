@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/useAuth";
 import {
   DndContext,
   closestCenter,
@@ -513,6 +514,7 @@ export default function MomentumTracker() {
   });
   
   const queryClient = useQueryClient();
+  const { user } = useAuth();
 
   // Set up drag and drop sensors
   const sensors = useSensors(
@@ -1242,15 +1244,33 @@ Keep the momentum going! 💼
               <span className="text-lg font-semibold text-gray-900">Road2Employment</span>
             </div>
             <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600 hidden sm:block">Demo User</span>
-              <Button
-                onClick={() => window.location.href = '/api/logout'}
-                variant="outline"
-                size="sm"
-                className="text-sm"
-              >
-                Sign Out
-              </Button>
+              {user && user.id !== 'demo_user' && (
+                <span className="text-sm text-gray-600 hidden sm:block">
+                  {user.email || user.id}
+                </span>
+              )}
+              {user && user.id === 'demo_user' && (
+                <span className="text-sm text-gray-600 hidden sm:block">Demo User</span>
+              )}
+              {user ? (
+                <Button
+                  onClick={() => window.location.href = '/api/logout'}
+                  variant="outline"
+                  size="sm"
+                  className="text-sm"
+                >
+                  Sign Out
+                </Button>
+              ) : (
+                <Button
+                  onClick={() => window.location.href = '/api/login'}
+                  variant="outline"
+                  size="sm"
+                  className="text-sm"
+                >
+                  Sign In
+                </Button>
+              )}
             </div>
           </div>
           
