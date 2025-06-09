@@ -26,7 +26,7 @@ export default function Landing() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Target className="h-8 w-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Adulting XP</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Road2Employment</h1>
           </div>
           <Button onClick={handleLogin} className="bg-blue-600 hover:bg-blue-700">
             Sign In
