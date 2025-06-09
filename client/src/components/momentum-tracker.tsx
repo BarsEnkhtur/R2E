@@ -348,7 +348,7 @@ export default function MomentumTracker() {
       queryClient.removeQueries();
       
       // Show achievement if goal reached
-      const currentMaxPoints = dynamicGoalData?.goal || 15;
+      const currentMaxPoints = maxPoints;
       const newPoints = currentPoints + (selectedTask ? getCurrentTaskValue(selectedTask) : 0);
       if (newPoints >= currentMaxPoints) {
         setTimeout(() => {
