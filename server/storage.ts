@@ -1,54 +1,64 @@
-import { users, completedTasks, taskStats, weeklyHistory, customTasks, type User, type InsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats, type WeeklyHistory, type InsertWeeklyHistory, type CustomTask, type InsertCustomTask } from "@shared/schema";
+import { users, completedTasks, taskStats, weeklyHistory, customTasks, shares, type User, type UpsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats, type WeeklyHistory, type InsertWeeklyHistory, type CustomTask, type InsertCustomTask, type Share, type InsertShare } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt } from "drizzle-orm";
 
 export interface IStorage {
-  getUser(id: number): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
-  getCompletedTasks(weekStartDate?: string): Promise<CompletedTask[]>;
+  // User operations for Replit Auth
+  getUser(id: string): Promise<User | undefined>;
+  upsertUser(user: UpsertUser): Promise<User>;
+  
+  // User-scoped data operations
+  getCompletedTasks(userId: string, weekStartDate?: string): Promise<CompletedTask[]>;
   createCompletedTask(task: InsertCompletedTask): Promise<CompletedTask>;
   updateCompletedTask(id: number, updates: Partial<CompletedTask>): Promise<CompletedTask>;
   deleteCompletedTask(id: number): Promise<void>;
-  clearAllCompletedTasks(weekStartDate?: string): Promise<void>;
-  getTaskStats(weekStartDate: string): Promise<TaskStats[]>;
-  getTaskStatByTaskId(taskId: string, weekStartDate: string): Promise<TaskStats | undefined>;
+  clearAllCompletedTasks(userId: string, weekStartDate?: string): Promise<void>;
+  getTaskStats(userId: string, weekStartDate: string): Promise<TaskStats[]>;
+  getTaskStatByTaskId(userId: string, taskId: string, weekStartDate: string): Promise<TaskStats | undefined>;
   createTaskStats(stats: InsertTaskStats): Promise<TaskStats>;
-  updateTaskStats(taskId: string, weekStartDate: string, updates: Partial<TaskStats>): Promise<TaskStats>;
-  getWeeklyHistory(): Promise<WeeklyHistory[]>;
+  updateTaskStats(userId: string, taskId: string, weekStartDate: string, updates: Partial<TaskStats>): Promise<TaskStats>;
+  getWeeklyHistory(userId: string): Promise<WeeklyHistory[]>;
   createOrUpdateWeeklyHistory(weekData: InsertWeeklyHistory): Promise<WeeklyHistory>;
-  calculateDynamicGoal(weekStartDate: string): Promise<number>;
-  getCustomTasks(): Promise<CustomTask[]>;
+  calculateDynamicGoal(userId: string, weekStartDate: string): Promise<number>;
+  getCustomTasks(userId: string): Promise<CustomTask[]>;
   createCustomTask(task: InsertCustomTask): Promise<CustomTask>;
   updateCustomTask(id: number, updates: Partial<CustomTask>): Promise<CustomTask>;
   deleteCustomTask(id: number): Promise<void>;
+  
+  // Share operations
+  createShare(share: InsertShare): Promise<Share>;
+  getShare(token: string): Promise<Share | undefined>;
+  getActiveShares(userId: string): Promise<Share[]>;
+  deactivateShare(token: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
-  async getUser(id: number): Promise<User | undefined> {
+  async getUser(id: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.id, id));
-    return user || undefined;
+    return user;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.username, username));
-    return user || undefined;
-  }
-
-  async createUser(insertUser: InsertUser): Promise<User> {
+  async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(insertUser)
+      .values(userData)
+      .onConflictDoUpdate({
+        target: users.id,
+        set: {
+          ...userData,
+          updatedAt: new Date(),
+        },
+      })
       .returning();
     return user;
   }
 
-  async getCompletedTasks(weekStartDate?: string): Promise<CompletedTask[]> {
-    const query = db.select().from(completedTasks);
+  async getCompletedTasks(userId: string, weekStartDate?: string): Promise<CompletedTask[]> {
+    const query = db.select().from(completedTasks).where(eq(completedTasks.userId, userId));
     
     if (weekStartDate) {
       return await query
-        .where(eq(completedTasks.weekStartDate, weekStartDate))
+        .where(and(eq(completedTasks.userId, userId), eq(completedTasks.weekStartDate, weekStartDate)))
         .orderBy(desc(completedTasks.completedAt));
     }
     

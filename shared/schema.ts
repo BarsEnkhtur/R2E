@@ -150,6 +150,7 @@ export const insertWeeklyHistorySchema = createInsertSchema(weeklyHistory).pick(
 });
 
 export const insertCustomTaskSchema = createInsertSchema(customTasks).pick({
+  userId: true,
   taskId: true,
   name: true,
   description: true,
@@ -160,6 +161,7 @@ export const insertCustomTaskSchema = createInsertSchema(customTasks).pick({
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
 export type InsertCompletedTask = z.infer<typeof insertCompletedTaskSchema>;
 export type CompletedTask = typeof completedTasks.$inferSelect;
@@ -169,3 +171,5 @@ export type InsertWeeklyHistory = z.infer<typeof insertWeeklyHistorySchema>;
 export type WeeklyHistory = typeof weeklyHistory.$inferSelect;
 export type InsertCustomTask = z.infer<typeof insertCustomTaskSchema>;
 export type CustomTask = typeof customTasks.$inferSelect;
+export type InsertShare = z.infer<typeof insertShareSchema>;
+export type Share = typeof shares.$inferSelect;
