@@ -1,6 +1,6 @@
 import { users, completedTasks, taskStats, weeklyHistory, type User, type InsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats, type WeeklyHistory, type InsertWeeklyHistory } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, lt } from "drizzle-orm";
 
 export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
@@ -122,22 +122,73 @@ export class DatabaseStorage implements IStorage {
       .where(eq(weeklyHistory.weekStartDate, weekData.weekStartDate));
 
     if (existing) {
+      const goalAchieved = (weekData.totalPoints || 0) >= (weekData.weeklyGoal || existing.weeklyGoal);
       const [updated] = await db
         .update(weeklyHistory)
         .set({
-          totalPoints: weekData.totalPoints,
-          tasksCompleted: weekData.tasksCompleted
+          totalPoints: weekData.totalPoints || 0,
+          tasksCompleted: weekData.tasksCompleted || 0,
+          weeklyGoal: weekData.weeklyGoal || existing.weeklyGoal,
+          goalAchieved: goalAchieved,
         })
         .where(eq(weeklyHistory.weekStartDate, weekData.weekStartDate))
         .returning();
       return updated;
     } else {
+      const goalAchieved = (weekData.totalPoints || 0) >= (weekData.weeklyGoal || 15);
       const [created] = await db
         .insert(weeklyHistory)
-        .values(weekData)
+        .values({
+          ...weekData,
+          weeklyGoal: weekData.weeklyGoal || 15,
+          goalAchieved: goalAchieved,
+        })
         .returning();
       return created;
     }
+  }
+
+  async calculateDynamicGoal(weekStartDate: string): Promise<number> {
+    // Get the last 3 weeks of history for rolling average
+    const history = await db
+      .select()
+      .from(weeklyHistory)
+      .where(lt(weeklyHistory.weekStartDate, weekStartDate))
+      .orderBy(desc(weeklyHistory.weekStartDate))
+      .limit(3);
+
+    if (history.length === 0) {
+      return 15; // Default goal for first week
+    }
+
+    if (history.length === 1) {
+      const lastWeek = history[0];
+      const performance = lastWeek.totalPoints / lastWeek.weeklyGoal;
+      
+      if (performance >= 1.1) {
+        return Math.round(lastWeek.totalPoints * 1.1 * 2) / 2; // 10% increase, rounded to nearest 0.5
+      } else if (performance < 0.7) {
+        return Math.max(10, Math.round(lastWeek.weeklyGoal * 0.9 * 2) / 2); // 10% decrease, min 10
+      } else {
+        return lastWeek.weeklyGoal;
+      }
+    }
+
+    // Calculate rolling average of last 2-3 weeks
+    const recentWeeks = history.slice(0, 2);
+    const averagePoints = recentWeeks.reduce((sum, week) => sum + week.totalPoints, 0) / recentWeeks.length;
+    const averageGoal = recentWeeks.reduce((sum, week) => sum + week.weeklyGoal, 0) / recentWeeks.length;
+    
+    const overallPerformance = averagePoints / averageGoal;
+    let newGoal = averagePoints;
+    
+    if (overallPerformance >= 1.1) {
+      newGoal = averagePoints * 1.1; // 10% increase for consistent overperformance
+    } else if (overallPerformance < 0.7) {
+      newGoal = Math.max(10, averageGoal * 0.9); // 10% decrease for underperformance
+    }
+    
+    return Math.round(newGoal * 2) / 2; // Round to nearest 0.5
   }
 }
 
