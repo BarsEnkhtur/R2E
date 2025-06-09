@@ -429,7 +429,7 @@ export default function MomentumTracker() {
 
   return (
     <div className="min-h-screen py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-4">Momentum Tracker</h1>
           
@@ -490,7 +490,7 @@ export default function MomentumTracker() {
           )}
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-2">
           <Card>
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">Tasks</h2>
@@ -504,40 +504,44 @@ export default function MomentumTracker() {
                   const streakEmoji = getStreakEmoji(streak);
                   
                   return (
-                    <div key={task.id} className={`flex items-center justify-between p-3 border rounded-lg hover:bg-slate-50 ${onStreak ? 'border-yellow-300 bg-yellow-50' : ''} ${hasAttention ? 'border-red-300 bg-red-50' : ''}`}>
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]}`}>
-                          <IconComponent className="w-5 h-5" />
+                    <div key={task.id} className={`flex items-start justify-between p-4 border rounded-lg hover:bg-slate-50 ${onStreak ? 'border-yellow-300 bg-yellow-50' : ''} ${hasAttention ? 'border-red-300 bg-red-50' : ''}`}>
+                      <div className="flex items-start gap-4 flex-1">
+                        <div className={`p-3 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0`}>
+                          <IconComponent className="w-6 h-6" />
                         </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <h3 className="font-medium">{task.name}</h3>
-                            {streakEmoji && <span className="text-lg">{streakEmoji}</span>}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold text-base">{task.name}</h3>
+                            {streakEmoji && <span className="text-xl">{streakEmoji}</span>}
+                          </div>
+                          <p className="text-sm text-slate-600 mb-2 leading-relaxed">{task.description}</p>
+                          <div className="flex items-center gap-2 flex-wrap">
                             {streak > 0 && (
                               <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
                                 {streak}x this week
                               </span>
                             )}
+                            {hasAttention && (
+                              <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
+                                ⚠️ Needs attention
+                              </span>
+                            )}
                           </div>
-                          <p className="text-sm text-slate-600">{task.description}</p>
-                          {hasAttention && (
-                            <p className="text-xs text-red-600 font-medium">⚠️ Needs attention</p>
-                          )}
                         </div>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`font-semibold ${hasAttention ? 'text-red-600' : onStreak ? 'text-yellow-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
+                      <div className="flex flex-col items-end gap-2 ml-4">
+                        <span className={`font-bold text-lg ${hasAttention ? 'text-red-600' : onStreak ? 'text-yellow-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
                           +{currentValue}
-                          {currentValue > task.points && (
-                            <span className="text-xs text-slate-500 ml-1">
-                              (base: {task.points})
-                            </span>
-                          )}
                         </span>
+                        {currentValue > task.points && (
+                          <span className="text-xs text-slate-500">
+                            base: {task.points}
+                          </span>
+                        )}
                         <Button 
                           size="sm" 
                           onClick={() => openTaskDialog(task)}
-                          className="ml-2"
+                          className="mt-1"
                         >
                           Add
                         </Button>
@@ -556,13 +560,22 @@ export default function MomentumTracker() {
                 {completedTasks
                   .sort((a, b) => b.points - a.points) // Sort by highest points first
                   .map((task) => (
-                  <div key={task.id} className="flex items-center justify-between p-2 bg-slate-50 rounded hover:bg-slate-100">
-                    <div className="flex-1">
-                      <span className="font-medium">{task.name}</span>
-                      {task.note && <p className="text-sm text-slate-600">{task.note}</p>}
-                      <p className="text-xs text-slate-400">
-                        {new Date(task.completedAt).toLocaleDateString('en-US', { 
-                          weekday: 'short', 
+                  <div key={task.id} className="flex items-start justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 border border-slate-200">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-base">{task.name}</span>
+                        <span className="font-bold text-lg text-blue-600">+{task.points}</span>
+                      </div>
+                      {task.note && (
+                        <div className="mb-2">
+                          <p className="text-sm text-slate-700 leading-relaxed bg-white p-2 rounded border-l-2 border-blue-200">
+                            "{task.note}"
+                          </p>
+                        </div>
+                      )}
+                      <p className="text-xs text-slate-500">
+                        Completed {new Date(task.completedAt).toLocaleDateString('en-US', { 
+                          weekday: 'long', 
                           month: 'short', 
                           day: 'numeric',
                           hour: 'numeric',
@@ -570,8 +583,7 @@ export default function MomentumTracker() {
                         })}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-semibold text-blue-600">+{task.points}</span>
+                    <div className="flex items-start ml-4">
                       <Button
                         variant="outline"
                         size="sm"
