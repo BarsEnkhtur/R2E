@@ -589,63 +589,57 @@ export default function MomentumTracker() {
         </div>
 
         {/* Progress Section */}
-        <Card className="mb-8 card">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex flex-col">
-                <h2 className="text-xl font-semibold text-slate-800">Weekly Progress</h2>
-                {dynamicGoalData && dynamicGoalData.goal !== 15 && (
-                  <div className="flex items-center space-x-2 mt-1">
-                    <BarChart3 className="w-4 h-4 text-blue-500" />
-                    <span className="text-sm text-slate-600">
-                      Adaptive goal: {dynamicGoalData.goal} points
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-2xl font-bold text-blue-600">{currentPoints}</span>
-                <span className="text-slate-500">/</span>
-                <span className="text-2xl font-bold text-slate-400">{maxPoints}</span>
-                <span className="text-sm text-slate-500 ml-1">points</span>
-              </div>
+        <div className="card mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-col">
+              <h2>Weekly Progress</h2>
+              {dynamicGoalData && dynamicGoalData.goal !== 15 && (
+                <div className="flex items-center space-x-2 mt-1">
+                  <BarChart3 className="w-4 h-4" />
+                  <span className="text-sm">
+                    Adaptive goal: {dynamicGoalData.goal} points
+                  </span>
+                </div>
+              )}
             </div>
-            
-            {/* Progress Bar */}
-            <div className="mb-4">
-              <div className="progress-bar">
-                <div 
-                  className="progress-bar__inner" 
-                  style={{ width: `${progressPercentage}%` }}
-                ></div>
-              </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl font-bold">{currentPoints}</span>
+              <span>/</span>
+              <span className="text-2xl font-bold">{maxPoints}</span>
+              <span className="text-sm ml-1">points</span>
             </div>
-            
-            {/* Progress Stats and Compounding Info */}
-            <div className="flex justify-between items-center text-sm text-slate-600">
-              <div className="flex items-center space-x-4">
-                <span>Started: <span className="font-medium">This Week</span></span>
-                {Array.isArray(taskStats) && taskStats.length > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <TrendingUp className="w-4 h-4 text-green-600" />
-                    <span className="text-green-600 font-medium">
-                      {taskStats.filter(s => s.timesThisWeek > 1).length} compounding
-                    </span>
-                  </div>
-                )}
-              </div>
-              <span>{Math.round(progressPercentage)}% Complete</span>
+          </div>
+          
+          {/* Progress Bar */}
+          <div className="progress-bar">
+            <div 
+              className="progress-bar__inner" 
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
+          
+          {/* Progress Stats and Compounding Info */}
+          <div className="flex justify-between items-center text-sm">
+            <div className="flex items-center space-x-4">
+              <span>Started: <span className="font-medium">This Week</span></span>
+              {Array.isArray(taskStats) && taskStats.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="font-medium">
+                    {taskStats.filter(s => s.timesThisWeek > 1).length} compounding
+                  </span>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
+            <span>{Math.round(progressPercentage)}% Complete</span>
+          </div>
+        </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Tasks Section */}
-          <Card className="card">
-            <CardContent className="p-6">
-              <h2 className="text-xl font-semibold text-slate-800 mb-6">Momentum Tasks</h2>
-              
-              <div className="space-y-3">
+          <div className="card">
+            <h2 className="mb-6">Momentum Tasks</h2>
+            <div className="space-y-3">
                 {allTasks.map((task) => {
                   const IconComponent = task.icon;
                   return (
@@ -673,7 +667,7 @@ export default function MomentumTracker() {
                               </div>
                             )}
                           </div>
-                          <p className="text-sm text-slate-500">{task.description}</p>
+                          <p className="task-note">{task.description}</p>
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">
@@ -719,14 +713,12 @@ export default function MomentumTracker() {
                   </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
           {/* Completed Tasks Log */}
-          <Card className="card">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-semibold text-slate-800">Completed This Week</h2>
+          <div className="card">
+            <div className="flex items-center justify-between mb-6">
+              <h2>Completed This Week</h2>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -887,8 +879,8 @@ export default function MomentumTracker() {
                   </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </div>
 
         {/* Task Note Dialog */}

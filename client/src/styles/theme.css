@@ -2,13 +2,12 @@
 
 :root {
   /* ─── COLORS ───────────────────────────────────────────────────────────── */
-  --color-bg:               #ECEFF4;   /* page background */
-  --color-card-bg:          #E5E9F0;   /* panels/cards */
-  --color-border:           #D8DEE9;   /* subtle lines & dividers */
-  --color-text-primary:     #2E3440;   /* main text */
-  --color-text-secondary:   #4C566A;   /* muted text */
-  --color-accent:           #5E81AC;   /* buttons, progress bar, highlights */
-  --color-accent-light:     rgba(94,129,172,0.15); /* for badge backgrounds */
+  --color-bg:               #F3ECD9;   /* Eggshell page background */
+  --color-card-bg:          #F0F1E3;   /* Ivory card background */
+  --color-border:           #D7E0D8;   /* Alabaster borders */
+  --color-accent:           #889C9B;   /* Cadet gray for buttons & highlights */
+  --color-text-primary:     #889C9B;   /* Cadet gray for ALL main text */
+  --color-text-secondary:   #C6D5D0;   /* Ash gray for truly secondary UI */
 
   /* ─── TYPOGRAPHY ───────────────────────────────────────────────────────── */
   --font-sans:              'Inter', sans-serif;
