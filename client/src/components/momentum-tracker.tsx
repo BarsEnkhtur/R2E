@@ -1252,10 +1252,25 @@ Keep the momentum going! 💼
           {/* Top Navigation Bar */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-2">
-              <Target className="h-6 w-6 text-blue-600" />
-              <span className="text-lg font-semibold text-gray-900">Road2Employment</span>
+              <button 
+                onClick={() => window.location.href = '/'}
+                className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
+              >
+                <Target className="h-6 w-6 text-blue-600" />
+                <span className="text-lg font-semibold text-gray-900">Road2Employment</span>
+              </button>
             </div>
             <div className="flex items-center space-x-2">
+              {isDemoMode && !user && (
+                <Button
+                  onClick={() => window.location.href = '/'}
+                  variant="ghost"
+                  size="sm"
+                  className="text-sm text-gray-600"
+                >
+                  ← Back to Home
+                </Button>
+              )}
               {user && !isDemoMode ? (
                 <>
                   {(user as any)?.id !== 'demo_user' && (

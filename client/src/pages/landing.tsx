@@ -1,17 +1,23 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Trophy, 
-  Target, 
-  TrendingUp, 
-  Share2, 
-  CheckCircle, 
+import {
+  Trophy,
+  Target,
+  TrendingUp,
+  Share2,
+  CheckCircle,
   Star,
   ArrowRight,
   Users,
   Calendar,
-  Zap
+  Zap,
 } from "lucide-react";
 
 export default function Landing() {
@@ -30,9 +36,14 @@ export default function Landing() {
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-2">
             <Target className="h-8 w-8 text-blue-600" />
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Road2Employment</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+              Road2Employment
+            </h1>
           </div>
-          <Button onClick={handleLogin} className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            onClick={handleLogin}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
             Sign In
           </Button>
         </div>
@@ -49,20 +60,21 @@ export default function Landing() {
             <span className="text-blue-600"> Winning Game</span>
           </h2>
           <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-2xl mx-auto">
-            Track applications, networking, interview prep, and skill building. 
-            Build momentum with gamification, streaks, and shareable progress reports.
+            Track applications, networking, interview prep, and skill building.
+            Build momentum with gamification, streaks, and shareable progress
+            reports.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               onClick={handleLogin}
               className="bg-blue-600 hover:bg-blue-700 text-lg px-8 py-3"
             >
               Start Tracking Free
               <ArrowRight className="ml-2 h-5 w-5" />
             </Button>
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="outline"
               onClick={handleDemo}
               className="text-lg px-8 py-3"
@@ -80,7 +92,8 @@ export default function Landing() {
             Everything You Need to Stay Motivated
           </h3>
           <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-            Our comprehensive tracking system helps you maintain momentum throughout your job search journey.
+            Our comprehensive tracking system helps you maintain momentum
+            throughout your job search journey.
           </p>
         </div>
 
@@ -90,7 +103,8 @@ export default function Landing() {
               <CheckCircle className="h-10 w-10 text-green-600 mb-2" />
               <CardTitle>Task Tracking</CardTitle>
               <CardDescription>
-                Log applications, networking events, interviews, and skill-building activities with points
+                Log applications, networking events, interviews, and
+                skill-building activities with points
               </CardDescription>
             </CardHeader>
           </Card>
@@ -100,7 +114,8 @@ export default function Landing() {
               <TrendingUp className="h-10 w-10 text-blue-600 mb-2" />
               <CardTitle>Dynamic Goals</CardTitle>
               <CardDescription>
-                Intelligent weekly goals that adapt based on your performance and maintain optimal challenge
+                Intelligent weekly goals that adapt based on your performance
+                and maintain optimal challenge
               </CardDescription>
             </CardHeader>
           </Card>
@@ -110,7 +125,8 @@ export default function Landing() {
               <Trophy className="h-10 w-10 text-yellow-600 mb-2" />
               <CardTitle>Achievement System</CardTitle>
               <CardDescription>
-                Unlock badges and maintain streaks to gamify your job search and stay motivated
+                Unlock badges and maintain streaks to gamify your job search and
+                stay motivated
               </CardDescription>
             </CardHeader>
           </Card>
@@ -120,7 +136,8 @@ export default function Landing() {
               <Calendar className="h-10 w-10 text-purple-600 mb-2" />
               <CardTitle>Weekly Planning</CardTitle>
               <CardDescription>
-                Organize your efforts by week with clear metrics and progress visualization
+                Organize your efforts by week with clear metrics and progress
+                visualization
               </CardDescription>
             </CardHeader>
           </Card>
@@ -130,7 +147,8 @@ export default function Landing() {
               <Share2 className="h-10 w-10 text-indigo-600 mb-2" />
               <CardTitle>Progress Sharing</CardTitle>
               <CardDescription>
-                Share your weekly achievements with mentors, accountability partners, or potential employers
+                Share your weekly achievements with mentors, accountability
+                partners, or potential employers
               </CardDescription>
             </CardHeader>
           </Card>
@@ -140,7 +158,8 @@ export default function Landing() {
               <Zap className="h-10 w-10 text-orange-600 mb-2" />
               <CardTitle>Custom Tasks</CardTitle>
               <CardDescription>
-                Create personalized activities that align with your specific career goals and industry
+                Create personalized activities that align with your specific
+                career/life goals and industry
               </CardDescription>
             </CardHeader>
           </Card>
@@ -148,7 +167,10 @@ export default function Landing() {
       </section>
 
       {/* Demo Section */}
-      <section id="demo" className="container mx-auto px-4 py-16 bg-white dark:bg-gray-800 rounded-lg mx-4">
+      <section
+        id="demo"
+        className="container mx-auto px-4 py-16 bg-white dark:bg-gray-800 rounded-lg mx-4"
+      >
         <div className="text-center mb-12">
           <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">
             See It In Action
@@ -165,10 +187,15 @@ export default function Landing() {
               Try the Interactive Demo
             </h4>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Experience the momentum tracker with realistic job search progress data
+              Experience the momentum tracker with realistic job search progress
+              data
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button onClick={handleDemo} size="lg" className="bg-blue-600 hover:bg-blue-700">
+              <Button
+                onClick={handleDemo}
+                size="lg"
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 Launch Demo
                 <ArrowRight className="ml-2 h-5 w-5" />
               </Button>
@@ -184,44 +211,63 @@ export default function Landing() {
       <section className="container mx-auto px-4 py-16">
         <div className="text-center">
           <h3 className="text-3xl font-bold text-gray-900 dark:text-white mb-8">
-            Join Job Seekers Who Stay Motivated
+            Join Hungry People Who Stay Motivated
           </h3>
-          
+
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <div className="text-center">
               <div className="flex justify-center mb-2">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow-500 fill-current" />
+                  <Star
+                    key={i}
+                    className="h-5 w-5 text-yellow-500 fill-current"
+                  />
                 ))}
               </div>
               <p className="text-gray-600 dark:text-gray-300 italic">
-                "Finally, a way to track my job search that doesn't feel overwhelming. The gamification keeps me motivated!"
+                "Finally, a way to track my gym progress and love life. I love
+                that it's all in one place and I get multipliers/streaks for
+                consistency."
               </p>
-              <p className="text-sm text-gray-500 mt-2">- Sarah K., Marketing Professional</p>
+              <p className="text-sm text-gray-500 mt-2">
+                - Will R., Construction Worker/Boat Owner
+              </p>
             </div>
 
             <div className="text-center">
               <div className="flex justify-center mb-2">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow-500 fill-current" />
+                  <Star
+                    key={i}
+                    className="h-5 w-5 text-yellow-500 fill-current"
+                  />
                 ))}
               </div>
               <p className="text-gray-600 dark:text-gray-300 italic">
-                "The weekly goals adapt to my pace perfectly. I never feel behind or overwhelmed."
+                "I love how the weekly points adjust to the previous week. I
+                never feel too behind or ahead"
               </p>
-              <p className="text-sm text-gray-500 mt-2">- Mike T., Software Developer</p>
+              <p className="text-sm text-gray-500 mt-2">
+                - Andre L., Construction Worker
+              </p>
             </div>
 
             <div className="text-center">
               <div className="flex justify-center mb-2">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="h-5 w-5 text-yellow-500 fill-current" />
+                  <Star
+                    key={i}
+                    className="h-5 w-5 text-yellow-500 fill-current"
+                  />
                 ))}
               </div>
               <p className="text-gray-600 dark:text-gray-300 italic">
-                "Sharing my progress with my career coach has made our sessions so much more productive."
+                "Sharing this tangible progress with my career coach has made
+                our sessions so much more productive."
               </p>
-              <p className="text-sm text-gray-500 mt-2">- Jennifer L., Product Manager</p>
+              <p className="text-sm text-gray-500 mt-2">
+                - Andrew C., Graphic Designer
+              </p>
             </div>
           </div>
         </div>
@@ -235,11 +281,11 @@ export default function Landing() {
             Ready to Transform Your Job Search?
           </h3>
           <p className="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">
-            Join thousands of job seekers who are turning their search into a systematic, 
-            motivating process that leads to results.
+            Join thousands of job seekers who are turning their search into a
+            systematic, motivating process that leads to results.
           </p>
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             onClick={handleLogin}
             className="bg-white text-blue-600 hover:bg-gray-100 text-lg px-8 py-3"
           >
@@ -252,7 +298,10 @@ export default function Landing() {
       {/* Footer */}
       <footer className="container mx-auto px-4 py-8 border-t border-gray-200 dark:border-gray-700">
         <div className="text-center text-gray-600 dark:text-gray-400">
-          <p>&copy; 2025 Road2Employment. Built to help you succeed in your career journey.</p>
+          <p>
+            &copy; 2025 Road2Employment. Built to help you succeed in your
+            career journey.
+          </p>
         </div>
       </footer>
     </div>
