@@ -130,6 +130,7 @@ export const insertShareSchema = createInsertSchema(shares).pick({
 });
 
 export const insertTaskStatsSchema = createInsertSchema(taskStats).pick({
+  userId: true,
   taskId: true,
   taskName: true,
   basePoints: true,
@@ -140,6 +141,7 @@ export const insertTaskStatsSchema = createInsertSchema(taskStats).pick({
 });
 
 export const insertWeeklyHistorySchema = createInsertSchema(weeklyHistory).pick({
+  userId: true,
   weekStartDate: true,
   totalPoints: true,
   tasksCompleted: true,
