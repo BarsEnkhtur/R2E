@@ -21,22 +21,25 @@ function getWeekStartDate(date: Date): string {
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Demo authentication routes with session management
+  // Demo authentication routes using cookies
   app.get('/api/login', (req, res) => {
-    // Set session to indicate user is authenticated
-    (req as any).session = { authenticated: true };
+    // Set cookie to indicate user is authenticated
+    res.cookie('authenticated', 'true', { 
+      maxAge: 24 * 60 * 60 * 1000, // 24 hours
+      httpOnly: true 
+    });
     res.redirect('/');
   });
 
   app.get('/api/logout', (req, res) => {
-    // Clear session to indicate user is logged out
-    (req as any).session = { authenticated: false };
+    // Clear authentication cookie
+    res.clearCookie('authenticated');
     res.redirect('/');
   });
 
   app.get('/api/auth/user', (req, res) => {
-    // Check if user is authenticated via session
-    const isAuthenticated = (req as any).session?.authenticated;
+    // Check if user is authenticated via cookie
+    const isAuthenticated = req.cookies.authenticated === 'true';
     
     if (isAuthenticated) {
       res.json({
