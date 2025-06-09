@@ -110,6 +110,19 @@ p, li, label, span {
   margin-top: var(--space-1);
 }
 
+/* ─── TEXT COLOR OVERRIDES ──────────────────────────────────────────────── */
+.text-slate-600, .text-slate-500 {
+  color: var(--color-text-secondary) !important;
+}
+
+.text-slate-800, .text-slate-700 {
+  color: var(--color-text-primary) !important;
+}
+
+.text-blue-600 {
+  color: var(--color-accent) !important;
+}
+
 /* ─── OPTIONAL SPACING HELPERS ──────────────────────────────────────────── */
 .m-1 { margin: var(--space-1); }
 .m-2 { margin: var(--space-2); }
