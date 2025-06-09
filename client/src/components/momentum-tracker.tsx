@@ -328,9 +328,11 @@ export default function MomentumTracker() {
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks', currentWeek] });
-      queryClient.invalidateQueries({ queryKey: ['/api/task-stats', currentWeek] });
+      // Invalidate all relevant caches
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dynamic-goal'] });
       // Show achievement if goal reached
       const currentMaxPoints = dynamicGoalData?.goal ?? 15;
       const newPoints = currentPoints + (selectedTask ? getCurrentTaskValue(selectedTask) : 0);
@@ -351,9 +353,10 @@ export default function MomentumTracker() {
       if (!response.ok) throw new Error('Failed to delete task');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks', currentWeek] });
-      queryClient.invalidateQueries({ queryKey: ['/api/task-stats', currentWeek] });
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dynamic-goal'] });
       setShowAchievement(false);
     }
   });
@@ -367,9 +370,10 @@ export default function MomentumTracker() {
       if (!response.ok) throw new Error('Failed to clear tasks');
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks', currentWeek] });
-      queryClient.invalidateQueries({ queryKey: ['/api/task-stats', currentWeek] });
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
       queryClient.invalidateQueries({ queryKey: ['/api/weekly-history'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dynamic-goal'] });
       setShowAchievement(false);
     }
   });
