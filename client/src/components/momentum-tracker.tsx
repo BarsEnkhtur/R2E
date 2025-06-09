@@ -210,6 +210,7 @@ export default function MomentumTracker() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   const [showCustomTaskForm, setShowCustomTaskForm] = useState(false);
+  const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
   const [customTaskForm, setCustomTaskForm] = useState({
     name: "",
     description: "",
@@ -413,6 +414,16 @@ export default function MomentumTracker() {
 
   const isCurrentWeek = currentWeek === getWeekStartFixed();
 
+  const toggleNoteExpansion = (taskId: number) => {
+    const newExpanded = new Set(expandedNotes);
+    if (newExpanded.has(taskId)) {
+      newExpanded.delete(taskId);
+    } else {
+      newExpanded.add(taskId);
+    }
+    setExpandedNotes(newExpanded);
+  };
+
   // Show loading state if essential data is still loading
   if (isLoading || isGoalLoading) {
     return (
@@ -466,31 +477,26 @@ export default function MomentumTracker() {
             </Button>
           </div>
 
-          <div className="text-lg mb-6">
-            <span className="text-2xl font-bold text-blue-600">{currentPoints}</span>
-            <span className="text-slate-600"> / {maxPoints} points</span>
-          </div>
-          <Progress value={progressPercentage} className="w-full max-w-md mx-auto h-4 mb-4" />
-          <p className="text-slate-600">{Math.round(progressPercentage)}% complete</p>
-          
-          {/* Streak Summary */}
-          {Array.isArray(taskStats) && taskStats.length > 0 && (
-            <div className="mt-4 flex justify-center gap-4 text-sm">
-              {taskStats.filter(stat => stat.timesThisWeek >= 3).length > 0 && (
-                <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full">
-                  🔥 {taskStats.filter(stat => stat.timesThisWeek >= 3).length} task{taskStats.filter(stat => stat.timesThisWeek >= 3).length !== 1 ? 's' : ''} on fire
-                </div>
-              )}
-              {taskStats.filter(stat => stat.timesThisWeek >= 5).length > 0 && (
-                <div className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full">
-                  ⚡ {taskStats.filter(stat => stat.timesThisWeek >= 5).length} epic streak{taskStats.filter(stat => stat.timesThisWeek >= 5).length !== 1 ? 's' : ''}
-                </div>
-              )}
+          {/* Compact Progress Module */}
+          <div className="flex items-center justify-center gap-4 mb-4 max-w-2xl mx-auto">
+            <div className="text-lg font-bold text-blue-600">
+              {currentPoints} / {maxPoints}
             </div>
-          )}
+            <div className="flex-1">
+              <Progress value={progressPercentage} className="h-3" />
+            </div>
+            <div className="text-sm text-slate-600 whitespace-nowrap">
+              {Math.round(progressPercentage)}%
+            </div>
+            {Array.isArray(taskStats) && taskStats.filter(stat => stat.timesThisWeek >= 3).length > 0 && (
+              <div className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs whitespace-nowrap">
+                🔥 {taskStats.filter(stat => stat.timesThisWeek >= 3).length}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
           <Card>
             <CardContent className="p-6">
               <h2 className="text-xl font-semibold mb-4">Tasks</h2>
@@ -504,7 +510,7 @@ export default function MomentumTracker() {
                   const streakEmoji = getStreakEmoji(streak);
                   
                   return (
-                    <div key={task.id} className={`flex items-start justify-between p-4 border rounded-lg hover:bg-slate-50 ${onStreak ? 'border-yellow-300 bg-yellow-50' : ''} ${hasAttention ? 'border-red-300 bg-red-50' : ''}`}>
+                    <div key={task.id} className={`flex items-start justify-between p-4 border rounded-lg hover:bg-slate-50 ${onStreak ? 'border-l-4 border-l-yellow-400 bg-blue-50/30' : ''} ${hasAttention ? 'border-l-4 border-l-red-400 bg-red-50/30' : ''}`}>
                       <div className="flex items-start gap-4 flex-1">
                         <div className={`p-3 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0`}>
                           <IconComponent className="w-6 h-6" />
@@ -560,22 +566,38 @@ export default function MomentumTracker() {
                 {completedTasks
                   .sort((a, b) => b.points - a.points) // Sort by highest points first
                   .map((task) => (
-                  <div key={task.id} className="flex items-start justify-between p-4 bg-slate-50 rounded-lg hover:bg-slate-100 border border-slate-200">
+                  <div key={task.id} className="flex items-start justify-between p-3 bg-slate-50 rounded-lg hover:bg-slate-100 border border-slate-200">
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-base">{task.name}</span>
-                        <span className="font-bold text-lg text-blue-600">+{task.points}</span>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-semibold">{task.name}</span>
+                        <span className="font-bold text-blue-600">+{task.points}</span>
+                        {task.note && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleNoteExpansion(task.id)}
+                            className="h-6 w-6 p-0 text-slate-400 hover:text-slate-600"
+                          >
+                            <StickyNote className="w-3 h-3" />
+                          </Button>
+                        )}
                       </div>
-                      {task.note && (
-                        <div className="mb-2">
-                          <p className="text-sm text-slate-700 leading-relaxed bg-white p-2 rounded border-l-2 border-blue-200">
-                            "{task.note}"
-                          </p>
+                      
+                      {task.note && expandedNotes.has(task.id) && (
+                        <div className="mb-2 p-2 bg-white rounded border-l-2 border-blue-200">
+                          <p className="text-sm text-slate-700 italic">"{task.note}"</p>
                         </div>
                       )}
-                      <p className="text-xs text-slate-500">
-                        Completed {new Date(task.completedAt).toLocaleDateString('en-US', { 
-                          weekday: 'long', 
+                      
+                      {task.note && !expandedNotes.has(task.id) && (
+                        <p className="text-xs text-slate-500 italic truncate mb-1">
+                          "{task.note.length > 40 ? task.note.substring(0, 40) + '...' : task.note}"
+                        </p>
+                      )}
+                      
+                      <p className="text-xs text-slate-400">
+                        {new Date(task.completedAt).toLocaleDateString('en-US', { 
+                          weekday: 'short', 
                           month: 'short', 
                           day: 'numeric',
                           hour: 'numeric',
@@ -583,15 +605,15 @@ export default function MomentumTracker() {
                         })}
                       </p>
                     </div>
-                    <div className="flex items-start ml-4">
+                    <div className="flex items-start ml-3">
                       <Button
                         variant="outline"
                         size="sm"
                         onClick={() => deleteTaskMutation.mutate(task.id)}
                         disabled={deleteTaskMutation.isPending}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8 p-0"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3 h-3" />
                       </Button>
                     </div>
                   </div>
