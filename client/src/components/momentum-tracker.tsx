@@ -637,52 +637,65 @@ export default function MomentumTracker() {
           {/* Tasks Section */}
           <div className="card">
             <h2 className="mb-6">Momentum Tasks</h2>
-            <div className="space-y-3">
+            <div>
               {allTasks.map((task) => {
                 const IconComponent = task.icon;
+                const isHighValue = getCurrentTaskValue(task) > task.points;
+                const hasAttention = needsAttention(task.id);
+                const isCompounding = getTaskStats(task.id) && getTaskStats(task.id)!.timesThisWeek > 1;
+                
                 return (
-                  <div 
-                    key={task.id}
-                    className="flex items-center justify-between p-4 rounded-lg border border-slate-100 hover:border-slate-200 hover:bg-slate-50 transition-all duration-200"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${colorClasses[task.color as keyof typeof colorClasses]}`}>
-                        <IconComponent className="w-5 h-5" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <p className="font-medium text-slate-800">{task.name}</p>
-                          {needsAttention(task.id) && (
-                            <div className="flex items-center space-x-1 px-2 py-1 bg-red-100 text-red-700 rounded-full text-xs">
-                              <Flame className="w-3 h-3" />
-                              <span>Needs attention</span>
-                            </div>
-                          )}
-                          {getTaskStats(task.id) && getTaskStats(task.id)!.timesThisWeek > 1 && (
-                            <div className="flex items-center space-x-1 px-2 py-1 bg-green-100 text-green-700 rounded-full text-xs">
-                              <TrendingUp className="w-3 h-3" />
-                              <span>{getTaskStats(task.id)!.timesThisWeek}x</span>
-                            </div>
-                          )}
-                        </div>
-                        <p className="task-note">{task.description}</p>
+                  <div key={task.id} className="task-row">
+                    {/* Icon slot */}
+                    <div className="icon-cell">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${colorClasses[task.color as keyof typeof colorClasses]}`}>
+                        <IconComponent size={20} />
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="text-right">
-                        <div className={`text-lg font-semibold ${pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
-                          +{getCurrentTaskValue(task)}
-                        </div>
-                        {getTaskStats(task.id) && getCurrentTaskValue(task) !== task.points && (
-                          <div className="text-xs text-slate-400">
-                            base: {task.points}
-                          </div>
+
+                    {/* Main text: title + note */}
+                    <div className="content-cell">
+                      <h4 className="task-title">{task.name}</h4>
+                      <p className="task-note">{task.description}</p>
+                    </div>
+
+                    {/* Optional badge */}
+                    {(isHighValue || hasAttention || isCompounding) && (
+                      <div className="badge-cell">
+                        {hasAttention && (
+                          <span className="badge-high bg-red-100 text-red-700">
+                            <Flame className="w-3 h-3 mr-1" />
+                            Needs attention
+                          </span>
+                        )}
+                        {isCompounding && !hasAttention && (
+                          <span className="badge-high bg-green-100 text-green-700">
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                            {getTaskStats(task.id)!.timesThisWeek}x
+                          </span>
+                        )}
+                        {isHighValue && !hasAttention && !isCompounding && (
+                          <span className="badge-high">High Value</span>
                         )}
                       </div>
+                    )}
+
+                    {/* Points */}
+                    <div className="points-cell">
+                      +{getCurrentTaskValue(task)}
+                      {getTaskStats(task.id) && getCurrentTaskValue(task) !== task.points && (
+                        <div className="text-xs text-slate-400">
+                          base: {task.points}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="action-cell">
                       <Button 
                         onClick={() => addPoints(task)}
                         size="sm"
-                        className="btn-primary"
+                        className="btn-primary btn-small"
                       >
                         <Plus className="w-4 h-4" />
                       </Button>
@@ -690,7 +703,7 @@ export default function MomentumTracker() {
                         onClick={() => openTaskDialog(task)}
                         variant="outline"
                         size="sm"
-                        className="btn-ghost"
+                        className="btn-ghost btn-small"
                       >
                         <StickyNote className="w-4 h-4" />
                       </Button>
@@ -728,7 +741,7 @@ export default function MomentumTracker() {
               </Button>
             </div>
             
-            <div className="space-y-3">
+            <div>
               {isLoading ? (
                 <div className="text-center py-8 text-slate-400">
                   <div className="animate-spin w-8 h-8 border-2 border-slate-300 border-t-blue-600 rounded-full mx-auto mb-3"></div>
@@ -751,110 +764,68 @@ export default function MomentumTracker() {
                     const minPoints = Math.min(...completedTasks.map(t => t.points));
                     const pointRange = maxPoints - minPoints || 1;
                     const heatLevel = (task.points - minPoints) / pointRange;
-                    
-                    const getHeatStyles = (heat: number) => {
-                      if (heat >= 0.8) {
-                        return {
-                          container: "bg-gradient-to-r from-red-50 to-orange-50 border-red-200 shadow-md",
-                          icon: "bg-gradient-to-br from-red-500 to-orange-500 shadow-lg",
-                          text: "text-red-800",
-                          subtext: "text-red-600",
-                          points: "text-red-700 font-bold text-lg",
-                          note: "text-red-700",
-                          noteIcon: "text-red-500"
-                        };
-                      } else if (heat >= 0.6) {
-                        return {
-                          container: "bg-gradient-to-r from-orange-50 to-yellow-50 border-orange-200 shadow-sm",
-                          icon: "bg-gradient-to-br from-orange-500 to-yellow-500",
-                          text: "text-orange-800",
-                          subtext: "text-orange-600",
-                          points: "text-orange-700 font-semibold text-lg",
-                          note: "text-orange-700",
-                          noteIcon: "text-orange-500"
-                        };
-                      } else if (heat >= 0.4) {
-                        return {
-                          container: "bg-gradient-to-r from-yellow-50 to-green-50 border-yellow-200",
-                          icon: "bg-gradient-to-br from-yellow-500 to-green-500",
-                          text: "text-yellow-800",
-                          subtext: "text-yellow-600",
-                          points: "text-yellow-700 font-semibold",
-                          note: "text-yellow-700",
-                          noteIcon: "text-yellow-500"
-                        };
-                      } else {
-                        return {
-                          container: "bg-emerald-50 border-emerald-200",
-                          icon: "bg-emerald-500",
-                          text: "text-emerald-800",
-                          subtext: "text-emerald-600",
-                          points: "text-emerald-700 font-semibold text-sm",
-                          note: "text-emerald-700",
-                          noteIcon: "text-emerald-500"
-                        };
-                      }
-                    };
-
-                    const styles = getHeatStyles(heatLevel);
+                    const isHighValue = heatLevel >= 0.8;
+                    const isGood = heatLevel >= 0.6 && heatLevel < 0.8;
                     
                     return (
-                      <div 
-                        key={task.id}
-                        className={`animate-fade-in flex items-center justify-between p-4 rounded-lg transition-all duration-200 ${styles.container}`}
-                      >
-                        <div className="flex items-center space-x-3 flex-1">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center relative ${styles.icon}`}>
-                            <CheckCircle2 className="w-5 h-5 text-white" />
-                            {heatLevel >= 0.8 && (
+                      <div key={task.id} className="task-row">
+                        {/* Icon slot */}
+                        <div className="icon-cell">
+                          <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center relative">
+                            <CheckCircle2 size={20} className="text-white" />
+                            {isHighValue && (
                               <Flame className="w-3 h-3 text-white absolute -top-1 -right-1" />
                             )}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center space-x-2">
-                              <p className={`font-medium ${styles.text}`}>{task.name}</p>
-                              {heatLevel >= 0.8 && (
-                                <span className="badge-high">
-                                  High Value
-                                </span>
-                              )}
-                              {heatLevel >= 0.6 && heatLevel < 0.8 && (
-                                <div className="flex items-center space-x-1 px-2 py-1 bg-orange-100 text-orange-700 rounded-full text-xs">
-                                  <TrendingUp className="w-3 h-3" />
-                                  <span>Good</span>
-                                </div>
-                              )}
-                            </div>
-                            <div className={`flex items-center space-x-2 text-xs ${styles.subtext}`}>
-                              <span>{new Date(task.completedAt).toLocaleDateString([], {
-                                weekday: 'short',
-                                month: 'short', 
-                                day: 'numeric'
-                              })}</span>
-                              <span>•</span>
-                              <span>{new Date(task.completedAt).toLocaleTimeString([], { 
-                                hour: '2-digit', 
-                                minute: '2-digit' 
-                              })}</span>
-                            </div>
-                            {task.note && (
-                              <div className="flex items-center space-x-1 mt-1">
-                                <StickyNote className="w-3 h-3" />
-                                <p className="task-note truncate">{task.note}</p>
-                              </div>
+                        </div>
+
+                        {/* Main text: title + note + timestamp */}
+                        <div className="content-cell">
+                          <h4 className="task-title">{task.name}</h4>
+                          <div className="flex items-center space-x-2 text-xs text-slate-500">
+                            <span>{new Date(task.completedAt).toLocaleDateString([], {
+                              weekday: 'short',
+                              month: 'short', 
+                              day: 'numeric'
+                            })}</span>
+                            <span>•</span>
+                            <span>{new Date(task.completedAt).toLocaleTimeString([], { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}</span>
+                          </div>
+                          {task.note && (
+                            <p className="task-note truncate">{task.note}</p>
+                          )}
+                        </div>
+
+                        {/* Optional badge */}
+                        {(isHighValue || isGood) && (
+                          <div className="badge-cell">
+                            {isHighValue && (
+                              <span className="badge-high">High Value</span>
+                            )}
+                            {isGood && !isHighValue && (
+                              <span className="badge-high bg-orange-100 text-orange-700">Good</span>
                             )}
                           </div>
+                        )}
+
+                        {/* Points */}
+                        <div className="points-cell">
+                          +{task.points}
                         </div>
-                        <div className="flex items-center space-x-3">
-                          <div className={styles.points}>+{task.points}</div>
+
+                        {/* Action button */}
+                        <div className="action-cell">
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => deleteCompletedTask(task.id)}
-                            className="btn-ghost text-red-500 hover:text-red-700 h-8 w-8 p-0"
+                            className="btn-ghost btn-small text-red-500 hover:text-red-700"
                             title="Delete task"
                           >
-                            <Trash2 className="w-3 h-3" />
+                            <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>

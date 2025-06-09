@@ -1,0 +1,106 @@
+1. New HTML/JSX structure for every task row
+jsx
+Copy
+Edit
+{/* Momentum / Completed both share this structure */}
+<div className="task-row">
+  {/* 1️⃣ icon slot */}
+  <div className="icon-cell">
+    <TaskIcon size={20} />
+  </div>
+
+  {/* 2️⃣ main text: title + note */}
+  <div className="content-cell">
+    <h4 className="task-title">Networking DM/email</h4>
+    <p className="task-note">Build professional connections</p>
+  </div>
+
+  {/* 3️⃣ optional badge */}
+  {isHighValue && (
+    <div className="badge-cell">
+      <span className="badge-high">High Value</span>
+    </div>
+  )}
+
+  {/* 4️⃣ points */}
+  <div className="points-cell">+3</div>
+
+  {/* 5️⃣ action button(s) */}
+  <div className="action-cell">
+    <button className="btn-primary btn-small">+</button>
+    <button className="btn-ghost btn-small"><CopyIcon /></button>
+  </div>
+</div>
+2. CSS to glue it all together
+Add this to your theme.css (below everything else):
+
+css
+Copy
+Edit
+/* ─── TASK GRID ──────────────────────────────────────────────────────────── */
+.task-row {
+  display: grid;
+  grid-template-columns:
+    /* icon */     var(--space-5)
+    /* content */  1fr
+    /* badge */    auto
+    /* points */   auto
+    /* actions */  auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.task-row:last-child {
+  border-bottom: none;
+}
+
+/* fixed-size icon slot */
+.icon-cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* text: title + note stacked */
+.content-cell {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.task-title {
+  margin: 0;
+  font-size: var(--h3-size);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-primary);
+}
+.task-note {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+  line-height: 1.4;
+}
+
+/* if present, badge sits before points */
+.badge-cell {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* points always right-aligned */
+.points-cell {
+  font-weight: var(--font-weight-medium);
+  color: var(--color-accent);
+}
+
+/* small variants of your buttons (plus/copy/trash) */
+.btn-small {
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.875rem;
+}
+.action-cell {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
