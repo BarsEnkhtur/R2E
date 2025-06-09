@@ -1245,12 +1245,13 @@ Keep the momentum going! 💼
             </div>
             <div className="flex items-center space-x-2">
               {user ? (
-                <React.Fragment>
-                  {(user as any).id !== 'demo_user' ? (
+                <>
+                  {(user as any)?.id !== 'demo_user' && (
                     <span className="text-sm text-gray-600 hidden sm:block">
-                      {String((user as any).email || (user as any).id)}
+                      {(user as any)?.email || (user as any)?.id || 'User'}
                     </span>
-                  ) : (
+                  )}
+                  {(user as any)?.id === 'demo_user' && (
                     <span className="text-sm text-gray-600 hidden sm:block">Demo User</span>
                   )}
                   <Button
@@ -1261,7 +1262,7 @@ Keep the momentum going! 💼
                   >
                     Sign Out
                   </Button>
-                </React.Fragment>
+                </>
               ) : (
                 <Button
                   onClick={() => window.location.href = '/api/login'}
