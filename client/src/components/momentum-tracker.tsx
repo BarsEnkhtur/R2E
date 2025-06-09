@@ -514,7 +514,7 @@ export default function MomentumTracker() {
   });
   
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
   // Set up drag and drop sensors
   const sensors = useSensors(
@@ -1219,7 +1219,7 @@ Keep the momentum going! 💼
   };
 
   // Show loading state if essential data is still loading
-  if (isLoading || isGoalLoading) {
+  if (isLoading || isGoalLoading || isAuthLoading) {
     return (
       <div className="min-h-screen py-8 px-4">
         <div className="max-w-4xl mx-auto">
@@ -1244,23 +1244,24 @@ Keep the momentum going! 💼
               <span className="text-lg font-semibold text-gray-900">Road2Employment</span>
             </div>
             <div className="flex items-center space-x-2">
-              {user && user.id !== 'demo_user' && (
-                <span className="text-sm text-gray-600 hidden sm:block">
-                  {user.email || user.id}
-                </span>
-              )}
-              {user && user.id === 'demo_user' && (
-                <span className="text-sm text-gray-600 hidden sm:block">Demo User</span>
-              )}
               {user ? (
-                <Button
-                  onClick={() => window.location.href = '/api/logout'}
-                  variant="outline"
-                  size="sm"
-                  className="text-sm"
-                >
-                  Sign Out
-                </Button>
+                <React.Fragment>
+                  {(user as any).id !== 'demo_user' ? (
+                    <span className="text-sm text-gray-600 hidden sm:block">
+                      {String((user as any).email || (user as any).id)}
+                    </span>
+                  ) : (
+                    <span className="text-sm text-gray-600 hidden sm:block">Demo User</span>
+                  )}
+                  <Button
+                    onClick={() => window.location.href = '/api/logout'}
+                    variant="outline"
+                    size="sm"
+                    className="text-sm"
+                  >
+                    Sign Out
+                  </Button>
+                </React.Fragment>
               ) : (
                 <Button
                   onClick={() => window.location.href = '/api/login'}
