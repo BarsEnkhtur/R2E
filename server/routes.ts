@@ -109,6 +109,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Generate micro feedback for completed task
+  app.post("/api/micro-feedback", isAuthenticated, async (req, res) => {
+    try {
+      const { generateMicroFeedback } = await import('./openai.js');
+      const { taskId, taskName, note, streakCount, isFirstThisWeek } = req.body;
+      
+      const feedback = await generateMicroFeedback({
+        taskId,
+        taskName,
+        note,
+        streakCount: streakCount || 0,
+        isFirstThisWeek: isFirstThisWeek || false
+      });
+      
+      res.json({ feedback });
+    } catch (error) {
+      console.error(`Error generating micro feedback: ${error}`);
+      res.status(500).json({ error: "Failed to generate feedback" });
+    }
+  });
+
   // Delete a completed task
   app.delete("/api/completed-tasks/:id", isAuthenticated, async (req, res) => {
     try {

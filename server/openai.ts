@@ -97,3 +97,66 @@ Generate ONE celebration message:`;
     return "Goal achieved! You're building incredible momentum in your job search.";
   }
 }
+
+export async function generateMicroFeedback(taskData: {
+  taskId: string;
+  taskName: string;
+  note?: string;
+  streakCount: number;
+  isFirstThisWeek: boolean;
+}): Promise<string> {
+  try {
+    const prompt = `Generate a brief, encouraging micro-feedback message for completing a job search task.
+
+Task Details:
+- Task: ${taskData.taskName}
+- Streak count this week: ${taskData.streakCount}
+- First time this week: ${taskData.isFirstThisWeek}
+${taskData.note ? `- Note: ${taskData.note}` : ''}
+
+Guidelines:
+- Maximum 15 words
+- Upbeat and specific to the task type
+- Use relevant emoji (🧠, 🔥, 💪, 💼, 💻, 💡)
+- Match the energy to streak/performance
+
+Task type patterns:
+- Job applications: Focus on persistence, momentum
+- Code/Development: Focus on building, progress  
+- Gym/Recovery: Focus on discipline, strength
+- Learning: Focus on growth, skills
+- Networking: Focus on connections, relationships
+
+Generate ONE micro-feedback message:`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [{ role: "user", content: prompt }],
+      max_tokens: 30,
+      temperature: 0.8,
+    });
+
+    return response.choices[0].message.content?.trim() || getDefaultMicroFeedback(taskData.taskId, taskData.streakCount);
+  } catch (error) {
+    console.error("Failed to generate micro feedback:", error);
+    return getDefaultMicroFeedback(taskData.taskId, taskData.streakCount);
+  }
+}
+
+function getDefaultMicroFeedback(taskId: string, streakCount: number): string {
+  const streakBonus = streakCount >= 3 ? " 🔥" : "";
+  
+  if (taskId.includes('job') || taskId.includes('application')) {
+    return `🧠 Smart move!${streakBonus}`;
+  } else if (taskId.includes('code') || taskId.includes('push') || taskId.includes('dev')) {
+    return `🔥 Great push!${streakBonus}`;
+  } else if (taskId.includes('gym') || taskId.includes('recovery') || taskId.includes('workout')) {
+    return `💪 Staying disciplined${streakBonus}`;
+  } else if (taskId.includes('learn') || taskId.includes('study') || taskId.includes('course')) {
+    return `💡 Growing stronger${streakBonus}`;
+  } else if (taskId.includes('network') || taskId.includes('coffee') || taskId.includes('meeting')) {
+    return `🤝 Building connections${streakBonus}`;
+  } else {
+    return `✨ Great progress${streakBonus}`;
+  }
+}

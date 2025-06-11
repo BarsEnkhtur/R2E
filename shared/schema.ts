@@ -41,6 +41,7 @@ export const completedTasks = pgTable("completed_tasks", {
   name: text("name").notNull(),
   points: real("points").notNull(),
   note: text("note"),
+  microFeedback: text("micro_feedback"),
   completedAt: timestamp("completed_at").defaultNow().notNull(),
   weekStartDate: text("week_start_date").notNull(),
 });

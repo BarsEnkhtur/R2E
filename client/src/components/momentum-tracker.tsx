@@ -84,6 +84,7 @@ interface CompletedTask {
   name: string;
   points: number;
   note?: string;
+  microFeedback?: string;
   completedAt: string;
   weekStartDate: string;
 }
