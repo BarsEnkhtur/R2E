@@ -495,6 +495,22 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
             >
               <Edit className="w-4 h-4" />
             </Button>
+            {/* Only show delete for custom tasks */}
+            {task.id.startsWith('custom-') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm('Are you sure you want to delete this task?')) {
+                    deleteCustomTaskMutation.mutate(parseInt(task.id.split('-')[1]));
+                  }
+                }}
+                className="h-10 w-10 opacity-60 hover:opacity-100 text-red-500 hover:text-red-700 touch-manipulation"
+                title="Delete task"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
           </div>
         </div>
       </div>
@@ -530,6 +546,7 @@ export default function MomentumTracker() {
     description: "",
     points: 1,
     icon: "Circle",
+    emoji: "✅",
     color: "blue"
   });
   
@@ -1972,7 +1989,25 @@ Keep the momentum going! 💼
               </div>
               
               <div>
-                <Label htmlFor="taskIcon">Icon</Label>
+                <Label htmlFor="taskEmoji">Category Icon</Label>
+                <div className="grid grid-cols-8 gap-2 p-3 border rounded-md">
+                  {['💼', '💻', '💪', '💡', '🤝', '🧊', '📝', '✅', '🏃', '📚', '🎯', '🔥', '⭐', '🚀', '🌟', '🎨'].map((emoji) => (
+                    <Button
+                      key={emoji}
+                      type="button"
+                      variant={customTaskForm.emoji === emoji ? "default" : "outline"}
+                      size="sm"
+                      className="h-12 w-12 text-lg p-0 hover:scale-110 transition-transform"
+                      onClick={() => setCustomTaskForm(prev => ({ ...prev, emoji }))}
+                    >
+                      {emoji}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <Label htmlFor="taskIcon">Icon Style</Label>
                 <select
                   id="taskIcon"
                   value={customTaskForm.icon}
