@@ -502,7 +502,11 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
                 size="sm"
                 onClick={() => {
                   if (window.confirm('Are you sure you want to delete this task?')) {
-                    deleteCustomTaskMutation.mutate(parseInt(task.id.split('-')[1]));
+                    const customTaskId = parseInt(task.id.split('-')[1]);
+                    fetch(`/api/custom-tasks/${customTaskId}`, { method: 'DELETE' })
+                      .then(() => {
+                        queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+                      });
                   }
                 }}
                 className="h-10 w-10 opacity-60 hover:opacity-100 text-red-500 hover:text-red-700 touch-manipulation"
@@ -768,6 +772,7 @@ export default function MomentumTracker() {
           description: task.description,
           points: task.points,
           icon: availableIcons.find(icon => icon.component === task.icon)?.name || "Circle",
+          emoji: customTask.icon || "✅",
           color: task.color
         });
       }
@@ -780,6 +785,7 @@ export default function MomentumTracker() {
         description: "",
         points: 1,
         icon: "Circle",
+        emoji: "✅",
         color: "blue"
       });
     }
