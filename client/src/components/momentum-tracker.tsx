@@ -1068,6 +1068,81 @@ Keep the momentum going! 💼
     return "";
   };
 
+  // Helper function to get task category icon
+  const getTaskCategoryIcon = (taskId: string): string => {
+    if (taskId.includes('job') || taskId.includes('application')) return "💼";
+    if (taskId.includes('code') || taskId.includes('push') || taskId.includes('dev')) return "💻";
+    if (taskId.includes('gym') || taskId.includes('recovery') || taskId.includes('workout')) return "💪";
+    if (taskId.includes('learn') || taskId.includes('study') || taskId.includes('course')) return "💡";
+    if (taskId.includes('network') || taskId.includes('coffee') || taskId.includes('meeting')) return "🤝";
+    if (taskId.includes('sauna') || taskId.includes('ice')) return "🧊";
+    if (taskId.includes('journal') || taskId.includes('writing')) return "📝";
+    return "✅";
+  };
+
+  // Helper function to group tasks by date
+  const groupTasksByDate = (tasks: CompletedTask[]) => {
+    const groups: { [key: string]: CompletedTask[] } = {};
+    tasks.forEach(task => {
+      const date = new Date(task.completedAt).toDateString();
+      if (!groups[date]) groups[date] = [];
+      groups[date].push(task);
+    });
+    return groups;
+  };
+
+  // Helper function to get week highlight
+  const getWeekHighlight = (tasks: CompletedTask[]) => {
+    if (tasks.length === 0) return null;
+    
+    // Find highest point task
+    const highestPointTask = tasks.reduce((max, task) => 
+      task.points > max.points ? task : max
+    );
+    
+    // Find most repeated task
+    const taskCounts: { [key: string]: { count: number; name: string; points: number } } = {};
+    tasks.forEach(task => {
+      if (!taskCounts[task.taskId]) {
+        taskCounts[task.taskId] = { count: 0, name: task.name, points: task.points };
+      }
+      taskCounts[task.taskId].count++;
+    });
+    
+    const mostRepeated = Object.values(taskCounts).reduce((max, current) => 
+      current.count > max.count ? current : max
+    );
+    
+    if (mostRepeated.count >= 3) {
+      return {
+        type: 'streak',
+        text: `${mostRepeated.name} - ${mostRepeated.count} times this week!`,
+        icon: "🔥"
+      };
+    } else if (highestPointTask.points >= 5) {
+      return {
+        type: 'high_value',
+        text: `Highest impact: ${highestPointTask.name} (${highestPointTask.points} pts)`,
+        icon: "🌟"
+      };
+    }
+    
+    return null;
+  };
+
+  // Mutation to generate micro feedback
+  const generateMicroFeedbackMutation = useMutation({
+    mutationFn: async (data: { taskId: string; taskName: string; note?: string; streakCount: number; isFirstThisWeek: boolean }) => {
+      const response = await fetch('/api/micro-feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to generate feedback');
+      return response.json();
+    }
+  });
+
   // Helper function to calculate current task value with compounding
   const getCurrentTaskValue = (task: Task): number => {
     const stats = getTaskStats(task.id);
@@ -1095,7 +1170,31 @@ Keep the momentum going! 💼
       if (!response.ok) throw new Error('Failed to create task');
       return response.json();
     },
-    onSuccess: () => {
+    onSuccess: async (newTask) => {
+      // Generate micro feedback for the completed task
+      const stats = getTaskStats(newTask.taskId);
+      const streakCount = stats?.timesThisWeek || 1;
+      const isFirstThisWeek = !stats || stats.timesThisWeek === 1;
+      
+      try {
+        const feedbackResponse = await generateMicroFeedbackMutation.mutateAsync({
+          taskId: newTask.taskId,
+          taskName: newTask.name,
+          note: newTask.note,
+          streakCount,
+          isFirstThisWeek
+        });
+        
+        // Update the task with micro feedback
+        await fetch(`/api/completed-tasks/${newTask.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ microFeedback: feedbackResponse.feedback })
+        });
+      } catch (error) {
+        console.error('Failed to generate micro feedback:', error);
+      }
+      
       // Always navigate to current week after adding a task
       const actualCurrentWeek = getWeekStartFixed();
       setSelectedWeek("");
@@ -1630,95 +1729,149 @@ Keep the momentum going! 💼
 
           <Card>
             <CardContent className="p-6">
-              <h2 className="text-xl font-semibold mb-4">This Week's Progress</h2>
-              <div className="space-y-2">
-                {completedTasks
-                  .sort((a, b) => b.points - a.points) // Sort by highest points first
-                  .map((task) => (
-                  <div key={task.id} className="flex items-start justify-between p-3 bg-[#F9FAFB] rounded-lg hover:bg-slate-50 hover:shadow-sm transition-all border border-slate-200">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold">{task.name}</span>
-                        <span className="font-bold text-blue-600">+{task.points}</span>
-                      </div>
-                      
-                      {task.note && editingNote !== task.id && (
-                        <p 
-                          className="task-note text-sm text-slate-700 italic mb-2 cursor-pointer hover:bg-slate-100 rounded px-1 py-0.5 transition-colors"
-                          onClick={() => startEditingNote(task)}
-                          title="Click to edit note"
-                        >
-                          "{task.note}"
-                        </p>
-                      )}
-                      
-                      {!task.note && editingNote !== task.id && (
-                        <p 
-                          className="text-sm text-slate-400 italic mb-2 cursor-pointer hover:bg-slate-100 rounded px-1 py-0.5 transition-colors"
-                          onClick={() => startEditingNote(task)}
-                          title="Click to add note"
-                        >
-                          Add note...
-                        </p>
-                      )}
-                      
-                      {editingNote === task.id && (
-                        <div className="mb-2 flex gap-2">
-                          <Input
-                            value={editNoteValue}
-                            onChange={(e) => setEditNoteValue(e.target.value)}
-                            placeholder="Add a note..."
-                            className="text-sm"
-                            onKeyPress={(e) => {
-                              if (e.key === 'Enter') saveNoteEdit();
-                              if (e.key === 'Escape') cancelNoteEdit();
-                            }}
-                            autoFocus
-                          />
-                          <Button
-                            size="sm"
-                            onClick={saveNoteEdit}
-                            disabled={updateTaskNoteMutation.isPending}
-                            className="h-8"
-                          >
-                            {updateTaskNoteMutation.isPending ? "..." : "Save"}
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={cancelNoteEdit}
-                            className="h-8"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      )}
-                      
-                      <p className="text-xs text-slate-400">
-                        {new Date(task.completedAt).toLocaleDateString('en-US', { 
-                          weekday: 'short', 
-                          month: 'short', 
-                          day: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit'
-                        })}
-                      </p>
-                    </div>
-                    <div className="flex items-start ml-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => deleteTaskMutation.mutate(task.id)}
-                        disabled={deleteTaskMutation.isPending}
-                        className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:shadow-sm transition-all h-8 w-8 p-0"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-semibold">This Week's Progress</h2>
+                {completedTasks.length > 0 && (
+                  <div className="text-sm text-slate-600">
+                    {completedTasks.length} task{completedTasks.length !== 1 ? 's' : ''} completed
+                  </div>
+                )}
+              </div>
+
+              {/* Week Highlight */}
+              {(() => {
+                const highlight = getWeekHighlight(completedTasks);
+                return highlight ? (
+                  <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg">{highlight.icon}</span>
+                      <span className="font-medium text-yellow-800">Highlight of the Week:</span>
+                      <span className="text-yellow-700">{highlight.text}</span>
                     </div>
                   </div>
-                ))}
-                {completedTasks.length === 0 && (
-                  <p className="text-slate-500 text-center py-4">No tasks completed yet this week</p>
+                ) : null;
+              })()}
+
+              <div className="space-y-4">
+                {completedTasks.length === 0 ? (
+                  <p className="text-slate-500 text-center py-8">No tasks completed yet this week</p>
+                ) : (
+                  Object.entries(groupTasksByDate(completedTasks))
+                    .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
+                    .map(([dateKey, dayTasks]) => (
+                      <div key={dateKey} className="space-y-2">
+                        {/* Date Header */}
+                        <div className="flex items-center gap-2 py-2 border-b border-slate-200">
+                          <Calendar className="w-4 h-4 text-slate-500" />
+                          <h3 className="font-medium text-slate-700">
+                            {new Date(dateKey).toLocaleDateString('en-US', {
+                              weekday: 'long',
+                              month: 'long',
+                              day: 'numeric'
+                            })}
+                          </h3>
+                          <span className="text-sm text-slate-500">
+                            ({dayTasks.length} task{dayTasks.length !== 1 ? 's' : ''})
+                          </span>
+                        </div>
+
+                        {/* Tasks for this date */}
+                        <div className="space-y-2 ml-6">
+                          {dayTasks
+                            .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                            .map((task) => (
+                              <div key={task.id} className="flex items-start justify-between p-3 bg-[#F9FAFB] rounded-lg hover:bg-slate-50 hover:shadow-sm transition-all border border-slate-200">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
+                                    <span className="font-semibold">{task.name}</span>
+                                    <span className="font-bold text-blue-600">+{task.points}</span>
+                                  </div>
+
+                                  {/* Micro Feedback Bubble */}
+                                  {task.microFeedback && (
+                                    <div className="mb-2 inline-block">
+                                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full border border-green-200">
+                                        {task.microFeedback}
+                                      </span>
+                                    </div>
+                                  )}
+                                  
+                                  {task.note && editingNote !== task.id && (
+                                    <p 
+                                      className="task-note text-sm text-slate-700 italic mb-2 cursor-pointer hover:bg-slate-100 rounded px-1 py-0.5 transition-colors"
+                                      onClick={() => startEditingNote(task)}
+                                      title="Click to edit note"
+                                    >
+                                      "{task.note}"
+                                    </p>
+                                  )}
+                                  
+                                  {!task.note && editingNote !== task.id && (
+                                    <p 
+                                      className="text-sm text-slate-400 italic mb-2 cursor-pointer hover:bg-slate-100 rounded px-1 py-0.5 transition-colors"
+                                      onClick={() => startEditingNote(task)}
+                                      title="Click to add note"
+                                    >
+                                      Add note...
+                                    </p>
+                                  )}
+                                  
+                                  {editingNote === task.id && (
+                                    <div className="mb-2 flex gap-2">
+                                      <Input
+                                        value={editNoteValue}
+                                        onChange={(e) => setEditNoteValue(e.target.value)}
+                                        placeholder="Add a note..."
+                                        className="text-sm"
+                                        onKeyPress={(e) => {
+                                          if (e.key === 'Enter') saveNoteEdit();
+                                          if (e.key === 'Escape') cancelNoteEdit();
+                                        }}
+                                        autoFocus
+                                      />
+                                      <Button
+                                        size="sm"
+                                        onClick={saveNoteEdit}
+                                        disabled={updateTaskNoteMutation.isPending}
+                                        className="h-8"
+                                      >
+                                        {updateTaskNoteMutation.isPending ? "..." : "Save"}
+                                      </Button>
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={cancelNoteEdit}
+                                        className="h-8"
+                                      >
+                                        Cancel
+                                      </Button>
+                                    </div>
+                                  )}
+                                  
+                                  <p className="text-xs text-slate-400">
+                                    {new Date(task.completedAt).toLocaleDateString('en-US', { 
+                                      hour: 'numeric',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                </div>
+                                <div className="flex items-start ml-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => deleteTaskMutation.mutate(task.id)}
+                                    disabled={deleteTaskMutation.isPending}
+                                    className="text-red-600 hover:text-red-700 hover:bg-red-50 hover:shadow-sm transition-all h-8 w-8 p-0"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </Button>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </div>
+                    ))
                 )}
               </div>
             </CardContent>
