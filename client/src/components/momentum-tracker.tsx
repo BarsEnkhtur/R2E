@@ -1307,6 +1307,7 @@ Keep the momentum going! 💼
         description: "",
         points: 1,
         icon: "Circle",
+        emoji: "✅",
         color: "blue"
       });
     }
@@ -1333,6 +1334,7 @@ Keep the momentum going! 💼
         description: "",
         points: 1,
         icon: "Circle",
+        emoji: "✅",
         color: "blue"
       });
     }
