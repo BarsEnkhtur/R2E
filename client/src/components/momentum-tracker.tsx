@@ -104,6 +104,8 @@ interface WeeklyHistory {
   weekStartDate: string;
   totalPoints: number;
   tasksCompleted: number;
+  weeklyGoal: number;
+  goalAchieved: boolean;
   createdAt: string;
 }
 
@@ -645,6 +647,33 @@ export default function MomentumTracker() {
     }
   });
 
+  // Track goal achievement status for current week
+  React.useEffect(() => {
+    if (weeklyHistory && currentWeek) {
+      const currentWeekData = weeklyHistory.find(w => w.weekStartDate === currentWeek);
+      setGoalAchievedThisWeek(currentWeekData?.goalAchieved || false);
+    }
+  }, [weeklyHistory, currentWeek]);
+
+  // Check for previous week overview when visiting current week
+  React.useEffect(() => {
+    if (user && weeklyHistory && currentWeek === getWeekStartFixed()) {
+      // Get previous week data
+      const previousWeek = weeklyHistory
+        .filter(w => w.weekStartDate < currentWeek)
+        .sort((a, b) => b.weekStartDate.localeCompare(a.weekStartDate))[0];
+      
+      // Show overview if we have previous week data and haven't shown it yet
+      if (previousWeek && !showWeeklyOverview) {
+        const hasShownOverview = localStorage.getItem(`overview-shown-${previousWeek.weekStartDate}`);
+        if (!hasShownOverview) {
+          generateWeeklyMessageMutation.mutate(previousWeek.weekStartDate);
+          localStorage.setItem(`overview-shown-${previousWeek.weekStartDate}`, 'true');
+        }
+      }
+    }
+  }, [user, weeklyHistory, currentWeek, showWeeklyOverview]);
+
   // Fetch custom tasks
   const { data: customTasks = [] } = useQuery({
     queryKey: ['/api/custom-tasks'],
@@ -1070,13 +1099,26 @@ Keep the momentum going! 💼
       const actualCurrentWeek = getWeekStartFixed();
       setSelectedWeek("");
       
+      // Calculate new points total
+      const currentMaxPoints = dynamicGoalData?.goal || 15;
+      const taskPoints = selectedTask ? getCurrentTaskValue(selectedTask) : 0;
+      const newPoints = currentPoints + taskPoints;
+      
+      // Check if goal was just achieved (not already achieved)
+      const goalJustAchieved = newPoints >= currentMaxPoints && currentPoints < currentMaxPoints && !goalAchievedThisWeek;
+      
       // Force refetch by removing all cached data
       queryClient.removeQueries();
       
-      // Show achievement if goal reached - use safe fallback for maxPoints
-      const currentMaxPoints = dynamicGoalData?.goal || 15;
-      const newPoints = currentPoints + (selectedTask ? getCurrentTaskValue(selectedTask) : 0);
-      if (newPoints >= currentMaxPoints) {
+      // If goal was just achieved, generate personalized message and show achievement
+      if (goalJustAchieved) {
+        setGoalAchievedThisWeek(true);
+        generateGoalMessageMutation.mutate({
+          totalPoints: newPoints,
+          weeklyGoal: currentMaxPoints,
+          tasksCompleted: completedTasks.length + 1,
+          topTaskToday: selectedTask?.name
+        });
         setTimeout(() => {
           setShowAchievement(true);
         }, 500);
@@ -2115,9 +2157,9 @@ Keep the momentum going! 💼
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
               <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-2xl font-bold mb-2">Week Complete!</h2>
+              <h2 className="text-2xl font-bold mb-2">Goal Achieved!</h2>
               <p className="text-slate-600 mb-6">
-                You've reached your {maxPoints} point goal for this week!
+                {achievementMessage || `You've reached your ${maxPoints} point goal for this week!`}
               </p>
               <div className="flex gap-2 justify-center">
                 <Button onClick={() => setShowAchievement(false)}>
@@ -2130,6 +2172,22 @@ Keep the momentum going! 💼
                   View Stats
                 </Button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Weekly Overview Modal */}
+        {showWeeklyOverview && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
+              <div className="text-5xl mb-4">📊</div>
+              <h2 className="text-2xl font-bold mb-2">Last Week Summary</h2>
+              <p className="text-slate-600 mb-6">
+                {weeklyOverviewMessage || "Here's how you did last week."}
+              </p>
+              <Button onClick={() => setShowWeeklyOverview(false)} className="w-full">
+                Start This Week
+              </Button>
             </div>
           </div>
         )}
