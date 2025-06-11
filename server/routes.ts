@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCompletedTaskSchema, insertCustomTaskSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated, getUserId } from "./replitAuth";
+import { generateWeeklyMessage, generateGoalAchievementMessage } from "./openai";
 
 // Helper function to get current week start date (Monday)
 function getWeekStartDate(date: Date): string {
@@ -397,6 +398,81 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error deactivating share: ${error}`);
       res.status(500).json({ error: "Failed to deactivate share" });
+    }
+  });
+
+  // Generate weekly summary message
+  app.post("/api/weekly-message", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { weekStartDate } = req.body;
+      
+      // Get week data
+      const completedTasks = await storage.getCompletedTasks(userId, weekStartDate);
+      const weeklyHistory = await storage.getWeeklyHistory(userId);
+      const currentWeekHistory = weeklyHistory.find(w => w.weekStartDate === weekStartDate);
+      
+      if (!currentWeekHistory) {
+        return res.status(404).json({ error: "Week data not found" });
+      }
+      
+      // Calculate task statistics
+      const taskCounts: Record<string, { count: number; points: number; name: string }> = {};
+      completedTasks.forEach(task => {
+        if (!taskCounts[task.taskId]) {
+          taskCounts[task.taskId] = { count: 0, points: 0, name: task.name };
+        }
+        taskCounts[task.taskId].count++;
+        taskCounts[task.taskId].points += task.points;
+      });
+      
+      const topTasks = Object.values(taskCounts)
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 3)
+        .map(t => ({ name: t.name, count: t.count, points: t.points }));
+      
+      // Get previous week for comparison
+      const previousWeek = weeklyHistory
+        .filter(w => w.weekStartDate < weekStartDate)
+        .sort((a, b) => b.weekStartDate.localeCompare(a.weekStartDate))[0];
+      
+      const performanceData = {
+        totalPoints: currentWeekHistory.totalPoints,
+        weeklyGoal: currentWeekHistory.weeklyGoal || 15,
+        tasksCompleted: currentWeekHistory.tasksCompleted,
+        uniqueTaskTypes: Object.keys(taskCounts).length,
+        topTasks,
+        goalAchieved: currentWeekHistory.goalAchieved || false,
+        streaksStarted: 0, // Will be calculated if needed
+        weekNumber: weeklyHistory.length,
+        previousWeekPoints: previousWeek?.totalPoints
+      };
+      
+      const message = await generateWeeklyMessage(performanceData);
+      res.json({ message });
+    } catch (error) {
+      console.error("Error generating weekly message:", error);
+      res.status(500).json({ error: "Failed to generate weekly message" });
+    }
+  });
+
+  // Generate goal achievement message
+  app.post("/api/goal-achievement-message", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { totalPoints, weeklyGoal, tasksCompleted, topTaskToday } = req.body;
+      
+      const message = await generateGoalAchievementMessage({
+        totalPoints,
+        weeklyGoal,
+        tasksCompleted,
+        topTaskToday
+      });
+      
+      res.json({ message });
+    } catch (error) {
+      console.error("Error generating goal achievement message:", error);
+      res.status(500).json({ error: "Failed to generate goal achievement message" });
     }
   });
 

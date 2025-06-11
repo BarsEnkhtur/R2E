@@ -489,6 +489,10 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
 
 export default function MomentumTracker() {
   const [showAchievement, setShowAchievement] = useState(false);
+  const [achievementMessage, setAchievementMessage] = useState("");
+  const [goalAchievedThisWeek, setGoalAchievedThisWeek] = useState(false);
+  const [showWeeklyOverview, setShowWeeklyOverview] = useState(false);
+  const [weeklyOverviewMessage, setWeeklyOverviewMessage] = useState("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskNote, setTaskNote] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -1200,6 +1204,39 @@ Keep the momentum going! 💼
     },
     onError: (error: any) => {
       console.error('Failed to create share:', error);
+    }
+  });
+
+  // Mutation to generate goal achievement message
+  const generateGoalMessageMutation = useMutation({
+    mutationFn: async (data: { totalPoints: number; weeklyGoal: number; tasksCompleted: number; topTaskToday?: string }) => {
+      const response = await fetch('/api/goal-achievement-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) throw new Error('Failed to generate goal message');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setAchievementMessage(data.message);
+    }
+  });
+
+  // Mutation to generate weekly overview message
+  const generateWeeklyMessageMutation = useMutation({
+    mutationFn: async (weekStartDate: string) => {
+      const response = await fetch('/api/weekly-message', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weekStartDate })
+      });
+      if (!response.ok) throw new Error('Failed to generate weekly message');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      setWeeklyOverviewMessage(data.message);
+      setShowWeeklyOverview(true);
     }
   });
 
