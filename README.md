@@ -6,7 +6,7 @@
 
 I built this app because I was burning out. As someone grinding through job applications, coding projects, gym sessions, and learning new skills, I needed a way to track my weekly progress without losing sight of what I was actually accomplishing.
 
-The problem wasn't lack of motivation—it was lack of visibility. I'd work hard all week, then feel like I hadn't done anything meaningful. Sound familiar?
+The problem wasn't lack of motivation, it was lack of visibility. I'd work hard all week, then feel like I hadn't done anything meaningful. Sound familiar?
 
 So I created this momentum tracker for myself. A simple way to:
 - Log every meaningful task I completed
@@ -109,5 +109,3 @@ Started as a personal project, now maintained for the community. Feel free to:
 What began as a solo solution to prevent burnout has become a platform helping friends and peers stay motivated on their career journeys. Every feature was battle-tested in my own goal pursuit before being shared with others.
 
 If you're grinding toward your next opportunity—whether it's landing your dream job, building coding skills, or maintaining healthy habits—this tracker will help you see and celebrate the progress you're already making.
-
-*Built with ❤️ for the grind*
