@@ -69,6 +69,18 @@ import {
   Share
 } from "lucide-react";
 
+// Helper function to get task category icon
+const getTaskCategoryIcon = (taskId: string): string => {
+  if (taskId.includes('job') || taskId.includes('application')) return "💼";
+  if (taskId.includes('code') || taskId.includes('push') || taskId.includes('dev')) return "💻";
+  if (taskId.includes('gym') || taskId.includes('recovery') || taskId.includes('workout')) return "💪";
+  if (taskId.includes('learn') || taskId.includes('study') || taskId.includes('course')) return "💡";
+  if (taskId.includes('network') || taskId.includes('coffee') || taskId.includes('meeting')) return "🤝";
+  if (taskId.includes('sauna') || taskId.includes('ice')) return "🧊";
+  if (taskId.includes('journal') || taskId.includes('writing')) return "📝";
+  return "✅";
+};
+
 interface Task {
   id: string;
   name: string;
@@ -434,6 +446,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
+            <span className="text-base">{getTaskCategoryIcon(task.id)}</span>
             <h3 className="font-semibold text-sm">{task.name}</h3>
             {streakEmoji && <span className="text-lg">{streakEmoji}</span>}
           </div>
@@ -1068,17 +1081,7 @@ Keep the momentum going! 💼
     return "";
   };
 
-  // Helper function to get task category icon
-  const getTaskCategoryIcon = (taskId: string): string => {
-    if (taskId.includes('job') || taskId.includes('application')) return "💼";
-    if (taskId.includes('code') || taskId.includes('push') || taskId.includes('dev')) return "💻";
-    if (taskId.includes('gym') || taskId.includes('recovery') || taskId.includes('workout')) return "💪";
-    if (taskId.includes('learn') || taskId.includes('study') || taskId.includes('course')) return "💡";
-    if (taskId.includes('network') || taskId.includes('coffee') || taskId.includes('meeting')) return "🤝";
-    if (taskId.includes('sauna') || taskId.includes('ice')) return "🧊";
-    if (taskId.includes('journal') || taskId.includes('writing')) return "📝";
-    return "✅";
-  };
+
 
   // Helper function to group tasks by date
   const groupTasksByDate = (tasks: CompletedTask[]) => {
