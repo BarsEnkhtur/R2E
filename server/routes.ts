@@ -242,7 +242,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update custom task
-  app.patch("/api/custom-tasks/:id", async (req, res) => {
+  app.patch("/api/custom-tasks/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       const updates = req.body;
@@ -269,7 +269,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete custom task
-  app.delete("/api/custom-tasks/:id", async (req, res) => {
+  app.delete("/api/custom-tasks/:id", isAuthenticated, async (req, res) => {
     try {
       const { id } = req.params;
       await storage.deleteCustomTask(parseInt(id));

@@ -486,27 +486,28 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
             >
               Add
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => openTaskForm(task)}
-              className="h-10 w-10 opacity-60 hover:opacity-100 text-slate-500 hover:text-slate-700 touch-manipulation"
-              title="Edit task"
-            >
-              <Edit className="w-4 h-4" />
-            </Button>
-            {/* Only show delete for custom tasks */}
+            {/* Only show edit/delete for custom tasks */}
+            {task.id.startsWith('custom-') && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openTaskForm(task)}
+                className="h-10 w-10 opacity-60 hover:opacity-100 text-slate-500 hover:text-slate-700 touch-manipulation"
+                title="Edit task"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+            )}
             {task.id.startsWith('custom-') && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   if (window.confirm('Are you sure you want to delete this task?')) {
-                    const customTaskId = parseInt(task.id.split('-')[1]);
-                    fetch(`/api/custom-tasks/${customTaskId}`, { method: 'DELETE' })
-                      .then(() => {
-                        queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
-                      });
+                    const customTask = customTasks.find(ct => ct.taskId === task.id);
+                    if (customTask) {
+                      deleteCustomTaskMutation.mutate(customTask.id);
+                    }
                   }
                 }}
                 className="h-10 w-10 opacity-60 hover:opacity-100 text-red-500 hover:text-red-700 touch-manipulation"
