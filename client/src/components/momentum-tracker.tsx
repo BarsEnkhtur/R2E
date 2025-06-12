@@ -599,13 +599,14 @@ export default function MomentumTracker() {
   // Convert custom tasks to Task format
   const convertCustomTasksToTasks = (customTasks: CustomTask[]): Task[] => {
     return customTasks.filter(ct => ct.isActive).map(ct => {
-      const iconComponent = availableIcons.find(icon => icon.name === ct.icon)?.component || Circle;
+      // Create a custom icon component that displays the emoji
+      const EmojiIcon = () => <span className="text-lg">{ct.icon}</span>;
       return {
         id: ct.taskId,
         name: ct.name,
         description: ct.description,
         points: ct.points,
-        icon: iconComponent,
+        icon: EmojiIcon,
         color: ct.color
       };
     });
