@@ -488,18 +488,18 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
             >
               Add
             </Button>
-            {/* Only show edit/delete for custom tasks */}
-            {customTasks && customTasks.some((ct: any) => ct.taskId === task.id) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => openTaskForm(task)}
-                className="h-10 w-10 opacity-60 hover:opacity-100 text-slate-500 hover:text-slate-700 touch-manipulation"
-                title="Edit task"
-              >
-                <Edit className="w-4 h-4" />
-              </Button>
-            )}
+            {/* Show edit button for all tasks */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => openTaskForm(task)}
+              className="h-10 w-10 opacity-60 hover:opacity-100 text-slate-500 hover:text-slate-700 touch-manipulation"
+              title="Edit task"
+            >
+              <Edit className="w-4 h-4" />
+            </Button>
+            
+            {/* Show delete button for custom tasks only */}
             {customTasks && customTasks.some((ct: any) => ct.taskId === task.id) && (
               <Button
                 variant="ghost"
@@ -765,9 +765,10 @@ export default function MomentumTracker() {
   // Helper functions for task management
   const openTaskForm = (task?: Task) => {
     if (task) {
-      // Editing existing task - find the custom task
+      // Check if this is already a custom task
       const customTask = customTasks.find(ct => ct.taskId === task.id);
       if (customTask) {
+        // Editing existing custom task
         setEditingTask(task);
         setCustomTaskForm({
           id: customTask.id.toString(),
@@ -776,6 +777,18 @@ export default function MomentumTracker() {
           points: task.points,
           icon: availableIcons.find(icon => icon.component === task.icon)?.name || "Circle",
           emoji: customTask.icon || "✅",
+          color: task.color
+        });
+      } else {
+        // Editing default task - create a custom copy
+        setEditingTask(task);
+        setCustomTaskForm({
+          id: "", // New custom task
+          name: task.name,
+          description: task.description,
+          points: task.points,
+          icon: availableIcons.find(icon => icon.component === task.icon)?.name || "Circle",
+          emoji: getTaskCategoryIcon(task.id) || "✅",
           color: task.color
         });
       }
@@ -800,26 +813,34 @@ export default function MomentumTracker() {
     if (!customTaskForm.name.trim() || !customTaskForm.description.trim()) return;
 
     if (editingTask && customTaskForm.id) {
-      // Update existing task
+      // Update existing custom task
       updateCustomTaskMutation.mutate({
         id: parseInt(customTaskForm.id),
         updates: {
           name: customTaskForm.name,
           description: customTaskForm.description,
           points: customTaskForm.points,
-          icon: customTaskForm.icon,
+          icon: customTaskForm.emoji,
           color: customTaskForm.color
         }
       });
     } else {
-      // Create new task
-      const taskId = customTaskForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      // Create new task (either brand new or copy of default task)
+      let taskId;
+      if (editingTask) {
+        // Creating custom copy of default task - use original ID as base
+        taskId = `custom-${editingTask.id}`;
+      } else {
+        // Creating completely new task
+        taskId = customTaskForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      }
+      
       createCustomTaskMutation.mutate({
         taskId,
         name: customTaskForm.name,
         description: customTaskForm.description,
         points: customTaskForm.points,
-        icon: customTaskForm.icon,
+        icon: customTaskForm.emoji,
         color: customTaskForm.color,
         isActive: true
       });
