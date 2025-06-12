@@ -396,7 +396,7 @@ const badges: Badge[] = [
 ];
 
 // Sortable Task Item Component
-function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji, openTaskForm, customTasks, deleteCustomTaskMutation }: {
+function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji, openTaskForm, customTasks, deleteCustomTaskMutation, createCustomTaskMutation }: {
   task: Task;
   openTaskDialog: (task: Task) => void;
   getCurrentTaskValue: (task: Task) => number;
@@ -407,6 +407,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
   openTaskForm: (task?: Task) => void;
   customTasks: any[];
   deleteCustomTaskMutation: any;
+  createCustomTaskMutation: any;
 }) {
   const {
     attributes,
@@ -499,25 +500,37 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
               <Edit className="w-4 h-4" />
             </Button>
             
-            {/* Show delete button for custom tasks */}
-            {customTasks && customTasks.some((ct: any) => ct.taskId === task.id) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
+            {/* Show delete button for all tasks */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                const customTask = customTasks?.find((ct: any) => ct.taskId === task.id);
+                if (customTask) {
+                  // Delete custom version, restore original
                   if (window.confirm('Are you sure you want to delete this task? This will remove your customized version and restore the original task.')) {
-                    const customTask = customTasks.find((ct: any) => ct.taskId === task.id);
-                    if (customTask && deleteCustomTaskMutation) {
-                      deleteCustomTaskMutation.mutate(customTask.id);
-                    }
+                    deleteCustomTaskMutation?.mutate(customTask.id);
                   }
-                }}
-                className="h-10 w-10 opacity-60 hover:opacity-100 text-red-500 hover:text-red-700 touch-manipulation"
-                title="Delete custom version"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-            )}
+                } else {
+                  // Delete original task by creating an inactive custom task
+                  if (window.confirm('Are you sure you want to hide this task? You can restore it later by editing tasks.')) {
+                    createCustomTaskMutation.mutate({
+                      taskId: task.id,
+                      name: task.name,
+                      description: task.description,
+                      points: task.points,
+                      icon: "❌",
+                      color: task.color,
+                      isActive: false
+                    });
+                  }
+                }
+              }}
+              className="h-10 w-10 opacity-60 hover:opacity-100 text-red-500 hover:text-red-700 touch-manipulation"
+              title="Delete task"
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
           </div>
         </div>
       </div>
@@ -1777,6 +1790,7 @@ Keep the momentum going! 💼
                         openTaskForm={openTaskForm}
                         customTasks={customTasks}
                         deleteCustomTaskMutation={deleteCustomTaskMutation}
+                        createCustomTaskMutation={createCustomTaskMutation}
                       />
                     ))}
                   </div>
@@ -2036,7 +2050,7 @@ Keep the momentum going! 💼
               </div>
               
               <div>
-                <Label htmlFor="taskEmoji">Category Icon</Label>
+                <Label htmlFor="taskEmoji">Icon</Label>
                 <div className="grid grid-cols-8 gap-2 p-3 border rounded-md">
                   {['💼', '💻', '💪', '💡', '🤝', '🧊', '📝', '✅', '🏃', '📚', '🎯', '🔥', '⭐', '🚀', '🌟', '🎨'].map((emoji) => (
                     <Button
@@ -2053,40 +2067,7 @@ Keep the momentum going! 💼
                 </div>
               </div>
               
-              <div>
-                <Label htmlFor="taskIcon">Icon Style</Label>
-                <select
-                  id="taskIcon"
-                  value={customTaskForm.icon}
-                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, icon: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
-                >
-                  {availableIcons.map(icon => (
-                    <option key={icon.name} value={icon.name}>{icon.name}</option>
-                  ))}
-                </select>
-              </div>
-              
-              <div>
-                <Label htmlFor="taskColor">Color</Label>
-                <select
-                  id="taskColor"
-                  value={customTaskForm.color}
-                  onChange={(e) => setCustomTaskForm(prev => ({ ...prev, color: e.target.value }))}
-                  className="w-full p-2 border rounded-md"
-                >
-                  <option value="blue">Blue</option>
-                  <option value="emerald">Emerald</option>
-                  <option value="purple">Purple</option>
-                  <option value="yellow">Yellow</option>
-                  <option value="red">Red</option>
-                  <option value="indigo">Indigo</option>
-                  <option value="green">Green</option>
-                  <option value="orange">Orange</option>
-                  <option value="pink">Pink</option>
-                  <option value="cyan">Cyan</option>
-                </select>
-              </div>
+
               
               <div className="flex justify-end gap-2">
                 <Button type="button" variant="outline" onClick={() => setShowTaskForm(false)}>
