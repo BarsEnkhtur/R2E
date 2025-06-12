@@ -499,13 +499,13 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
               <Edit className="w-4 h-4" />
             </Button>
             
-            {/* Show delete button for custom tasks only */}
+            {/* Show delete button for custom tasks */}
             {customTasks && customTasks.some((ct: any) => ct.taskId === task.id) && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
-                  if (window.confirm('Are you sure you want to delete this task?')) {
+                  if (window.confirm('Are you sure you want to delete this task? This will remove your customized version and restore the original task.')) {
                     const customTask = customTasks.find((ct: any) => ct.taskId === task.id);
                     if (customTask && deleteCustomTaskMutation) {
                       deleteCustomTaskMutation.mutate(customTask.id);
@@ -513,7 +513,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
                   }
                 }}
                 className="h-10 w-10 opacity-60 hover:opacity-100 text-red-500 hover:text-red-700 touch-manipulation"
-                title="Delete task"
+                title="Delete custom version"
               >
                 <Trash2 className="w-4 h-4" />
               </Button>
@@ -727,8 +727,13 @@ export default function MomentumTracker() {
   const maxPoints = dynamicGoalData?.goal || 15;
   const progressPercentage = maxPoints > 0 ? Math.min((currentPoints / maxPoints) * 100, 100) : 0;
 
-  // Combine default tasks with custom tasks (after customTasks is defined)
-  const allTasks = [...tasks, ...convertCustomTasksToTasks(Array.isArray(customTasks) ? customTasks : [])];
+  // Combine default tasks with custom tasks, avoiding duplicates
+  const customTasksArray = Array.isArray(customTasks) ? customTasks : [];
+  const customTaskIds = customTasksArray.map(ct => ct.taskId);
+  
+  // Filter out default tasks that have custom versions
+  const filteredDefaultTasks = tasks.filter(task => !customTaskIds.includes(task.id));
+  const allTasks = [...filteredDefaultTasks, ...convertCustomTasksToTasks(customTasksArray)];
 
   // Filter and sort tasks based on search and custom order
   const getFilteredAndSortedTasks = () => {
@@ -828,11 +833,11 @@ export default function MomentumTracker() {
       // Create new task (either brand new or copy of default task)
       let taskId;
       if (editingTask) {
-        // Creating custom copy of default task - use original ID as base
-        taskId = `custom-${editingTask.id}`;
+        // Creating custom copy of default task - keep original ID to replace it
+        taskId = editingTask.id;
       } else {
         // Creating completely new task
-        taskId = customTaskForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        taskId = `custom-${customTaskForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
       }
       
       createCustomTaskMutation.mutate({
