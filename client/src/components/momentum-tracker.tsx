@@ -749,6 +749,17 @@ export default function MomentumTracker() {
   const filteredDefaultTasks = tasks.filter(task => !customTaskIds.includes(task.id));
   const allTasks = [...filteredDefaultTasks, ...convertCustomTasksToTasks(customTasksArray)];
 
+  // Helper function to get task emoji (custom or default)
+  const getTaskEmoji = (taskId: string): string => {
+    // First check if there's a custom task with this taskId
+    const customTask = customTasksArray.find(ct => ct.taskId === taskId);
+    if (customTask) {
+      return customTask.icon;
+    }
+    // Fall back to default category icon
+    return getTaskCategoryIcon(taskId);
+  };
+
   // Filter and sort tasks based on search and custom order
   const getFilteredAndSortedTasks = () => {
     let filteredTasks = allTasks;
@@ -1863,7 +1874,7 @@ Keep the momentum going! 💼
                               <div key={task.id} className="flex items-start justify-between p-3 bg-[#F9FAFB] rounded-lg hover:bg-slate-50 hover:shadow-sm transition-all border border-slate-200">
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
+                                    <span className="text-lg">{getTaskEmoji(task.taskId)}</span>
                                     <span className="font-semibold">{task.name}</span>
                                     <span className="font-bold text-blue-600">+{task.points}</span>
                                   </div>
@@ -2051,20 +2062,36 @@ Keep the momentum going! 💼
               
               <div>
                 <Label htmlFor="taskEmoji">Icon</Label>
-                <div className="grid grid-cols-8 gap-2 p-3 border rounded-md">
-                  {['💼', '💻', '💪', '💡', '🤝', '🧊', '📝', '✅', '🏃', '📚', '🎯', '🔥', '⭐', '🚀', '🌟', '🎨'].map((emoji) => (
-                    <Button
-                      key={emoji}
-                      type="button"
-                      variant={customTaskForm.emoji === emoji ? "default" : "outline"}
-                      size="sm"
-                      className="h-12 w-12 text-lg p-0 hover:scale-110 transition-transform"
-                      onClick={() => setCustomTaskForm(prev => ({ ...prev, emoji }))}
-                    >
-                      {emoji}
-                    </Button>
-                  ))}
+                <div className="max-h-48 overflow-y-auto border rounded-md p-3 bg-gray-50">
+                  <div className="grid grid-cols-8 gap-2">
+                    {[
+                      // Work & Career
+                      '💼', '💻', '📊', '📈', '📝', '📋', '🗂️', '📧', '📞', '🎯', '💡', '🧠', '📚', '🎓', '👔', '💼',
+                      // Health & Fitness  
+                      '💪', '🏃', '🚴', '🏊', '🧘', '🏋️', '⚽', '🏀', '🎾', '🏓', '🥊', '🤸', '🧊', '🔥', '💧', '🥗',
+                      // Social & Networking
+                      '🤝', '👥', '🗣️', '💬', '📱', '☕', '🍽️', '🎉', '🎊', '🤳', '👋', '💌', '🎭', '🎪', '🎨', '🎵',
+                      // Personal Development
+                      '⭐', '🌟', '✨', '🚀', '🎖️', '🏆', '🥇', '📖', '✍️', '🧩', '🎲', '🔍', '💎', '🌱', '🌻', '🦋',
+                      // Daily Life
+                      '🏠', '🛒', '🍳', '🧹', '🚗', '🚌', '✈️', '🏖️', '🌍', '📷', '🎬', '🎮', '🧸', '💤', '☀️', '🌙',
+                      // Finance & Money
+                      '💰', '💳', '💲', '📊', '📈', '🏦', '💵', '🪙', '💸', '📉', '💹', '🧮', '💎', '🔒', '🗝️', '⚖️'
+                    ].map((emoji) => (
+                      <Button
+                        key={emoji}
+                        type="button"
+                        variant={customTaskForm.emoji === emoji ? "default" : "outline"}
+                        size="sm"
+                        className="h-10 w-10 text-lg p-0 hover:scale-110 transition-transform"
+                        onClick={() => setCustomTaskForm(prev => ({ ...prev, emoji }))}
+                      >
+                        {emoji}
+                      </Button>
+                    ))}
+                  </div>
                 </div>
+                <p className="text-xs text-gray-500 mt-1">Scroll to see more emoji options</p>
               </div>
               
 
