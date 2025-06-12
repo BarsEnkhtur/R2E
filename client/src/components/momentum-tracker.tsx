@@ -836,8 +836,15 @@ export default function MomentumTracker() {
         // Creating custom copy of default task - keep original ID to replace it
         taskId = editingTask.id;
       } else {
-        // Creating completely new task
-        taskId = `custom-${customTaskForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')}`;
+        // Creating completely new task - generate unique ID
+        const baseId = customTaskForm.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+        const existingIds = customTasks.map(ct => ct.taskId);
+        let counter = 1;
+        taskId = `custom-${baseId}`;
+        while (existingIds.includes(taskId)) {
+          taskId = `custom-${baseId}-${counter}`;
+          counter++;
+        }
       }
       
       createCustomTaskMutation.mutate({
