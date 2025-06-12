@@ -396,7 +396,7 @@ const badges: Badge[] = [
 ];
 
 // Sortable Task Item Component
-function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji, openTaskForm }: {
+function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji, openTaskForm, customTasks, deleteCustomTaskMutation }: {
   task: Task;
   openTaskDialog: (task: Task) => void;
   getCurrentTaskValue: (task: Task) => number;
@@ -405,6 +405,8 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
   isOnStreak: (taskId: string) => boolean;
   getStreakEmoji: (streak: number) => string;
   openTaskForm: (task?: Task) => void;
+  customTasks: any[];
+  deleteCustomTaskMutation: any;
 }) {
   const {
     attributes,
@@ -487,7 +489,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
               Add
             </Button>
             {/* Only show edit/delete for custom tasks */}
-            {task.id.startsWith('custom-') && (
+            {customTasks && customTasks.some((ct: any) => ct.taskId === task.id) && (
               <Button
                 variant="ghost"
                 size="sm"
@@ -498,14 +500,14 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
                 <Edit className="w-4 h-4" />
               </Button>
             )}
-            {task.id.startsWith('custom-') && (
+            {customTasks && customTasks.some((ct: any) => ct.taskId === task.id) && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   if (window.confirm('Are you sure you want to delete this task?')) {
-                    const customTask = customTasks.find(ct => ct.taskId === task.id);
-                    if (customTask) {
+                    const customTask = customTasks.find((ct: any) => ct.taskId === task.id);
+                    if (customTask && deleteCustomTaskMutation) {
                       deleteCustomTaskMutation.mutate(customTask.id);
                     }
                   }
@@ -1739,6 +1741,8 @@ Keep the momentum going! 💼
                         isOnStreak={isOnStreak}
                         getStreakEmoji={getStreakEmoji}
                         openTaskForm={openTaskForm}
+                        customTasks={customTasks}
+                        deleteCustomTaskMutation={deleteCustomTaskMutation}
                       />
                     ))}
                   </div>
