@@ -445,7 +445,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
           <GripVertical className="w-5 h-5 text-slate-400" />
         </div>
         <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0 flex items-center justify-center`}>
-          <span className="text-xl">{getTaskCategoryIcon(task.id)}</span>
+          <IconComponent className="w-5 h-5" />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
