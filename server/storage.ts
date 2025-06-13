@@ -1,4 +1,4 @@
-import { users, completedTasks, taskStats, weeklyHistory, customTasks, shares, type User, type UpsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats, type WeeklyHistory, type InsertWeeklyHistory, type CustomTask, type InsertCustomTask, type Share, type InsertShare } from "@shared/schema";
+import { users, completedTasks, taskStats, weeklyHistory, customTasks, shares, aiBadges, type User, type UpsertUser, type CompletedTask, type InsertCompletedTask, type TaskStats, type InsertTaskStats, type WeeklyHistory, type InsertWeeklyHistory, type CustomTask, type InsertCustomTask, type Share, type InsertShare, type AiBadge, type InsertAiBadge } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, lt } from "drizzle-orm";
 
@@ -30,6 +30,11 @@ export interface IStorage {
   getShare(token: string): Promise<Share | undefined>;
   getActiveShares(userId: string): Promise<Share[]>;
   deactivateShare(token: string): Promise<void>;
+  
+  // AI Badge operations
+  getAiBadges(userId: string): Promise<AiBadge[]>;
+  createAiBadge(badge: InsertAiBadge): Promise<AiBadge>;
+  checkExistingBadge(userId: string, badgeId: string): Promise<boolean>;
   
   // Demo data operations
   initializeDemoData(userId: string): Promise<void>;
@@ -477,6 +482,26 @@ export class DatabaseStorage implements IStorage {
       isActive: true,
       createdAt: now
     });
+  }
+
+  async getAiBadges(userId: string): Promise<AiBadge[]> {
+    return await db.select()
+      .from(aiBadges)
+      .where(and(eq(aiBadges.userId, userId), eq(aiBadges.isVisible, true)))
+      .orderBy(desc(aiBadges.unlockedAt));
+  }
+
+  async createAiBadge(badge: InsertAiBadge): Promise<AiBadge> {
+    const [newBadge] = await db.insert(aiBadges).values(badge).returning();
+    return newBadge;
+  }
+
+  async checkExistingBadge(userId: string, badgeId: string): Promise<boolean> {
+    const existing = await db.select({ id: aiBadges.id })
+      .from(aiBadges)
+      .where(and(eq(aiBadges.userId, userId), eq(aiBadges.badgeId, badgeId)))
+      .limit(1);
+    return existing.length > 0;
   }
 }
 

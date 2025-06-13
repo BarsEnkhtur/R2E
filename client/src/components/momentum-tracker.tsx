@@ -736,6 +736,17 @@ export default function MomentumTracker() {
     }
   });
 
+  // Fetch AI badges
+  const { data: aiBadges = [] } = useQuery({
+    queryKey: ['/api/ai-badges'],
+    queryFn: async (): Promise<any[]> => {
+      if (isDemoMode && !user) return [];
+      const response = await fetch('/api/ai-badges');
+      if (!response.ok) throw new Error('Failed to fetch AI badges');
+      return await response.json();
+    }
+  });
+
   // Calculate points and progress with proper fallbacks
   const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum, task) => sum + task.points, 0) : 0;
   const maxPoints = dynamicGoalData?.goal || 15;

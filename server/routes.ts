@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertCompletedTaskSchema, insertCustomTaskSchema } from "@shared/schema";
 import { setupAuth, isAuthenticated, getUserId } from "./replitAuth";
-import { generateWeeklyMessage, generateGoalAchievementMessage } from "./openai";
+import { generateWeeklyMessage, generateGoalAchievementMessage, generateAIBadge } from "./openai";
 
 // Helper function to get current week start date (Monday)
 function getWeekStartDate(date: Date): string {
@@ -494,6 +494,116 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error generating goal achievement message:", error);
       res.status(500).json({ error: "Failed to generate goal achievement message" });
+    }
+  });
+
+  // Get AI badges for user
+  app.get("/api/ai-badges", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const badges = await storage.getAiBadges(userId);
+      res.json(badges);
+    } catch (error) {
+      console.error("Error fetching AI badges:", error);
+      res.status(500).json({ error: "Failed to fetch AI badges" });
+    }
+  });
+
+  // Generate and create AI badge based on user patterns
+  app.post("/api/generate-ai-badge", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      
+      // Get user's task data to analyze patterns
+      const allTasks = await storage.getCompletedTasks(userId);
+      const taskStats = await storage.getTaskStats(userId, getWeekStartDate(new Date()));
+      
+      // Analyze task patterns
+      const taskPatterns = new Map();
+      let totalPoints = 0;
+      
+      allTasks.forEach(task => {
+        const key = task.taskId;
+        if (!taskPatterns.has(key)) {
+          taskPatterns.set(key, {
+            taskId: task.taskId,
+            taskName: task.name,
+            count: 0,
+            totalPoints: 0,
+            notes: []
+          });
+        }
+        const pattern = taskPatterns.get(key);
+        pattern.count++;
+        pattern.totalPoints += task.points;
+        pattern.lastCompleted = task.completedAt;
+        if (task.note) pattern.notes.push(task.note);
+        totalPoints += task.points;
+      });
+
+      const completedTaskPatterns = Array.from(taskPatterns.values()).map(p => ({
+        ...p,
+        averagePoints: p.totalPoints / p.count
+      }));
+
+      // Calculate streak and consistency metrics
+      const uniqueTaskTypes = taskPatterns.size;
+      const currentStreak = 1; // Simplified for demo
+      const longestStreak = Math.max(currentStreak, 3);
+      const averageTasksPerWeek = allTasks.length / 4; // Assuming 4 weeks of data
+      
+      // Get top categories
+      const topCategories = completedTaskPatterns
+        .sort((a, b) => b.count - a.count)
+        .slice(0, 3)
+        .map(p => p.taskName);
+
+      const badgeData = {
+        userId,
+        completedTasks: completedTaskPatterns,
+        totalTasks: allTasks.length,
+        totalPoints,
+        uniqueTaskTypes,
+        longestStreak,
+        currentStreak,
+        averageTasksPerWeek,
+        topCategories,
+        recentAchievements: []
+      };
+
+      // Generate AI badge
+      const generatedBadge = await generateAIBadge(badgeData);
+      
+      if (!generatedBadge) {
+        return res.json({ message: "No new badge patterns detected at this time" });
+      }
+
+      // Check if badge already exists
+      const existingBadge = await storage.checkExistingBadge(userId, generatedBadge.badgeId);
+      if (existingBadge) {
+        return res.json({ message: "This badge has already been earned" });
+      }
+
+      // Create the badge
+      const newBadge = await storage.createAiBadge({
+        userId,
+        badgeId: generatedBadge.badgeId,
+        name: generatedBadge.name,
+        description: generatedBadge.description,
+        icon: generatedBadge.icon,
+        color: generatedBadge.color,
+        category: generatedBadge.category,
+        criteria: generatedBadge.criteria,
+        taskPatterns: generatedBadge.taskPatterns
+      });
+
+      res.json({ 
+        badge: newBadge,
+        message: `Congratulations! You've unlocked the "${newBadge.name}" badge!`
+      });
+    } catch (error) {
+      console.error("Error generating AI badge:", error);
+      res.status(500).json({ error: "Failed to generate AI badge" });
     }
   });
 
