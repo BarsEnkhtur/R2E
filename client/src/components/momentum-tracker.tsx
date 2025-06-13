@@ -1767,17 +1767,67 @@ Keep the momentum going! 💼
       <div className="px-4 py-6">
         <div className="max-w-6xl mx-auto">
 
-          {/* Compact Progress Module */}
-          <div className="flex items-center justify-center gap-4 mb-4 max-w-2xl mx-auto">
-            <div className="text-lg font-bold text-blue-600">
-              {currentPoints} / {maxPoints}
+          {/* Hero Greeting Area */}
+          <div className="hero-greeting mb-6">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="hero-title mb-2">
+                  👋 Hey {(user as any)?.email?.split('@')[0] || 'there'}, you're {(() => {
+                    const streakInfo = getCurrentStreak();
+                    return streakInfo.streak > 0 ? `at ${streakInfo.streak}-day streak` : `getting started`;
+                  })()}
+                </h1>
+                <p className="body-text">
+                  {isCurrentWeek ? 
+                    "Add today's tasks to keep your momentum going" : 
+                    `Viewing week of ${formatWeekDisplay(currentWeek)}`
+                  }
+                </p>
+              </div>
+              <div className="text-right">
+                <div className="text-3xl font-bold text-blue-600 mb-1">
+                  {currentPoints}<span className="text-lg text-gray-500">/{maxPoints}</span>
+                </div>
+                <div className="caption">Weekly Progress</div>
+              </div>
             </div>
-            <div className="flex-1">
-              <Progress value={progressPercentage} className="h-3" />
+            
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <Progress value={progressPercentage} className="h-2" />
+              </div>
+              <div className="caption">
+                {Math.round(progressPercentage)}% complete
+              </div>
             </div>
-            <div className="text-sm text-slate-600 whitespace-nowrap">
-              {Math.round(progressPercentage)}%
-            </div>
+          </div>
+
+          {/* Secondary Navigation */}
+          <div className="flex items-center justify-center gap-1 mb-6 bg-white rounded-lg p-1 border max-w-md mx-auto">
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="flex-1 data-[active=true]:bg-blue-600 data-[active=true]:text-white"
+              data-active={true}
+            >
+              Tasks
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="flex-1"
+              onClick={() => setShowWeeklyStats(true)}
+            >
+              Progress
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="flex-1"
+              onClick={() => setShowAchievements(true)}
+            >
+              Badges
+            </Button>
           </div>
 
           {/* Streak and Badge Widget */}
@@ -1849,104 +1899,248 @@ Keep the momentum going! 💼
           </div>
         </div>
 
-        <div className="grid gap-6 xl:grid-cols-[3fr_2fr]">
-          <Card>
-            <CardContent className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">Tasks</h2>
-                <div className="flex items-center gap-3">
-                  <Button
-                    onClick={() => openTaskForm()}
-                    size="sm"
-                    className="bg-green-600 hover:bg-green-700 text-white"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Add Task
-                  </Button>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
-                    <Input
-                      placeholder="Search tasks..."
-                      value={searchFilter}
-                      onChange={(e) => setSearchFilter(e.target.value)}
-                      className="pl-10 w-36 lg:w-48 h-9"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <DndContext 
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <SortableContext 
-                  items={getFilteredAndSortedTasks().map(task => task.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                    {getFilteredAndSortedTasks().map((task) => (
-                      <SortableTaskItem
-                        key={task.id}
-                        task={task}
-                        openTaskDialog={openTaskDialog}
-                        getCurrentTaskValue={getCurrentTaskValue}
-                        needsAttention={needsAttention}
-                        getTaskStreak={getTaskStreak}
-                        isOnStreak={isOnStreak}
-                        getStreakEmoji={getStreakEmoji}
-                        openTaskForm={openTaskForm}
-                        customTasks={customTasks}
-                        deleteCustomTaskMutation={deleteCustomTaskMutation}
-                        createCustomTaskMutation={createCustomTaskMutation}
+        {/* Enhanced Dashboard Grid */}
+        <div className="dashboard-grid">
+          {/* Left Panel - Today's Tasks */}
+          <div className="space-y-4">
+            <Card className="focus-card">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="section-title">Today's Tasks</h2>
+                  <div className="flex items-center gap-3">
+                    <Button
+                      onClick={() => openTaskForm()}
+                      size="sm"
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Plus className="w-4 h-4 mr-1" />
+                      Add Task
+                    </Button>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                      <Input
+                        placeholder="Search tasks..."
+                        value={searchFilter}
+                        onChange={(e) => setSearchFilter(e.target.value)}
+                        className="pl-10 w-36 lg:w-48 h-9"
                       />
-                    ))}
-                  </div>
-                </SortableContext>
-              </DndContext>
-              
-              {getFilteredAndSortedTasks().length === 0 && searchFilter.trim() && (
-                <div className="text-center py-8 text-slate-500">
-                  <Search className="w-12 h-12 mx-auto mb-3 text-slate-300" />
-                  <p>No tasks found matching "{searchFilter}"</p>
-                  <p className="text-sm mt-1">Try searching for task names or descriptions</p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-xl font-semibold">This Week's Progress</h2>
-                {completedTasks.length > 0 && (
-                  <div className="text-sm text-slate-600">
-                    {completedTasks.length} task{completedTasks.length !== 1 ? 's' : ''} completed
-                  </div>
-                )}
-              </div>
-
-              {/* Week Highlight */}
-              {(() => {
-                const highlight = getWeekHighlight(completedTasks);
-                return highlight ? (
-                  <div className="mb-4 p-3 bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg">{highlight.icon}</span>
-                      <span className="font-medium text-yellow-800">Highlight of the Week:</span>
-                      <span className="text-yellow-700">{highlight.text}</span>
                     </div>
                   </div>
-                ) : null;
-              })()}
+                </div>
+                
+                <DndContext 
+                  sensors={sensors}
+                  collisionDetection={closestCenter}
+                  onDragEnd={handleDragEnd}
+                >
+                  <SortableContext 
+                    items={getFilteredAndSortedTasks().map(task => task.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <div className="space-y-3">
+                      {getFilteredAndSortedTasks().map((task) => (
+                        <SortableTaskItem
+                          key={task.id}
+                          task={task}
+                          openTaskDialog={openTaskDialog}
+                          getCurrentTaskValue={getCurrentTaskValue}
+                          needsAttention={needsAttention}
+                          getTaskStreak={getTaskStreak}
+                          isOnStreak={isOnStreak}
+                          getStreakEmoji={getStreakEmoji}
+                          openTaskForm={openTaskForm}
+                          customTasks={customTasks}
+                          deleteCustomTaskMutation={deleteCustomTaskMutation}
+                          createCustomTaskMutation={createCustomTaskMutation}
+                        />
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+                
+                {getFilteredAndSortedTasks().length === 0 && searchFilter.trim() && (
+                  <div className="text-center py-8 text-slate-500">
+                    <Search className="w-12 h-12 mx-auto mb-3 text-slate-300" />
+                    <p>No tasks found matching "{searchFilter}"</p>
+                    <p className="text-sm mt-1">Try searching for task names or descriptions</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
 
-              <div className="space-y-4">
-                {completedTasks.length === 0 ? (
-                  <p className="text-slate-500 text-center py-8">No tasks completed yet this week</p>
+          {/* Middle Panel - Live Streak & Next Badge Widgets */}
+          <div className="space-y-4">
+            <Card className="focus-card">
+              <CardContent className="p-6">
+                <h3 className="card-title mb-4">Streak & Progress</h3>
+                {(() => {
+                  const streakInfo = getCurrentStreak();
+                  return (
+                    <div className="space-y-4">
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="text-3xl mb-2">{streakInfo.streakIcon}</div>
+                        <div className="text-2xl font-bold text-orange-600">{streakInfo.streak}</div>
+                        <div className="caption">Day Streak</div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{currentPoints}</div>
+                        <div className="caption">Points This Week</div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+
+            <Card className="focus-card">
+              <CardContent className="p-6">
+                <h3 className="card-title mb-4">Recent Badges</h3>
+                {(() => {
+                  const unlockedBadges = getUnlockedBadges();
+                  const latestBadges = unlockedBadges.slice(-3);
+                  
+                  if (latestBadges.length === 0) {
+                    return (
+                      <div className="text-center py-4">
+                        <div className="text-4xl mb-2">🏆</div>
+                        <div className="caption">Complete tasks to earn badges</div>
+                      </div>
+                    );
+                  }
+                  
+                  return (
+                    <div className="space-y-3">
+                      {latestBadges.map(badge => (
+                        <div key={badge.id} className="flex items-center gap-3">
+                          <div className="w-8 h-8 flex items-center justify-center bg-yellow-50 border-2 border-yellow-200 rounded-full">
+                            <span className="text-sm">{badge.icon}</span>
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-medium text-sm">{badge.name}</div>
+                            <div className="caption text-gray-500">{badge.description}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Panel - Recent Activity Log */}
+          <div className="space-y-4">
+            <Card className="focus-card">
+              <CardContent className="p-6">
+                <h3 className="card-title mb-4">Recent Activity</h3>
+                {completedTasks && completedTasks.length > 0 ? (
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {completedTasks.slice(0, 10).map((task) => (
+                      <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-shrink-0">
+                          <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-sm">{task.name}</div>
+                          <div className="caption text-gray-500">
+                            +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
+                          </div>
+                          {task.note && (
+                            <div className="caption text-gray-600 mt-1 italic">"{task.note}"</div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 ) : (
-                  Object.entries(groupTasksByDate(completedTasks))
-                    .sort(([dateA], [dateB]) => new Date(dateB).getTime() - new Date(dateA).getTime())
-                    .map(([dateKey, dayTasks]) => (
+                  <div className="text-center py-4">
+                    <div className="text-4xl mb-2">📝</div>
+                    <div className="caption">No activities yet this week</div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </div>
+
+      {/* Dialogs and Modals */}
+      <div>
+        {/* Task Completion Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Complete Task: {selectedTask?.name}</DialogTitle>
+              <DialogDescription>
+                Add details about your progress (optional)
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="note">Note (optional)</Label>
+                <Input
+                  id="note"
+                  value={taskNote}
+                  onChange={(e) => setTaskNote(e.target.value)}
+                  placeholder="What did you accomplish?"
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={addPoints}>
+                  Complete Task (+{selectedTask ? getCurrentTaskValue(selectedTask) : 0} pts)
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Achievement Modal */}
+        {showAchievement && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
+              <div className="text-6xl mb-4">🎉</div>
+              <h2 className="text-2xl font-bold mb-2">Goal Achieved!</h2>
+              <p className="text-slate-600 mb-6">
+                {achievementMessage || `You've reached your ${maxPoints} point goal for this week!`}
+              </p>
+              <div className="flex gap-2 justify-center">
+                <Button onClick={() => setShowAchievement(false)}>
+                  Continue
+                </Button>
+                <Button variant="outline" onClick={() => {
+                  setShowAchievement(false);
+                  setShowWeeklyStats(true);
+                }}>
+                  View Stats
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Weekly Overview Modal */}
+        {showWeeklyOverview && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-8 max-w-md mx-4 text-center">
+              <div className="text-5xl mb-4">📊</div>
+              <h2 className="text-2xl font-bold mb-2">Last Week Summary</h2>
+              <p className="text-slate-600 mb-6">
+                {weeklyOverviewMessage || "Here's how you did last week."}
+              </p>
+              <Button onClick={() => setShowWeeklyOverview(false)} className="w-full">
+                Start This Week
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
                       <div key={dateKey} className="space-y-2">
                         {/* Date Header */}
                         <div className="flex items-center gap-2 py-2 border-b border-slate-200">
