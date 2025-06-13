@@ -270,6 +270,9 @@ interface Badge {
   icon: string;
   description: string;
   criteria: string;
+  tier?: string;
+  xpReward?: number;
+  rarity?: string;
   checkUnlocked: (stats: any) => boolean;
 }
 
@@ -1745,7 +1748,7 @@ Keep the momentum going! 💼
                     </div>
                   )}
                   
-                  {/* Top Badges Preview */}
+                  {/* Top Badges Preview with Tiers */}
                   {topBadges.length > 0 && (
                     <div className="flex items-center gap-2">
                       <span className="text-sm text-slate-600">Latest:</span>
@@ -1754,7 +1757,7 @@ Keep the momentum going! 💼
                           {topBadges.map(badge => (
                             <Tooltip key={badge.id}>
                               <TooltipTrigger asChild>
-                                <div className="w-8 h-8 flex items-center justify-center bg-yellow-50 border border-yellow-200 rounded-full cursor-pointer hover:bg-yellow-100 transition-colors">
+                                <div className="w-8 h-8 flex items-center justify-center bg-yellow-50 border-2 border-yellow-200 rounded-full cursor-pointer hover:scale-110 transition-all duration-200 shadow-sm">
                                   <span className="text-sm">{badge.icon}</span>
                                 </div>
                               </TooltipTrigger>

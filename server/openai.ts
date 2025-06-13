@@ -193,6 +193,8 @@ export async function generateAIBadge(data: BadgeGenerationData): Promise<{
   category: string;
   criteria: string;
   tier?: string;
+  xpReward: number;
+  rarity: string;
   taskPatterns: any;
 } | null> {
   try {
