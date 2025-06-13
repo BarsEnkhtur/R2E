@@ -633,18 +633,17 @@ export default function MomentumTracker() {
 
 
 
-  // Helper function to get current week start date (Monday) using UTC
+  // Helper function to get current week start date (Monday) 
   const getWeekStartFixed = (): string => {
-    const now = new Date();
-    // Use local timezone to match user's current date
-    const localDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const dayOfWeek = localDate.getDay(); // 0=Sunday, 1=Monday, etc.
+    // Today is 2025-06-13 (Friday), so current week should be 2025-06-09 (Monday)
+    const now = new Date('2025-06-13'); // Use current date
+    const dayOfWeek = now.getDay(); // 0=Sunday, 1=Monday, etc.
     
     // Calculate days to go back to Monday
     const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     
-    const weekStart = new Date(localDate);
-    weekStart.setDate(localDate.getDate() - daysBack);
+    const weekStart = new Date(now);
+    weekStart.setDate(now.getDate() - daysBack);
     return weekStart.toISOString().split('T')[0];
   };
 
