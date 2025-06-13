@@ -369,19 +369,27 @@ export default function MomentumTrackerEnhanced() {
   // Fetch completed tasks
   const { data: completedTasks = [], isLoading } = useQuery({
     queryKey: ['/api/completed-tasks', currentWeek],
-    queryFn: () => apiRequest(`/api/completed-tasks?weekStartDate=${currentWeek}`, { on401: "returnNull" }),
+    queryFn: async () => {
+      const response = await fetch(`/api/completed-tasks?weekStartDate=${currentWeek}`);
+      if (!response.ok) return [];
+      return response.json();
+    },
     enabled: !!user,
   });
 
   // Fetch weekly goal
   const { data: goalData, isLoading: isGoalLoading } = useQuery({
     queryKey: ['/api/dynamic-goal', currentWeek],
-    queryFn: () => apiRequest(`/api/dynamic-goal/${currentWeek}`, { on401: "returnNull" }),
+    queryFn: async () => {
+      const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
+      if (!response.ok) return { goal: 15 };
+      return response.json();
+    },
     enabled: !!user,
   });
 
   // Calculate progress
-  const currentPoints = completedTasks.reduce((sum: number, task: CompletedTask) => sum + task.points, 0);
+  const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum: number, task: CompletedTask) => sum + task.points, 0) : 0;
   const maxPoints = goalData?.goal || 15;
   const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
 
@@ -633,7 +641,7 @@ export default function MomentumTrackerEnhanced() {
               <Card className="focus-card">
                 <CardContent className="p-6">
                   <h3 className="card-title mb-4">Recent Activity</h3>
-                  {completedTasks && completedTasks.length > 0 ? (
+                  {Array.isArray(completedTasks) && completedTasks.length > 0 ? (
                     <div className="space-y-3 max-h-96 overflow-y-auto">
                       {completedTasks.slice(0, 10).map((task: CompletedTask) => (
                         <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">

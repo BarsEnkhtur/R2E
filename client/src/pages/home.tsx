@@ -1,5 +1,5 @@
-import MomentumTracker from "@/components/momentum-tracker";
+import MomentumTrackerEnhanced from "@/components/momentum-tracker-enhanced";
 
 export default function Home() {
-  return <MomentumTracker />;
+  return <MomentumTrackerEnhanced />;
 }
