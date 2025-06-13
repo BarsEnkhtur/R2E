@@ -609,6 +609,7 @@ export default function MomentumTrackerEnhanced() {
                       }}
                       className="inline-block w-auto min-w-[100px] mx-2 px-2 py-1 text-2xl font-bold bg-transparent border-b-2 border-blue-500"
                       autoFocus
+                      onFocus={(e) => e.target.select()}
                     />
                   ) : (
                     <span 
@@ -722,12 +723,20 @@ export default function MomentumTrackerEnhanced() {
                   <CardContent className="p-6">
                     <h3 className="card-title mb-4">Streak & Progress</h3>
                     <div className="space-y-4">
-                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <div 
+                        className="text-center p-4 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors"
+                        onClick={() => setActiveTab("progress")}
+                        title="Click to view detailed progress"
+                      >
                         <div className="text-3xl mb-2">{getCurrentStreak().streakIcon || "🎯"}</div>
                         <div className="text-2xl font-bold text-orange-600">{calculateDayStreak()}</div>
                         <div className="caption">Day Streak</div>
                       </div>
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div 
+                        className="text-center p-4 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
+                        onClick={() => setActiveTab("progress")}
+                        title="Click to view detailed progress"
+                      >
                         <div className="text-2xl font-bold text-blue-600">{currentPoints}</div>
                         <div className="caption">Points This Week</div>
                       </div>
@@ -738,7 +747,11 @@ export default function MomentumTrackerEnhanced() {
                 <Card className="focus-card">
                   <CardContent className="p-6">
                     <h3 className="card-title mb-4">Recent Badges</h3>
-                    <div className="text-center py-4">
+                    <div 
+                      className="text-center py-4 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors"
+                      onClick={() => setActiveTab("badges")}
+                      title="Click to view all badges"
+                    >
                       <div className="text-4xl mb-2">🏆</div>
                       <div className="caption">Complete tasks to earn badges</div>
                     </div>
@@ -754,7 +767,12 @@ export default function MomentumTrackerEnhanced() {
                     {Array.isArray(completedTasks) && completedTasks.length > 0 ? (
                       <div className="space-y-3 max-h-96 overflow-y-auto">
                         {completedTasks.slice(0, 10).map((task: CompletedTask) => (
-                          <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div 
+                            key={task.id} 
+                            className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                            onClick={() => setActiveTab("progress")}
+                            title="Click to view detailed progress"
+                          >
                             <div className="flex-shrink-0">
                               <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
                             </div>
@@ -837,6 +855,9 @@ export default function MomentumTrackerEnhanced() {
                               <div className="text-sm text-gray-500">
                                 +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
                               </div>
+                              {task.note && (
+                                <div className="text-sm text-gray-600 mt-1 italic">"{task.note}"</div>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -881,28 +902,105 @@ export default function MomentumTrackerEnhanced() {
                     </div>
 
                     <div className="text-left max-w-md mx-auto space-y-3">
-                      <h4 className="font-semibold mb-3">Upcoming Badges:</h4>
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
-                        <span className="text-lg">🎯</span>
-                        <div className="text-sm">
-                          <div className="font-medium">Getting Started</div>
-                          <div className="text-gray-500">Complete your first task</div>
+                      {/* Earned Badges */}
+                      {(Array.isArray(completedTasks) && completedTasks.length > 0) && (
+                        <>
+                          <h4 className="font-semibold mb-3 text-green-600">🏆 Earned Badges:</h4>
+                          {completedTasks.length >= 1 && (
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                              <span className="text-lg">🎯</span>
+                              <div className="text-sm">
+                                <div className="font-medium text-green-800">Getting Started</div>
+                                <div className="text-green-600">Complete your first task ✓</div>
+                              </div>
+                            </div>
+                          )}
+                          {currentPoints >= 10 && (
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                              <span className="text-lg">📆</span>
+                              <div className="text-sm">
+                                <div className="font-medium text-green-800">Consistency Champ</div>
+                                <div className="text-green-600">Earn 10+ points in a single week ✓</div>
+                              </div>
+                            </div>
+                          )}
+                          {calculateDayStreak() >= 3 && (
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                              <span className="text-lg">🔥</span>
+                              <div className="text-sm">
+                                <div className="font-medium text-green-800">Streak Starter</div>
+                                <div className="text-green-600">Complete tasks for 3 consecutive days ✓</div>
+                              </div>
+                            </div>
+                          )}
+                          {completedTasks.length >= 20 && (
+                            <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg border-2 border-green-200">
+                              <span className="text-lg">⭐</span>
+                              <div className="text-sm">
+                                <div className="font-medium text-green-800">Task Master</div>
+                                <div className="text-green-600">Complete 20+ tasks ✓</div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      )}
+                      
+                      {/* Upcoming Badges */}
+                      <h4 className="font-semibold mb-3 mt-6">Upcoming Badges:</h4>
+                      {completedTasks.length < 1 && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                          <span className="text-lg">🎯</span>
+                          <div className="text-sm">
+                            <div className="font-medium">Getting Started</div>
+                            <div className="text-gray-500">Complete your first task</div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
-                        <span className="text-lg">🔥</span>
-                        <div className="text-sm">
-                          <div className="font-medium">Streak Starter</div>
-                          <div className="text-gray-500">Complete tasks for 3 consecutive days</div>
+                      )}
+                      {calculateDayStreak() < 3 && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                          <span className="text-lg">🔥</span>
+                          <div className="text-sm">
+                            <div className="font-medium">Streak Starter</div>
+                            <div className="text-gray-500">Complete tasks for 3 consecutive days ({calculateDayStreak()}/3)</div>
+                          </div>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
-                        <span className="text-lg">📆</span>
-                        <div className="text-sm">
-                          <div className="font-medium">Consistency Champ</div>
-                          <div className="text-gray-500">Earn 10+ points in a single week</div>
+                      )}
+                      {currentPoints < 10 && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                          <span className="text-lg">📆</span>
+                          <div className="text-sm">
+                            <div className="font-medium">Consistency Champ</div>
+                            <div className="text-gray-500">Earn 10+ points in a single week ({currentPoints}/10)</div>
+                          </div>
                         </div>
-                      </div>
+                      )}
+                      {completedTasks.length < 20 && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                          <span className="text-lg">⭐</span>
+                          <div className="text-sm">
+                            <div className="font-medium">Task Master</div>
+                            <div className="text-gray-500">Complete 20+ tasks ({completedTasks.length}/20)</div>
+                          </div>
+                        </div>
+                      )}
+                      {calculateDayStreak() >= 3 && calculateDayStreak() < 7 && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                          <span className="text-lg">🚀</span>
+                          <div className="text-sm">
+                            <div className="font-medium">Week Warrior</div>
+                            <div className="text-gray-500">Maintain streak for 7 days ({calculateDayStreak()}/7)</div>
+                          </div>
+                        </div>
+                      )}
+                      {currentPoints >= 10 && currentPoints < 50 && (
+                        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                          <span className="text-lg">💎</span>
+                          <div className="text-sm">
+                            <div className="font-medium">Point Collector</div>
+                            <div className="text-gray-500">Earn 50+ points in a single week ({currentPoints}/50)</div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </CardContent>
