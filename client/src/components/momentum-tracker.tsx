@@ -5,9 +5,8 @@ import { Progress } from "@/components/ui/progress";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -80,6 +79,7 @@ const getTaskCategoryIcon = (taskId: string): string => {
   if (taskId.includes('network') || taskId.includes('coffee') || taskId.includes('meeting')) return "🤝";
   if (taskId.includes('sauna') || taskId.includes('ice')) return "🧊";
   if (taskId.includes('journal') || taskId.includes('writing')) return "📝";
+  if (taskId.includes('casing') || taskId.includes('prep')) return "📊";
   return "✅";
 };
 
@@ -148,43 +148,198 @@ interface Badge {
   checkUnlocked: (stats: any) => boolean;
 }
 
+// Default badges
+const badges: Badge[] = [
+  {
+    id: "first-task",
+    name: "Getting Started",
+    icon: "🎯",
+    description: "Complete your first task",
+    criteria: "Complete 1 task",
+    checkUnlocked: (stats) => stats.totalTasks >= 1
+  },
+  {
+    id: "streak-starter",
+    name: "Streak Starter",
+    icon: "🔥",
+    description: "Complete at least 1 task per day for 7 consecutive days",
+    criteria: "7-day streak",
+    checkUnlocked: (stats) => stats.longestStreak >= 7
+  },
+  {
+    id: "consistency-champ",
+    name: "Consistency Champ",
+    icon: "📆",
+    description: "Earn 10 or more points in a single week",
+    criteria: "≥10 points per week",
+    checkUnlocked: (stats) => stats.bestWeekPoints >= 10
+  }
+];
+
+// Sortable Task Item Component
+function SortableTaskItem({ 
+  task, 
+  openTaskDialog, 
+  getCurrentTaskValue, 
+  getTaskStreak,
+  isExpanded,
+  setIsExpanded 
+}: {
+  task: Task;
+  openTaskDialog: (task: Task) => void;
+  getCurrentTaskValue: (task: Task) => number;
+  getTaskStreak: (taskId: string) => number;
+  isExpanded: boolean;
+  setIsExpanded: (expanded: boolean) => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+  } = useSortable({ id: task.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  const IconComponent = task.icon;
+  const currentValue = getCurrentTaskValue(task);
+  const streak = getTaskStreak(task.id);
+
+  const toggleExpanded = () => setIsExpanded(!isExpanded);
+
+  return (
+    <div 
+      ref={setNodeRef} 
+      style={style} 
+      className={`bg-white border rounded-lg p-4 hover:shadow-md transition-all ${isExpanded ? 'ring-2 ring-blue-200' : ''}`}
+    >
+      {/* Compact View */}
+      <div className={`${isExpanded ? 'hidden' : ''}`}>
+        <div className="flex items-center justify-between">
+          {/* Drag Handle */}
+          <div 
+            {...attributes} 
+            {...listeners}
+            className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded transition-colors flex-shrink-0 mr-3"
+            style={{ touchAction: 'none' }}
+          >
+            <GripVertical className="w-4 h-4 text-gray-400" />
+          </div>
+
+          {/* Task Icon */}
+          <div className="flex items-center gap-3 flex-1" onClick={toggleExpanded}>
+            <IconComponent className="w-5 h-5 text-blue-600" />
+            <div>
+              <h3 className="font-semibold text-base">{task.name}</h3>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <span>🔥 {streak}</span>
+                <span>+{currentValue} pts</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Add Button */}
+          <Button 
+            size="sm" 
+            onClick={(e) => {
+              e.stopPropagation();
+              openTaskDialog(task);
+            }}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            Add
+          </Button>
+        </div>
+      </div>
+
+      {/* Expanded View */}
+      {isExpanded && (
+        <div className="space-y-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-3">
+              <IconComponent className="w-6 h-6 text-blue-600" />
+              <div>
+                <h3 className="text-lg font-semibold">{task.name}</h3>
+                <p className="text-gray-600">{task.description}</p>
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={toggleExpanded}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+
+          {/* Progress & Stats */}
+          <div className="grid grid-cols-3 gap-4 p-3 bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">+{currentValue}</div>
+              <div className="text-xs text-gray-500">Current Value</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{streak}</div>
+              <div className="text-xs text-gray-500">Day Streak</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl">🎯</div>
+              <div className="text-xs text-gray-500">Status</div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-gray-500 hover:text-gray-700"
+            >
+              <Edit className="w-4 h-4 mr-2" />
+              Edit Task
+            </Button>
+            
+            <Button 
+              onClick={() => openTaskDialog(task)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
+            >
+              Complete Task
+            </Button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function MomentumTracker() {
-  const [showAchievement, setShowAchievement] = useState(false);
-  const [achievementMessage, setAchievementMessage] = useState("");
-  const [goalAchievedThisWeek, setGoalAchievedThisWeek] = useState(false);
-  const [showWeeklyOverview, setShowWeeklyOverview] = useState(false);
-  const [weeklyOverviewMessage, setWeeklyOverviewMessage] = useState("");
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [taskNote, setTaskNote] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
-  const [showCustomTaskForm, setShowCustomTaskForm] = useState(false);
-  const [expandedNotes, setExpandedNotes] = useState<Set<number>>(new Set());
   const [searchFilter, setSearchFilter] = useState("");
   const [taskOrder, setTaskOrder] = useState<string[]>([]);
-  const [editingNote, setEditingNote] = useState<number | null>(null);
-  const [editNoteValue, setEditNoteValue] = useState("");
   const [showWeeklyStats, setShowWeeklyStats] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [showTaskForm, setShowTaskForm] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
   const [editingUserName, setEditingUserName] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState("");
-  const [showShareSnapshot, setShowShareSnapshot] = useState(false);
-  const [shareData, setShareData] = useState<{url: string; token: string} | null>(null);
-  const [customTaskForm, setCustomTaskForm] = useState({
-    id: "",
-    name: "",
-    description: "",
-    points: 1,
-    icon: "Circle",
-    emoji: "✅",
-    color: "blue"
-  });
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
 
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   // Initialize display name from user data
   useEffect(() => {
@@ -216,25 +371,6 @@ export default function MomentumTracker() {
     { id: "casing-prep", name: "Casing prep", description: "Prepare for case interviews", points: 2, icon: FileText, color: "yellow" }
   ];
 
-  // Get current task value
-  const getCurrentTaskValue = (task: Task): number => task.points;
-
-  // Open task dialog
-  const openTaskDialog = (task: Task) => {
-    setSelectedTask(task);
-    setIsDialogOpen(true);
-  };
-
-  // Add points function
-  const addPoints = (task: Task, note?: string) => {
-    createTaskMutation.mutate({
-      taskId: task.id,
-      name: task.name,
-      points: getCurrentTaskValue(task),
-      note: note?.trim() || undefined
-    });
-  };
-
   // Queries
   const { data: completedTasks = [], isLoading } = useQuery({
     queryKey: ['/api/completed-tasks', currentWeek],
@@ -246,10 +382,33 @@ export default function MomentumTracker() {
     queryFn: () => fetch(`/api/dynamic-goal/${currentWeek}`).then(res => res.json())
   });
 
+  const { data: taskStats = [] } = useQuery({
+    queryKey: ['/api/task-stats', currentWeek],
+    queryFn: () => fetch(`/api/task-stats?week=${currentWeek}`).then(res => res.json())
+  });
+
   // Calculate current points
   const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum: number, task: CompletedTask) => sum + task.points, 0) : 0;
   const maxPoints = dynamicGoalData?.goal || 15;
   const progressPercentage = maxPoints > 0 ? Math.min((currentPoints / maxPoints) * 100, 100) : 0;
+
+  // Get current task value
+  const getCurrentTaskValue = (task: Task): number => {
+    const stats = taskStats.find((stat: TaskStats) => stat.taskId === task.id);
+    return stats?.currentValue || task.points;
+  };
+
+  // Get task streak
+  const getTaskStreak = (taskId: string): number => {
+    const stats = taskStats.find((stat: TaskStats) => stat.taskId === taskId);
+    return stats?.timesThisWeek || 0;
+  };
+
+  // Open task dialog
+  const openTaskDialog = (task: Task) => {
+    setSelectedTask(task);
+    setIsDialogOpen(true);
+  };
 
   // Mutations
   const createTaskMutation = useMutation({
@@ -264,11 +423,23 @@ export default function MomentumTracker() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/task-stats'] });
       setIsDialogOpen(false);
       setSelectedTask(null);
       setTaskNote("");
     }
   });
+
+  // Drag and drop handler
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (over && active.id !== over.id) {
+      const oldIndex = taskOrder.indexOf(active.id as string);
+      const newIndex = taskOrder.indexOf(over.id as string);
+      setTaskOrder(arrayMove(taskOrder, oldIndex, newIndex));
+    }
+  };
 
   // Helper functions for week navigation
   const formatWeekDisplay = (weekStart: string): string => {
@@ -291,6 +462,16 @@ export default function MomentumTracker() {
   };
 
   const isCurrentWeek = currentWeek === getWeekStartFixed();
+
+  // Get unlocked badges
+  const getUnlockedBadges = () => {
+    const stats = {
+      totalTasks: completedTasks.length,
+      longestStreak: Math.max(...taskStats.map((stat: TaskStats) => stat.timesThisWeek), 0),
+      bestWeekPoints: currentPoints
+    };
+    return badges.filter(badge => badge.checkUnlocked(stats));
+  };
 
   // Show loading state if essential data is still loading
   if (isLoading || isGoalLoading || isAuthLoading) {
@@ -391,7 +572,10 @@ export default function MomentumTracker() {
                 View Weekly Stats
               </Button>
               <Button
-                onClick={() => setShowShareSnapshot(true)}
+                onClick={() => {
+                  navigator.clipboard.writeText(`Check out my progress: ${currentPoints}/${maxPoints} points this week!`);
+                  toast({ title: "Copied to clipboard!" });
+                }}
                 variant="outline"
                 size="sm"
                 className="hover:bg-green-50 hover:border-green-300 transition-all text-xs lg:text-sm"
@@ -409,7 +593,7 @@ export default function MomentumTracker() {
         <div className="max-w-6xl mx-auto">
 
           {/* Hero Greeting Area */}
-          <div className="hero-greeting mb-6">
+          <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <div className="flex items-center gap-2 mb-2">
@@ -491,62 +675,150 @@ export default function MomentumTracker() {
             </Button>
           </div>
 
-          {/* Tasks Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-            {tasks.map((task) => (
-              <Card key={task.id} className="hover:shadow-md transition-shadow">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <task.icon className="w-5 h-5 text-blue-600" />
-                      <h3 className="font-semibold">{task.name}</h3>
-                    </div>
-                    <div className="text-blue-600 font-bold">+{task.points}</div>
+          {/* Dashboard Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Panel - Today's Tasks */}
+            <div className="lg:col-span-1 space-y-4">
+              <Card>
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-semibold">Today's Tasks</h2>
+                    <Button
+                      onClick={() => setShowWeeklyStats(true)}
+                      size="sm"
+                      variant="outline"
+                      className="text-blue-600"
+                    >
+                      Show All Tasks
+                    </Button>
                   </div>
-                  <p className="text-sm text-gray-600 mb-3">{task.description}</p>
-                  <Button 
-                    onClick={() => openTaskDialog(task)}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    size="sm"
+                  
+                  <DndContext 
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
                   >
-                    Complete Task
-                  </Button>
+                    <SortableContext 
+                      items={tasks.map(task => task.id)}
+                      strategy={verticalListSortingStrategy}
+                    >
+                      <div className="space-y-3">
+                        {tasks.map((task) => (
+                          <SortableTaskItem
+                            key={task.id}
+                            task={task}
+                            openTaskDialog={openTaskDialog}
+                            getCurrentTaskValue={getCurrentTaskValue}
+                            getTaskStreak={getTaskStreak}
+                            isExpanded={expandedTasks.has(task.id)}
+                            setIsExpanded={(expanded) => {
+                              const newExpanded = new Set(expandedTasks);
+                              if (expanded) {
+                                newExpanded.add(task.id);
+                              } else {
+                                newExpanded.delete(task.id);
+                              }
+                              setExpandedTasks(newExpanded);
+                            }}
+                          />
+                        ))}
+                      </div>
+                    </SortableContext>
+                  </DndContext>
                 </CardContent>
               </Card>
-            ))}
-          </div>
+            </div>
 
-          {/* Recent Activity */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
-              {completedTasks && completedTasks.length > 0 ? (
-                <div className="space-y-3">
-                  {completedTasks.slice(0, 10).map((task: CompletedTask) => (
-                    <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <div className="flex-shrink-0">
-                        <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
+            {/* Middle Panel - Streak & Progress */}
+            <div className="space-y-4">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Streak & Progress</h3>
+                  <div className="space-y-4">
+                    <div className="text-center p-4 bg-orange-50 rounded-lg">
+                      <div className="text-3xl mb-2">🔥</div>
+                      <div className="text-2xl font-bold text-orange-600">
+                        {Math.max(...taskStats.map((stat: TaskStats) => stat.timesThisWeek), 0)}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">{task.name}</div>
-                        <div className="text-xs text-gray-500">
-                          +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
-                        </div>
-                        {task.note && (
-                          <div className="text-xs text-gray-600 mt-1 italic">"{task.note}"</div>
-                        )}
-                      </div>
+                      <div className="text-sm text-gray-500">Day Streak</div>
                     </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <div className="text-4xl mb-2">📝</div>
-                  <div className="text-gray-500">No activities yet this week</div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg">
+                      <div className="text-2xl font-bold text-blue-600">{currentPoints}</div>
+                      <div className="text-sm text-gray-500">Points This Week</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Recent Badges</h3>
+                  {(() => {
+                    const unlockedBadges = getUnlockedBadges();
+                    
+                    if (unlockedBadges.length === 0) {
+                      return (
+                        <div className="text-center py-4">
+                          <div className="text-4xl mb-2">🏆</div>
+                          <div className="text-sm text-gray-500">Complete tasks to earn badges</div>
+                        </div>
+                      );
+                    }
+                    
+                    return (
+                      <div className="space-y-3">
+                        {unlockedBadges.slice(-3).map(badge => (
+                          <div key={badge.id} className="flex items-center gap-3">
+                            <div className="w-8 h-8 flex items-center justify-center bg-yellow-50 border-2 border-yellow-200 rounded-full">
+                              <span className="text-sm">{badge.icon}</span>
+                            </div>
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{badge.name}</div>
+                              <div className="text-xs text-gray-500">{badge.description}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Panel - Recent Activity */}
+            <div className="space-y-4">
+              <Card>
+                <CardContent className="p-6">
+                  <h3 className="text-lg font-semibold mb-4">Recent Activity</h3>
+                  {completedTasks && completedTasks.length > 0 ? (
+                    <div className="space-y-3 max-h-96 overflow-y-auto">
+                      {completedTasks.slice(0, 10).map((task: CompletedTask) => (
+                        <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div className="flex-shrink-0">
+                            <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-sm">{task.name}</div>
+                            <div className="text-xs text-gray-500">
+                              +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
+                            </div>
+                            {task.note && (
+                              <div className="text-xs text-gray-600 mt-1 italic">"{task.note}"</div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-4">
+                      <div className="text-4xl mb-2">📝</div>
+                      <div className="text-sm text-gray-500">No activities yet this week</div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -575,7 +847,12 @@ export default function MomentumTracker() {
               </Button>
               <Button onClick={() => {
                 if (selectedTask) {
-                  addPoints(selectedTask, taskNote);
+                  createTaskMutation.mutate({
+                    taskId: selectedTask.id,
+                    name: selectedTask.name,
+                    points: getCurrentTaskValue(selectedTask),
+                    note: taskNote.trim() || undefined
+                  });
                 }
               }}>
                 Complete Task (+{selectedTask ? getCurrentTaskValue(selectedTask) : 0} pts)
@@ -636,28 +913,55 @@ export default function MomentumTracker() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="text-center p-8">
-              <div className="text-6xl mb-4">🏆</div>
-              <h3 className="text-lg font-semibold mb-2">Complete Tasks to Earn Badges</h3>
-              <p className="text-gray-600">
-                Keep completing tasks to unlock achievements and track your progress. 
-                Your first badge will appear here once you build momentum!
-              </p>
-              <div className="mt-4 grid grid-cols-3 gap-4 text-center">
-                <div className="p-3 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{completedTasks.length}</div>
-                  <div className="text-xs text-blue-800">Tasks Completed</div>
+            {(() => {
+              const unlockedBadges = getUnlockedBadges();
+              
+              if (unlockedBadges.length === 0) {
+                return (
+                  <div className="text-center p-8">
+                    <div className="text-6xl mb-4">🏆</div>
+                    <h3 className="text-lg font-semibold mb-2">Complete Tasks to Earn Badges</h3>
+                    <p className="text-gray-600">
+                      Keep completing tasks to unlock achievements and track your progress. 
+                      Your first badge will appear here once you build momentum!
+                    </p>
+                    <div className="mt-4 grid grid-cols-3 gap-4 text-center">
+                      <div className="p-3 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{completedTasks.length}</div>
+                        <div className="text-xs text-blue-800">Tasks Completed</div>
+                      </div>
+                      <div className="p-3 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{currentPoints}</div>
+                        <div className="text-xs text-green-800">Total Points</div>
+                      </div>
+                      <div className="p-3 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">{new Set(completedTasks.map((t: CompletedTask) => t.taskId)).size}</div>
+                        <div className="text-xs text-purple-800">Unique Tasks</div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="space-y-4">
+                  <h3 className="font-semibold">Unlocked Badges ({unlockedBadges.length})</h3>
+                  <div className="grid grid-cols-1 gap-3">
+                    {unlockedBadges.map(badge => (
+                      <div key={badge.id} className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <div className="w-10 h-10 flex items-center justify-center bg-yellow-100 border-2 border-yellow-300 rounded-full">
+                          <span className="text-lg">{badge.icon}</span>
+                        </div>
+                        <div className="flex-1">
+                          <div className="font-medium">{badge.name}</div>
+                          <div className="text-sm text-gray-600">{badge.description}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="p-3 bg-green-50 rounded-lg">
-                  <div className="text-2xl font-bold text-green-600">{currentPoints}</div>
-                  <div className="text-xs text-green-800">Total Points</div>
-                </div>
-                <div className="p-3 bg-purple-50 rounded-lg">
-                  <div className="text-2xl font-bold text-purple-600">{new Set(completedTasks.map((t: CompletedTask) => t.taskId)).size}</div>
-                  <div className="text-xs text-purple-800">Unique Tasks</div>
-                </div>
-              </div>
-            </div>
+              );
+            })()}
             
             <div className="text-center">
               <Button onClick={() => setShowAchievements(false)}>
