@@ -611,6 +611,8 @@ export default function MomentumTracker() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [showTaskForm, setShowTaskForm] = useState(false);
   const [showAchievements, setShowAchievements] = useState(false);
+  const [editingUserName, setEditingUserName] = useState(false);
+  const [userDisplayName, setUserDisplayName] = useState("");
   const [showShareSnapshot, setShowShareSnapshot] = useState(false);
   const [shareData, setShareData] = useState<{url: string; token: string} | null>(null);
   const [customTaskForm, setCustomTaskForm] = useState({
