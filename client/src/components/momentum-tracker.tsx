@@ -636,15 +636,15 @@ export default function MomentumTracker() {
   // Helper function to get current week start date (Monday) using UTC
   const getWeekStartFixed = (): string => {
     const now = new Date();
-    // Use UTC to match server timezone
-    const utcDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const dayOfWeek = utcDate.getDay(); // 0=Sunday, 1=Monday, etc.
+    // Use local timezone to match user's current date
+    const localDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const dayOfWeek = localDate.getDay(); // 0=Sunday, 1=Monday, etc.
     
     // Calculate days to go back to Monday
     const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     
-    const weekStart = new Date(utcDate);
-    weekStart.setDate(utcDate.getDate() - daysBack);
+    const weekStart = new Date(localDate);
+    weekStart.setDate(localDate.getDate() - daysBack);
     return weekStart.toISOString().split('T')[0];
   };
 
@@ -1650,7 +1650,7 @@ Keep the momentum going! 💼
           </div>
           
           <div className="text-center">
-            <h1 className="text-xl lg:text-3xl font-bold mb-4">Adulting XP</h1>
+            <h1 className="text-xl lg:text-3xl font-bold mb-4">Stay Hungry</h1>
             
             {/* Week Navigation */}
             <div className="flex items-center justify-center gap-2 lg:gap-4 mb-4">
