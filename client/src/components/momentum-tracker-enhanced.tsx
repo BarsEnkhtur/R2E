@@ -670,115 +670,245 @@ export default function MomentumTrackerEnhanced() {
             </Button>
           </div>
 
-          {/* Enhanced Dashboard Grid */}
-          <div className="dashboard-grid">
-            {/* Left Panel - Today's Tasks */}
-            <div className="space-y-4">
-              <Card className="focus-card">
-                <CardContent className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="section-title">Today's Tasks</h2>
-                    <div className="flex items-center gap-3">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setShowAllTasks(!showAllTasks)}
-                        className="text-sm"
-                      >
-                        {showAllTasks ? "Show Less" : "Show All Tasks"}
-                      </Button>
-                      <Button
-                        size="sm"
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        New Task
-                      </Button>
+          {/* Tab-based Content */}
+          {activeTab === "tasks" && (
+            <div className="dashboard-grid">
+              {/* Left Panel - Today's Tasks */}
+              <div className="space-y-4">
+                <Card className="focus-card">
+                  <CardContent className="p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <h2 className="section-title">Today's Tasks</h2>
+                      <div className="flex items-center gap-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowAllTasks(!showAllTasks)}
+                          className="text-sm"
+                        >
+                          {showAllTasks ? "Show Less" : "Show All Tasks"}
+                        </Button>
+                        <Button
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          New Task
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    {defaultTasks.map((task) => (
-                      <SortableTaskItem
-                        key={task.id}
-                        task={task}
-                        openTaskDialog={openTaskDialog}
-                        getCurrentTaskValue={getCurrentTaskValue}
-                        needsAttention={needsAttention}
-                        getTaskStreak={getTaskStreak}
-                        isOnStreak={isOnStreak}
-                        getStreakEmoji={getStreakEmoji}
-                      />
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Middle Panel - Live Streak & Progress Widgets */}
-            <div className="space-y-4">
-              <Card className="focus-card">
-                <CardContent className="p-6">
-                  <h3 className="card-title mb-4">Streak & Progress</h3>
-                  <div className="space-y-4">
-                    <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-3xl mb-2">{getCurrentStreak().streakIcon || "🎯"}</div>
-                      <div className="text-2xl font-bold text-orange-600">{calculateDayStreak()}</div>
-                      <div className="caption">Day Streak</div>
-                    </div>
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <div className="text-2xl font-bold text-blue-600">{currentPoints}</div>
-                      <div className="caption">Points This Week</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card className="focus-card">
-                <CardContent className="p-6">
-                  <h3 className="card-title mb-4">Recent Badges</h3>
-                  <div className="text-center py-4">
-                    <div className="text-4xl mb-2">🏆</div>
-                    <div className="caption">Complete tasks to earn badges</div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Panel - Recent Activity Log */}
-            <div className="space-y-4">
-              <Card className="focus-card">
-                <CardContent className="p-6">
-                  <h3 className="card-title mb-4">Recent Activity</h3>
-                  {Array.isArray(completedTasks) && completedTasks.length > 0 ? (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {completedTasks.slice(0, 10).map((task: CompletedTask) => (
-                        <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                          <div className="flex-shrink-0">
-                            <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="font-medium text-sm">{task.name}</div>
-                            <div className="caption text-gray-500">
-                              +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
-                            </div>
-                            {task.note && (
-                              <div className="caption text-gray-600 mt-1 italic">"{task.note}"</div>
-                            )}
-                          </div>
-                        </div>
+                    
+                    <div className="space-y-3">
+                      {defaultTasks.map((task) => (
+                        <SortableTaskItem
+                          key={task.id}
+                          task={task}
+                          openTaskDialog={openTaskDialog}
+                          getCurrentTaskValue={getCurrentTaskValue}
+                          needsAttention={needsAttention}
+                          getTaskStreak={getTaskStreak}
+                          isOnStreak={isOnStreak}
+                          getStreakEmoji={getStreakEmoji}
+                        />
                       ))}
                     </div>
-                  ) : (
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Middle Panel - Live Streak & Progress Widgets */}
+              <div className="space-y-4">
+                <Card className="focus-card">
+                  <CardContent className="p-6">
+                    <h3 className="card-title mb-4">Streak & Progress</h3>
+                    <div className="space-y-4">
+                      <div className="text-center p-4 bg-orange-50 rounded-lg">
+                        <div className="text-3xl mb-2">{getCurrentStreak().streakIcon || "🎯"}</div>
+                        <div className="text-2xl font-bold text-orange-600">{calculateDayStreak()}</div>
+                        <div className="caption">Day Streak</div>
+                      </div>
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{currentPoints}</div>
+                        <div className="caption">Points This Week</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card className="focus-card">
+                  <CardContent className="p-6">
+                    <h3 className="card-title mb-4">Recent Badges</h3>
                     <div className="text-center py-4">
-                      <div className="text-4xl mb-2">📝</div>
-                      <div className="caption">No activities yet this week</div>
+                      <div className="text-4xl mb-2">🏆</div>
+                      <div className="caption">Complete tasks to earn badges</div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Panel - Recent Activity Log */}
+              <div className="space-y-4">
+                <Card className="focus-card">
+                  <CardContent className="p-6">
+                    <h3 className="card-title mb-4">Recent Activity</h3>
+                    {Array.isArray(completedTasks) && completedTasks.length > 0 ? (
+                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                        {completedTasks.slice(0, 10).map((task: CompletedTask) => (
+                          <div key={task.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <div className="flex-shrink-0">
+                              <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-sm">{task.name}</div>
+                              <div className="caption text-gray-500">
+                                +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
+                              </div>
+                              {task.note && (
+                                <div className="caption text-gray-600 mt-1 italic">"{task.note}"</div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <div className="text-4xl mb-2">📝</div>
+                        <div className="caption">No activities yet this week</div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          )}
+
+          {activeTab === "progress" && (
+            <div className="max-w-4xl mx-auto">
+              <Card className="focus-card">
+                <CardContent className="p-8">
+                  <h2 className="text-2xl font-bold mb-6 text-center">Weekly Progress Summary</h2>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div className="text-center p-6 bg-blue-50 rounded-lg">
+                      <div className="text-3xl font-bold text-blue-600 mb-2">{currentPoints}</div>
+                      <div className="text-sm text-blue-800 font-medium">Total Points</div>
+                      <div className="text-xs text-gray-500 mt-1">Goal: {maxPoints}</div>
+                    </div>
+                    <div className="text-center p-6 bg-green-50 rounded-lg">
+                      <div className="text-3xl font-bold text-green-600 mb-2">{Array.isArray(completedTasks) ? completedTasks.length : 0}</div>
+                      <div className="text-sm text-green-800 font-medium">Tasks Completed</div>
+                      <div className="text-xs text-gray-500 mt-1">This week</div>
+                    </div>
+                    <div className="text-center p-6 bg-purple-50 rounded-lg">
+                      <div className="text-3xl font-bold text-purple-600 mb-2">
+                        {Array.isArray(completedTasks) ? new Set(completedTasks.map((t: CompletedTask) => t.taskId)).size : 0}
+                      </div>
+                      <div className="text-sm text-purple-800 font-medium">Unique Tasks</div>
+                      <div className="text-xs text-gray-500 mt-1">Different types</div>
+                    </div>
+                    <div className="text-center p-6 bg-orange-50 rounded-lg">
+                      <div className="text-3xl font-bold text-orange-600 mb-2">{calculateDayStreak()}</div>
+                      <div className="text-sm text-orange-800 font-medium">Day Streak</div>
+                      <div className="text-xs text-gray-500 mt-1">Consecutive days</div>
+                    </div>
+                  </div>
+
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold mb-4">Weekly Goal Progress</h3>
+                    <div className="flex items-center gap-4">
+                      <div className="flex-1">
+                        <Progress value={progressPercentage} className="h-3" />
+                      </div>
+                      <div className="text-sm font-medium">
+                        {Math.round(progressPercentage)}% Complete
+                      </div>
+                    </div>
+                  </div>
+
+                  {Array.isArray(completedTasks) && completedTasks.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold mb-4">Recent Achievements</h3>
+                      <div className="grid gap-3">
+                        {completedTasks.slice(0, 5).map((task: CompletedTask) => (
+                          <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                            <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
+                            <div className="flex-1">
+                              <div className="font-medium">{task.name}</div>
+                              <div className="text-sm text-gray-500">
+                                +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </CardContent>
               </Card>
             </div>
-          </div>
+          )}
+
+          {activeTab === "badges" && (
+            <div className="max-w-4xl mx-auto">
+              <Card className="focus-card">
+                <CardContent className="p-8">
+                  <h2 className="text-2xl font-bold mb-6 text-center flex items-center justify-center gap-2">
+                    <Star className="w-6 h-6 text-yellow-500" />
+                    Achievements & Badges
+                  </h2>
+                  
+                  <div className="text-center py-12">
+                    <div className="text-6xl mb-6">🏆</div>
+                    <h3 className="text-xl font-semibold mb-4">Build Your Achievement Collection</h3>
+                    <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                      Complete tasks consistently to unlock badges and track your progress. 
+                      Your achievements will appear here as you build momentum!
+                    </p>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                      <div className="p-4 bg-blue-50 rounded-lg">
+                        <div className="text-2xl font-bold text-blue-600">{Array.isArray(completedTasks) ? completedTasks.length : 0}</div>
+                        <div className="text-sm text-blue-800">Tasks Completed</div>
+                      </div>
+                      <div className="p-4 bg-green-50 rounded-lg">
+                        <div className="text-2xl font-bold text-green-600">{currentPoints}</div>
+                        <div className="text-sm text-green-800">Total Points</div>
+                      </div>
+                      <div className="p-4 bg-purple-50 rounded-lg">
+                        <div className="text-2xl font-bold text-purple-600">{calculateDayStreak()}</div>
+                        <div className="text-sm text-purple-800">Current Streak</div>
+                      </div>
+                    </div>
+
+                    <div className="text-left max-w-md mx-auto space-y-3">
+                      <h4 className="font-semibold mb-3">Upcoming Badges:</h4>
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                        <span className="text-lg">🎯</span>
+                        <div className="text-sm">
+                          <div className="font-medium">Getting Started</div>
+                          <div className="text-gray-500">Complete your first task</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                        <span className="text-lg">🔥</span>
+                        <div className="text-sm">
+                          <div className="font-medium">Streak Starter</div>
+                          <div className="text-gray-500">Complete tasks for 3 consecutive days</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg opacity-75">
+                        <span className="text-lg">📆</span>
+                        <div className="text-sm">
+                          <div className="font-medium">Consistency Champ</div>
+                          <div className="text-gray-500">Earn 10+ points in a single week</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       </div>
 
