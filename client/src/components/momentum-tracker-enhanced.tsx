@@ -312,6 +312,10 @@ export default function MomentumTrackerEnhanced() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedWeek, setSelectedWeek] = useState<string>("");
   const [searchFilter, setSearchFilter] = useState("");
+  const [activeTab, setActiveTab] = useState<"tasks" | "progress" | "badges">("tasks");
+  const [showAllTasks, setShowAllTasks] = useState(false);
+  const [editingName, setEditingName] = useState(false);
+  const [userName, setUserName] = useState("");
   
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
@@ -393,13 +397,91 @@ export default function MomentumTrackerEnhanced() {
   const maxPoints = goalData?.goal || 15;
   const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
 
+  // Initialize user name from email
+  useEffect(() => {
+    if (user && !userName) {
+      const emailName = (user as any)?.email?.split('@')[0] || 'there';
+      setUserName(emailName);
+    }
+  }, [user, userName]);
+
+  // Dynamic greeting based on progress
+  const getDynamicGreeting = (): string => {
+    const now = new Date();
+    const dayOfWeek = now.getDay(); // 0 = Sunday, 6 = Saturday
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isEndOfWeek = dayOfWeek >= 4; // Thursday, Friday, Saturday, Sunday
+    
+    if (progressPercentage >= 100) {
+      return "you're absolutely crushing it! 🔥";
+    } else if (progressPercentage >= 80) {
+      return "you're on fire beast! 💪";
+    } else if (progressPercentage >= 60) {
+      return "keep that momentum going! 🚀";
+    } else if (progressPercentage >= 40) {
+      return "stay hungry! 🎯";
+    } else if (isEndOfWeek && progressPercentage < 30) {
+      return "gotta be better man, push harder! 💯";
+    } else if (isWeekend && progressPercentage < 50) {
+      return "weekend warrior mode - let's go! ⚡";
+    } else {
+      return "let's build some momentum! 🔥";
+    }
+  };
+
+  // Calculate day streak from completed tasks
+  const calculateDayStreak = (): number => {
+    if (!Array.isArray(completedTasks) || completedTasks.length === 0) return 0;
+    
+    // Group tasks by date
+    const tasksByDate = completedTasks.reduce((acc: Record<string, CompletedTask[]>, task: CompletedTask) => {
+      const date = new Date(task.completedAt).toDateString();
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(task);
+      return acc;
+    }, {});
+    
+    // Count consecutive days with tasks
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < 30; i++) { // Check last 30 days
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() - i);
+      const dateString = checkDate.toDateString();
+      
+      if (tasksByDate[dateString] && tasksByDate[dateString].length > 0) {
+        streak++;
+      } else if (i === 0) {
+        // If no tasks today, check if yesterday had tasks to continue streak
+        continue;
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+
   // Helper functions
   const getCurrentTaskValue = (task: Task): number => task.points;
   const needsAttention = (taskId: string): boolean => false;
-  const getTaskStreak = (taskId: string): number => 0;
-  const isOnStreak = (taskId: string): boolean => false;
-  const getStreakEmoji = (streak: number): string => "";
-  const getCurrentStreak = () => ({ streak: 0, streakIcon: "🎯", streakText: "Getting started" });
+  const getTaskStreak = (taskId: string): number => calculateDayStreak();
+  const isOnStreak = (taskId: string): boolean => calculateDayStreak() > 0;
+  const getStreakEmoji = (streak: number): string => {
+    if (streak >= 7) return "🔥";
+    if (streak >= 3) return "⚡";
+    if (streak >= 1) return "🎯";
+    return "";
+  };
+  const getCurrentStreak = () => {
+    const streak = calculateDayStreak();
+    return { 
+      streak, 
+      streakIcon: getStreakEmoji(streak), 
+      streakText: streak > 0 ? `${streak}-day streak` : "Getting started" 
+    };
+  };
 
   const openTaskDialog = (task: Task) => {
     setSelectedTask(task);
@@ -515,10 +597,28 @@ export default function MomentumTrackerEnhanced() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="hero-title mb-2">
-                  👋 Hey {(user as any)?.email?.split('@')[0] || 'there'}, you're {(() => {
-                    const streakInfo = getCurrentStreak();
-                    return streakInfo.streak > 0 ? `at ${streakInfo.streak}-day streak` : `getting started`;
-                  })()}
+                  👋 Hey {editingName ? (
+                    <Input
+                      value={userName}
+                      onChange={(e) => setUserName(e.target.value)}
+                      onBlur={() => setEditingName(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setEditingName(false);
+                        }
+                      }}
+                      className="inline-block w-auto min-w-[100px] mx-2 px-2 py-1 text-2xl font-bold bg-transparent border-b-2 border-blue-500"
+                      autoFocus
+                    />
+                  ) : (
+                    <span 
+                      onClick={() => setEditingName(true)}
+                      className="cursor-pointer hover:text-blue-600 transition-colors inline-block mx-1"
+                      title="Click to edit name"
+                    >
+                      {userName}
+                    </span>
+                  )}, {getDynamicGreeting()}
                 </h1>
                 <p className="body-text">
                   Add today's tasks to keep your momentum going
@@ -547,21 +647,24 @@ export default function MomentumTrackerEnhanced() {
             <Button 
               variant="ghost" 
               size="sm"
-              className="flex-1 bg-blue-600 text-white"
+              onClick={() => setActiveTab("tasks")}
+              className={`flex-1 ${activeTab === "tasks" ? "bg-blue-600 text-white" : ""}`}
             >
               Tasks
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
-              className="flex-1"
+              onClick={() => setActiveTab("progress")}
+              className={`flex-1 ${activeTab === "progress" ? "bg-blue-600 text-white" : ""}`}
             >
               Progress
             </Button>
             <Button 
               variant="ghost" 
               size="sm"
-              className="flex-1"
+              onClick={() => setActiveTab("badges")}
+              className={`flex-1 ${activeTab === "badges" ? "bg-blue-600 text-white" : ""}`}
             >
               Badges
             </Button>
@@ -576,15 +679,21 @@ export default function MomentumTrackerEnhanced() {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="section-title">Today's Tasks</h2>
                     <div className="flex items-center gap-3">
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                        <Input
-                          placeholder="Search tasks..."
-                          value={searchFilter}
-                          onChange={(e) => setSearchFilter(e.target.value)}
-                          className="pl-10 w-36 lg:w-48 h-9"
-                        />
-                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setShowAllTasks(!showAllTasks)}
+                        className="text-sm"
+                      >
+                        {showAllTasks ? "Show Less" : "Show All Tasks"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        New Task
+                      </Button>
                     </div>
                   </div>
                   
@@ -613,8 +722,8 @@ export default function MomentumTrackerEnhanced() {
                   <h3 className="card-title mb-4">Streak & Progress</h3>
                   <div className="space-y-4">
                     <div className="text-center p-4 bg-orange-50 rounded-lg">
-                      <div className="text-3xl mb-2">🎯</div>
-                      <div className="text-2xl font-bold text-orange-600">0</div>
+                      <div className="text-3xl mb-2">{getCurrentStreak().streakIcon || "🎯"}</div>
+                      <div className="text-2xl font-bold text-orange-600">{calculateDayStreak()}</div>
                       <div className="caption">Day Streak</div>
                     </div>
                     <div className="text-center p-4 bg-blue-50 rounded-lg">
