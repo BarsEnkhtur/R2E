@@ -91,9 +91,12 @@ export const aiBadges = pgTable("ai_badges", {
   description: text("description").notNull(),
   icon: text("icon").notNull(), // emoji or icon identifier
   color: text("color").notNull().default("blue"),
-  category: text("category").notNull(), // e.g., "streak", "consistency", "task-specific"
+  category: text("category").notNull(), // e.g., "synergy", "balance", "streak", "legendary"
+  tier: text("tier"), // "Bronze", "Silver", "Gold", "Legendary"
   criteria: text("criteria").notNull(), // human-readable criteria
   taskPatterns: jsonb("task_patterns"), // AI analysis of task patterns that triggered this badge
+  xpReward: integer("xp_reward").default(0), // XP points awarded for earning this badge
+  rarity: text("rarity").default("common"), // "common", "rare", "epic", "legendary"
   unlockedAt: timestamp("unlocked_at").defaultNow().notNull(),
   isVisible: boolean("is_visible").notNull().default(true),
 });
@@ -185,8 +188,11 @@ export const insertAiBadgeSchema = createInsertSchema(aiBadges).pick({
   icon: true,
   color: true,
   category: true,
+  tier: true,
   criteria: true,
   taskPatterns: true,
+  xpReward: true,
+  rarity: true,
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;

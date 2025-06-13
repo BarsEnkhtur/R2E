@@ -192,6 +192,7 @@ export async function generateAIBadge(data: BadgeGenerationData): Promise<{
   color: string;
   category: string;
   criteria: string;
+  tier?: string;
   taskPatterns: any;
 } | null> {
   try {
@@ -201,27 +202,45 @@ export async function generateAIBadge(data: BadgeGenerationData): Promise<{
       messages: [
         {
           role: "system",
-          content: `You are a personalized badge designer for a momentum tracking app. Analyze user task patterns and create meaningful, personalized badges that celebrate their unique achievements and motivate continued progress.
+          content: `You are an advanced gamification designer for a momentum tracking app. Create dynamic, tiered badges that celebrate unique user patterns and encourage balanced growth across multiple task categories.
 
-Guidelines:
-- Create badges that are specific to the user's actual task patterns and behaviors
-- Focus on unique combinations, consistency patterns, or personal milestones
-- Use encouraging, professional language
-- Badge names should be 2-4 words, catchy and personal
-- Descriptions should be 1-2 sentences explaining the achievement
-- Categories: "streak", "consistency", "task-specific", "milestone", "creativity", "balance"
-- Colors: "blue", "emerald", "purple", "yellow", "red", "indigo", "green", "orange", "pink", "cyan"
-- Icons should be single emojis that represent the achievement
-- Only suggest badges for meaningful patterns or achievements
+ADVANCED BADGE DESIGN PRINCIPLES:
+1. ADAPTIVE THRESHOLDS: Base requirements on user's personal history (e.g., "20% more than your usual")
+2. COMBO BADGES: Reward synergistic combinations (gym + coding + job apps in same timeframe)
+3. TIERED PROGRESSION: Bronze → Silver → Gold levels that build upon each other
+4. BEHAVIORAL VARIETY: Encourage cross-category engagement
+5. STREAK MASTERY: Recognize sustained consistency across multiple areas
+6. HIDDEN LEGENDARY: Extremely rare achievements for exceptional patterns
+
+BADGE CATEGORIES & EXAMPLES:
+- "synergy": Cross-category combinations (e.g., "Code & Sweat Warrior")
+- "balance": Even distribution across task types
+- "streak": Consistency patterns (daily, weekly, monthly)
+- "intensity": High-volume periods or exceptional effort
+- "variety": Exploring different task types
+- "legendary": Rare, exceptional achievements
+- "adaptive": Personal growth relative to user's baseline
+
+TIER SYSTEM:
+- Bronze: Basic achievement
+- Silver: Enhanced version with additional requirements
+- Gold: Master level with streaks or multiple weeks
+- Legendary: Hidden, exceptional accomplishments
+
+VISUAL DESIGN:
+- Use 2-emoji combinations for synergy badges (🏋️‍♂️💻, ⚡🎯)
+- Single powerful emoji for milestone badges (🏆, 💎, ⭐)
+- Color should match intensity: bronze/orange, silver/cyan, gold/yellow, legendary/purple
 
 Respond with JSON in this exact format:
 {
   "badgeId": "unique-identifier",
   "name": "Badge Name",
-  "description": "Achievement description",
+  "description": "Achievement description with motivational language",
   "icon": "🏆",
   "color": "blue",
-  "category": "milestone",
+  "category": "synergy",
+  "tier": "Bronze",
   "criteria": "Human readable criteria",
   "shouldCreate": true
 }
@@ -230,26 +249,37 @@ If no meaningful badge can be created, respond with: {"shouldCreate": false}`
         },
         {
           role: "user",
-          content: `Analyze this user's task completion patterns and suggest a personalized badge:
+          content: `Analyze this user's task completion patterns and create an advanced gamified badge:
 
-User Data:
+USER PERFORMANCE DATA:
 - Total tasks completed: ${data.totalTasks}
 - Total points earned: ${data.totalPoints}
 - Unique task types: ${data.uniqueTaskTypes}
 - Longest streak: ${data.longestStreak} days
 - Current streak: ${data.currentStreak} days
 - Average tasks per week: ${data.averageTasksPerWeek}
-- Top task categories: ${data.topCategories.join(', ')}
+- Top categories: ${data.topCategories.join(', ')}
 
-Detailed task patterns:
+DETAILED TASK BREAKDOWN:
 ${data.completedTasks.map(task => 
-  `- ${task.taskName}: ${task.count} times (${task.totalPoints} points, avg ${task.averagePoints.toFixed(1)} per task)`
+  `- ${task.taskName}: ${task.count}x completed (${task.totalPoints} total points, ${task.averagePoints.toFixed(1)} avg/task)`
 ).join('\n')}
 
-Recent task notes (for context):
+PATTERN ANALYSIS HINTS:
+- Look for cross-category synergies (gym + coding, job apps + learning, etc.)
+- Identify exceptional volume in specific timeframes
+- Detect balanced distribution across categories
+- Recognize adaptive growth patterns
+- Find unique combinations not typically seen together
+
+CONTEXTUAL NOTES (User's recent activities):
 ${data.completedTasks.flatMap(t => t.notes.slice(0, 2)).slice(0, 5).join('\n')}
 
-Create a badge that celebrates a specific pattern, achievement, or unique combination in this user's data.`
+CREATE A BADGE that:
+1. Celebrates their strongest pattern or most impressive combination
+2. Uses appropriate tier level based on achievement difficulty
+3. Motivates continued growth in their demonstrated strengths
+4. Follows the advanced gamification principles outlined above`
         }
       ],
       response_format: { type: "json_object" },
@@ -262,6 +292,40 @@ Create a badge that celebrates a specific pattern, achievement, or unique combin
       return null;
     }
 
+    // Calculate XP reward based on tier and rarity
+    const calculateXpReward = (tier?: string, category?: string): number => {
+      const baseXp = {
+        'Bronze': 150,
+        'Silver': 300,
+        'Gold': 600,
+        'Legendary': 1200
+      };
+      
+      const categoryMultiplier = {
+        'synergy': 1.5,
+        'legendary': 2.0,
+        'balance': 1.3,
+        'streak': 1.2,
+        'adaptive': 1.4
+      };
+      
+      const base = baseXp[tier as keyof typeof baseXp] || 100;
+      const multiplier = categoryMultiplier[category as keyof typeof categoryMultiplier] || 1.0;
+      
+      return Math.round(base * multiplier);
+    };
+
+    // Determine rarity based on category and tier
+    const determineRarity = (tier?: string, category?: string): string => {
+      if (tier === 'Legendary' || category === 'legendary') return 'legendary';
+      if (tier === 'Gold' || category === 'synergy') return 'epic';
+      if (tier === 'Silver' || category === 'balance') return 'rare';
+      return 'common';
+    };
+
+    const xpReward = calculateXpReward(result.tier, result.category);
+    const rarity = determineRarity(result.tier, result.category);
+
     return {
       badgeId: result.badgeId || `ai-badge-${Date.now()}`,
       name: result.name,
@@ -269,7 +333,10 @@ Create a badge that celebrates a specific pattern, achievement, or unique combin
       icon: result.icon,
       color: result.color,
       category: result.category,
+      tier: result.tier,
       criteria: result.criteria,
+      xpReward,
+      rarity,
       taskPatterns: {
         analyzedTasks: data.completedTasks.length,
         totalPoints: data.totalPoints,
