@@ -413,6 +413,8 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
   deleteCustomTaskMutation: any;
   createCustomTaskMutation: any;
 }) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  
   const {
     attributes,
     listeners,
@@ -433,111 +435,158 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
   const onStreak = isOnStreak(task.id);
   const streakEmoji = getStreakEmoji(streak);
 
+  const toggleExpanded = () => setIsExpanded(!isExpanded);
+
   return (
     <div 
       ref={setNodeRef} 
       style={style} 
-      className={`flex flex-col p-3 border rounded-lg hover:bg-slate-50 hover:shadow-sm transition-all h-full bg-[#F9FAFB] ${onStreak ? 'border-l-4 border-l-blue-400 bg-blue-50/30' : ''} ${hasAttention ? 'border-l-4 border-l-red-400 bg-red-50/30' : ''}`}
+      className={`focus-card ${isExpanded ? 'focus-card-expanded' : ''} ${onStreak ? 'active' : ''} ${hasAttention ? 'border-red-400 bg-red-50/20' : ''}`}
     >
-      <div className="flex items-start gap-3 mb-2">
+      {/* Compact View */}
+      <div className={`task-card-compact ${isExpanded ? 'hidden' : ''}`}>
+        {/* Drag Handle */}
         <div 
           {...attributes} 
           {...listeners}
-          className="p-2 rounded cursor-grab active:cursor-grabbing hover:bg-slate-200 transition-colors flex-shrink-0 touch-manipulation"
+          className="cursor-grab active:cursor-grabbing hover:bg-gray-100 p-1 rounded transition-colors flex-shrink-0"
           style={{ touchAction: 'none' }}
         >
-          <GripVertical className="w-5 h-5 text-slate-400" />
+          <GripVertical className="w-4 h-4 text-gray-400" />
         </div>
-        <div className={`p-2 rounded-lg ${colorClasses[task.color as keyof typeof colorClasses]} flex-shrink-0 flex items-center justify-center`}>
-          <IconComponent className="w-5 h-5" />
+
+        {/* Task Icon */}
+        <div className="task-icon-container">
+          <IconComponent className="w-5 h-5" style={{ color: `var(--color-accent)` }} />
         </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-sm">{task.name}</h3>
-            {streakEmoji && <span className="text-lg">{streakEmoji}</span>}
-          </div>
-          <p className="text-xs text-slate-600 leading-relaxed">{task.description}</p>
-        </div>
-      </div>
-      
-      <div className="flex items-center justify-between mt-auto">
-        <div className="flex items-center gap-2 flex-wrap">
-          {streak > 0 && (
-            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-              {streak}x
-            </span>
-          )}
-          {hasAttention && (
-            <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full">
-              ⚠️
-            </span>
-          )}
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="text-right">
-            <span className={`font-bold ${hasAttention ? 'text-red-600' : onStreak ? 'text-blue-600' : pointsColorClasses[task.color as keyof typeof pointsColorClasses]}`}>
-              +{currentValue}
-            </span>
-            {currentValue > task.points && (
-              <div className="text-xs text-slate-500">
-                base: {task.points}
+
+        {/* Task Info */}
+        <div className="flex-1 min-w-0" onClick={toggleExpanded}>
+          <div className="flex items-center justify-between">
+            <h3 className="card-title text-base mb-0">{task.name}</h3>
+            <div className="flex items-center gap-2">
+              {streak > 0 && (
+                <div className="task-streak-indicator">
+                  <Flame className="w-3 h-3" />
+                  <span>{streak}</span>
+                </div>
+              )}
+              <div className="task-points-badge">
+                +{currentValue}
               </div>
-            )}
+            </div>
           </div>
-          <div className="flex items-center gap-1">
-            <Button 
-              size="sm" 
-              onClick={() => openTaskDialog(task)}
-              className="h-10 px-4 hover:bg-blue-600 hover:shadow-sm transition-all touch-manipulation min-w-[60px]"
-            >
-              Add
-            </Button>
-            {/* Show edit button for all tasks */}
+          <div className="caption text-gray-500 mt-1">
+            Today's progress • Click to expand
+          </div>
+        </div>
+
+        {/* Quick Add Button */}
+        <Button 
+          size="sm" 
+          onClick={(e) => {
+            e.stopPropagation();
+            openTaskDialog(task);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          Add
+        </Button>
+      </div>
+
+      {/* Expanded View */}
+      {isExpanded && (
+        <div className="task-card-expanded">
+          <div className="flex items-start justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="task-icon-container">
+                <IconComponent className="w-6 h-6" style={{ color: `var(--color-accent)` }} />
+              </div>
+              <div>
+                <h3 className="card-title text-lg mb-1">{task.name}</h3>
+                <p className="body-text text-gray-600">{task.description}</p>
+              </div>
+            </div>
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => openTaskForm(task)}
-              className="h-10 w-10 opacity-60 hover:opacity-100 text-slate-500 hover:text-slate-700 touch-manipulation"
-              title="Edit task"
+              onClick={toggleExpanded}
+              className="text-gray-400 hover:text-gray-600"
             >
-              <Edit className="w-4 h-4" />
+              <X className="w-4 h-4" />
             </Button>
+          </div>
+
+          {/* Progress & Stats */}
+          <div className="grid grid-cols-3 gap-4 mb-4 p-3 bg-gray-50 rounded-lg">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600">+{currentValue}</div>
+              <div className="caption">Current Value</div>
+              {currentValue > task.points && (
+                <div className="caption text-gray-500">Base: {task.points}</div>
+              )}
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-orange-600">{streak}</div>
+              <div className="caption">Day Streak</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl">{streakEmoji || "🎯"}</div>
+              <div className="caption">Status</div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openTaskForm(task)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  const customTask = customTasks?.find((ct: any) => ct.taskId === task.id);
+                  if (customTask) {
+                    if (window.confirm('Are you sure you want to delete this task? This will remove your customized version and restore the original task.')) {
+                      deleteCustomTaskMutation?.mutate(customTask.id);
+                    }
+                  } else {
+                    if (window.confirm('Are you sure you want to hide this task? You can restore it later by editing tasks.')) {
+                      createCustomTaskMutation.mutate({
+                        taskId: task.id,
+                        name: task.name,
+                        description: task.description,
+                        points: task.points,
+                        icon: "❌",
+                        color: task.color,
+                        isActive: false
+                      });
+                    }
+                  }
+                }}
+                className="text-red-500 hover:text-red-700"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Delete
+              </Button>
+            </div>
             
-            {/* Show delete button for all tasks */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                const customTask = customTasks?.find((ct: any) => ct.taskId === task.id);
-                if (customTask) {
-                  // Delete custom version, restore original
-                  if (window.confirm('Are you sure you want to delete this task? This will remove your customized version and restore the original task.')) {
-                    deleteCustomTaskMutation?.mutate(customTask.id);
-                  }
-                } else {
-                  // Delete original task by creating an inactive custom task
-                  if (window.confirm('Are you sure you want to hide this task? You can restore it later by editing tasks.')) {
-                    createCustomTaskMutation.mutate({
-                      taskId: task.id,
-                      name: task.name,
-                      description: task.description,
-                      points: task.points,
-                      icon: "❌",
-                      color: task.color,
-                      isActive: false
-                    });
-                  }
-                }
-              }}
-              className="h-10 w-10 opacity-60 hover:opacity-100 text-red-500 hover:text-red-700 touch-manipulation"
-              title="Delete task"
+            <Button 
+              onClick={() => openTaskDialog(task)}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2"
             >
-              <Trash2 className="w-4 h-4" />
+              Complete Task
             </Button>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

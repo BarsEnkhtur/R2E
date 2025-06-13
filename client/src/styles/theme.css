@@ -2,23 +2,32 @@
 
 :root {
   /* ─── COLORS ───────────────────────────────────────────────────────────── */
-  --color-bg:               #FFFFFF;   /* Pure white background */
-  --color-card-bg:          #F4F5F7;   /* Light gray cards with subtle tint */
-  --color-border:           #E5E7EB;   /* Light gray borders & dividers */
-  --color-accent:           #3B82F6;   /* Electric Blue for buttons & highlights */
-  --color-text-primary:     #1F2937;   /* Dark charcoal for primary text */
-  --color-text-secondary:   #4B5563;   /* Mid-gray for secondary text */
+  --color-bg:               #FAFBFC;   /* Subtle off-white background */
+  --color-card-bg:          #FFFFFF;   /* Pure white cards for contrast */
+  --color-border:           #E1E5E9;   /* Soft gray borders */
+  --color-accent:           #3B82F6;   /* R2E Blue - primary accent color */
+  --color-accent-light:     #EBF4FF;   /* Light blue for highlights */
+  --color-accent-dark:      #1E40AF;   /* Darker blue for hover states */
+  --color-text-primary:     #1A202C;   /* Deep charcoal for primary text */
+  --color-text-secondary:   #4A5568;   /* Medium gray for secondary text */
+  --color-text-muted:       #718096;   /* Light gray for captions */
+  --color-surface:          #F7FAFC;   /* Light surface color */
+  --color-success:          #10B981;   /* Green for positive actions */
+  --color-warning:          #F59E0B;   /* Amber for attention */
 
   /* ─── TYPOGRAPHY ───────────────────────────────────────────────────────── */
-  --font-sans:              'Inter', sans-serif;
+  --font-sans:              'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
   --text-base-size:         16px;
-  --line-height:            1.5;
-  --h1-size:                3rem;      /* 48px for stronger title */
-  --h2-size:                1.5rem;    /* 24px */
-  --h3-size:                1.25rem;   /* 20px */
+  --line-height:            1.6;
+  --h1-size:                2.5rem;    /* 40px - Hero titles */
+  --h2-size:                1.875rem;  /* 30px - Section headers */
+  --h3-size:                1.25rem;   /* 20px - Card titles */
+  --body-size:              1rem;      /* 16px - Body text */
+  --caption-size:           0.875rem;  /* 14px - Captions, metadata */
   --font-weight-regular:    400;
   --font-weight-medium:     500;
-  --font-weight-bold:       800;
+  --font-weight-semibold:   600;
+  --font-weight-bold:       700;
 
   /* ─── SPACING (8px grid) ───────────────────────────────────────────────── */
   --space-1: 4px;
