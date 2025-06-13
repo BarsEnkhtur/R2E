@@ -82,6 +82,22 @@ export const customTasks = pgTable("custom_tasks", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// AI-generated badges based on user task patterns
+export const aiBadges = pgTable("ai_badges", {
+  id: serial("id").primaryKey(),
+  userId: text("user_id").notNull().references(() => users.id),
+  badgeId: text("badge_id").notNull(), // AI-generated unique identifier
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  icon: text("icon").notNull(), // emoji or icon identifier
+  color: text("color").notNull().default("blue"),
+  category: text("category").notNull(), // e.g., "streak", "consistency", "task-specific"
+  criteria: text("criteria").notNull(), // human-readable criteria
+  taskPatterns: jsonb("task_patterns"), // AI analysis of task patterns that triggered this badge
+  unlockedAt: timestamp("unlocked_at").defaultNow().notNull(),
+  isVisible: boolean("is_visible").notNull().default(true),
+});
+
 // Public shares table for read-only snapshots
 export const shares = pgTable("shares", {
   id: serial("id").primaryKey(),
@@ -161,6 +177,18 @@ export const insertCustomTaskSchema = createInsertSchema(customTasks).pick({
   isActive: true,
 });
 
+export const insertAiBadgeSchema = createInsertSchema(aiBadges).pick({
+  userId: true,
+  badgeId: true,
+  name: true,
+  description: true,
+  icon: true,
+  color: true,
+  category: true,
+  criteria: true,
+  taskPatterns: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type UpsertUser = z.infer<typeof upsertUserSchema>;
 export type User = typeof users.$inferSelect;
@@ -174,3 +202,5 @@ export type InsertCustomTask = z.infer<typeof insertCustomTaskSchema>;
 export type CustomTask = typeof customTasks.$inferSelect;
 export type InsertShare = z.infer<typeof insertShareSchema>;
 export type Share = typeof shares.$inferSelect;
+export type InsertAiBadge = z.infer<typeof insertAiBadgeSchema>;
+export type AiBadge = typeof aiBadges.$inferSelect;

@@ -160,3 +160,126 @@ function getDefaultMicroFeedback(taskId: string, streakCount: number): string {
     return `✨ Great progress${streakBonus}`;
   }
 }
+
+interface TaskPattern {
+  taskId: string;
+  taskName: string;
+  count: number;
+  totalPoints: number;
+  averagePoints: number;
+  lastCompleted: string;
+  notes: string[];
+}
+
+interface BadgeGenerationData {
+  userId: string;
+  completedTasks: TaskPattern[];
+  totalTasks: number;
+  totalPoints: number;
+  uniqueTaskTypes: number;
+  longestStreak: number;
+  currentStreak: number;
+  averageTasksPerWeek: number;
+  topCategories: string[];
+  recentAchievements: string[];
+}
+
+export async function generateAIBadge(data: BadgeGenerationData): Promise<{
+  badgeId: string;
+  name: string;
+  description: string;
+  icon: string;
+  color: string;
+  category: string;
+  criteria: string;
+  taskPatterns: any;
+} | null> {
+  try {
+    // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: `You are a personalized badge designer for a momentum tracking app. Analyze user task patterns and create meaningful, personalized badges that celebrate their unique achievements and motivate continued progress.
+
+Guidelines:
+- Create badges that are specific to the user's actual task patterns and behaviors
+- Focus on unique combinations, consistency patterns, or personal milestones
+- Use encouraging, professional language
+- Badge names should be 2-4 words, catchy and personal
+- Descriptions should be 1-2 sentences explaining the achievement
+- Categories: "streak", "consistency", "task-specific", "milestone", "creativity", "balance"
+- Colors: "blue", "emerald", "purple", "yellow", "red", "indigo", "green", "orange", "pink", "cyan"
+- Icons should be single emojis that represent the achievement
+- Only suggest badges for meaningful patterns or achievements
+
+Respond with JSON in this exact format:
+{
+  "badgeId": "unique-identifier",
+  "name": "Badge Name",
+  "description": "Achievement description",
+  "icon": "🏆",
+  "color": "blue",
+  "category": "milestone",
+  "criteria": "Human readable criteria",
+  "shouldCreate": true
+}
+
+If no meaningful badge can be created, respond with: {"shouldCreate": false}`
+        },
+        {
+          role: "user",
+          content: `Analyze this user's task completion patterns and suggest a personalized badge:
+
+User Data:
+- Total tasks completed: ${data.totalTasks}
+- Total points earned: ${data.totalPoints}
+- Unique task types: ${data.uniqueTaskTypes}
+- Longest streak: ${data.longestStreak} days
+- Current streak: ${data.currentStreak} days
+- Average tasks per week: ${data.averageTasksPerWeek}
+- Top task categories: ${data.topCategories.join(', ')}
+
+Detailed task patterns:
+${data.completedTasks.map(task => 
+  `- ${task.taskName}: ${task.count} times (${task.totalPoints} points, avg ${task.averagePoints.toFixed(1)} per task)`
+).join('\n')}
+
+Recent task notes (for context):
+${data.completedTasks.flatMap(t => t.notes.slice(0, 2)).slice(0, 5).join('\n')}
+
+Create a badge that celebrates a specific pattern, achievement, or unique combination in this user's data.`
+        }
+      ],
+      response_format: { type: "json_object" },
+      max_tokens: 500,
+    });
+
+    const result = JSON.parse(response.choices[0].message.content || '{"shouldCreate": false}');
+    
+    if (!result.shouldCreate) {
+      return null;
+    }
+
+    return {
+      badgeId: result.badgeId || `ai-badge-${Date.now()}`,
+      name: result.name,
+      description: result.description,
+      icon: result.icon,
+      color: result.color,
+      category: result.category,
+      criteria: result.criteria,
+      taskPatterns: {
+        analyzedTasks: data.completedTasks.length,
+        totalPoints: data.totalPoints,
+        uniqueTypes: data.uniqueTaskTypes,
+        topCategories: data.topCategories,
+        generatedAt: new Date().toISOString()
+      }
+    };
+  } catch (error) {
+    console.error('Failed to generate AI badge:', error);
+    return null;
+  }
+}
