@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
+import { useToast } from "@/hooks/use-toast";
 import {
   DndContext,
   closestCenter,
@@ -572,6 +573,7 @@ export default function MomentumTracker() {
   
   const queryClient = useQueryClient();
   const { user, isLoading: isAuthLoading } = useAuth();
+  const { toast } = useToast();
   
   // Check for demo mode in URL
   const urlParams = new URLSearchParams(window.location.search);
@@ -1478,6 +1480,39 @@ Keep the momentum going! 💼
     onSuccess: (data) => {
       setWeeklyOverviewMessage(data.message);
       setShowWeeklyOverview(true);
+    }
+  });
+
+  // Mutation to generate AI badge
+  const generateAiBadgeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/generate-ai-badge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      if (!response.ok) throw new Error('Failed to generate AI badge');
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-badges'] });
+      if (data.badge) {
+        toast({
+          title: "New Badge Unlocked!",
+          description: data.message,
+        });
+      } else {
+        toast({
+          title: "Badge Generation",
+          description: data.message,
+        });
+      }
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: "Failed to generate AI badge. Please try again.",
+        variant: "destructive",
+      });
     }
   });
 
