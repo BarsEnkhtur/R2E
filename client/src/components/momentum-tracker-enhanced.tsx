@@ -297,6 +297,17 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
                 <Edit className="w-4 h-4 mr-2" />
                 Edit
               </Button>
+              {isCustomTask && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteTaskDefinition(task.id)}
+                  className="text-red-500 hover:text-red-700"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete
+                </Button>
+              )}
             </div>
             
             <Button 
@@ -738,8 +749,10 @@ export default function MomentumTrackerEnhanced() {
   const handleUpdateTaskDefinition = () => {
     if (!editingTask) return;
     
-    // Check if this is a custom task (not a default task)
-    const customTask = customTasks.find((ct: CustomTask) => ct.taskId === editingTask.id);
+    // Remove 'custom-' prefix if present to find the actual custom task
+    const cleanTaskId = editingTask.id.startsWith('custom-') ? editingTask.id.replace('custom-', '') : editingTask.id;
+    const customTask = customTasks.find((ct: CustomTask) => ct.taskId === cleanTaskId);
+    
     if (customTask) {
       updateCustomTaskMutation.mutate({
         id: customTask.id,
@@ -758,10 +771,12 @@ export default function MomentumTrackerEnhanced() {
   };
 
   const handleDeleteTaskDefinition = (taskId: string) => {
-    const customTask = customTasks.find((ct: CustomTask) => ct.taskId === taskId);
+    // Remove 'custom-' prefix if present
+    const cleanTaskId = taskId.startsWith('custom-') ? taskId.replace('custom-', '') : taskId;
+    const customTask = customTasks.find((ct: CustomTask) => ct.taskId === cleanTaskId);
     if (customTask) {
       if (confirm("Are you sure you want to delete this custom task? This action cannot be undone.")) {
-        deleteCustomTaskMutation.mutate(taskId);
+        deleteCustomTaskMutation.mutate(cleanTaskId);
       }
     } else {
       toast({
@@ -1024,6 +1039,9 @@ export default function MomentumTrackerEnhanced() {
                           isOnStreak={isOnStreak}
                           getStreakEmoji={getStreakEmoji}
                           handleEditTask={handleEditTask}
+                          handleEditTaskDefinition={handleEditTaskDefinition}
+                          handleDeleteTaskDefinition={handleDeleteTaskDefinition}
+                          isCustomTask={task.id.startsWith('custom-')}
                         />
                       ))}
                     </div>
@@ -1436,6 +1454,71 @@ export default function MomentumTrackerEnhanced() {
               <Button onClick={handleUpdateTask} disabled={updateTaskMutation.isPending}>
                 {updateTaskMutation.isPending ? 'Updating...' : 'Update Task'}
               </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Task Definition Edit Dialog */}
+      <Dialog open={taskEditDialogOpen} onOpenChange={setTaskEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task: {editingTask?.name}</DialogTitle>
+            <DialogDescription>
+              Update task details and settings
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editTaskName">Task Name</Label>
+              <Input
+                id="editTaskName"
+                value={editTaskName}
+                onChange={(e) => setEditTaskName(e.target.value)}
+                placeholder="Enter task name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editTaskDescription">Description</Label>
+              <Input
+                id="editTaskDescription"
+                value={editTaskDescription}
+                onChange={(e) => setEditTaskDescription(e.target.value)}
+                placeholder="Enter task description"
+              />
+            </div>
+            <div>
+              <Label htmlFor="editTaskPoints">Points</Label>
+              <Input
+                id="editTaskPoints"
+                type="number"
+                min="1"
+                max="10"
+                value={editTaskPoints}
+                onChange={(e) => setEditTaskPoints(parseInt(e.target.value) || 1)}
+              />
+            </div>
+            <div className="flex justify-between">
+              <Button
+                variant="destructive"
+                onClick={() => {
+                  if (editingTask) {
+                    handleDeleteTaskDefinition(editingTask.id);
+                    setTaskEditDialogOpen(false);
+                  }
+                }}
+                disabled={deleteCustomTaskMutation.isPending}
+              >
+                {deleteCustomTaskMutation.isPending ? 'Deleting...' : 'Delete Task'}
+              </Button>
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={() => setTaskEditDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateTaskDefinition} disabled={updateCustomTaskMutation.isPending}>
+                  {updateCustomTaskMutation.isPending ? 'Updating...' : 'Update Task'}
+                </Button>
+              </div>
             </div>
           </div>
         </DialogContent>
