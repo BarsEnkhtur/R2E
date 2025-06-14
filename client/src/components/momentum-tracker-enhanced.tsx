@@ -1374,44 +1374,86 @@ export default function MomentumTrackerEnhanced() {
             <div className="max-w-4xl mx-auto">
               <Card className="focus-card">
                 <CardContent className="p-8">
-                  <h2 className="text-2xl font-bold mb-6 text-center">Weekly Progress Summary</h2>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold">
+                      {currentWeek === getWeekStartFixed() ? "Weekly Progress Summary" : "Week Analysis"}
+                    </h2>
+                    {currentWeek !== getWeekStartFixed() && (
+                      <div className="text-sm text-gray-500">
+                        {formatWeekDisplay(currentWeek)}
+                      </div>
+                    )}
+                  </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                    <div className="text-center p-6 bg-blue-50 rounded-lg">
-                      <div className="text-3xl font-bold text-blue-600 mb-2">{currentPoints}</div>
-                      <div className="text-sm text-blue-800 font-medium">Total Points</div>
-                      <div className="text-xs text-gray-500 mt-1">Goal: {maxPoints}</div>
+                  {isLoading || isWeeklyStatsLoading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin w-8 h-8 border-2 border-slate-300 border-t-blue-600 rounded-full mx-auto mb-3"></div>
+                      <p className="text-sm text-slate-600">Loading week data...</p>
                     </div>
-                    <div className="text-center p-6 bg-green-50 rounded-lg">
-                      <div className="text-3xl font-bold text-green-600 mb-2">{Array.isArray(completedTasks) ? completedTasks.length : 0}</div>
-                      <div className="text-sm text-green-800 font-medium">Tasks Completed</div>
-                      <div className="text-xs text-gray-500 mt-1">This week</div>
-                    </div>
-                    <div className="text-center p-6 bg-purple-50 rounded-lg">
-                      <div className="text-3xl font-bold text-purple-600 mb-2">
-                        {Array.isArray(completedTasks) ? new Set(completedTasks.map((t: CompletedTask) => t.taskId)).size : 0}
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div className="text-center p-6 bg-blue-50 rounded-lg">
+                          <div className="text-3xl font-bold text-blue-600 mb-2">{currentPoints}</div>
+                          <div className="text-sm text-blue-800 font-medium">Total Points</div>
+                          <div className="text-xs text-gray-500 mt-1">Goal: {maxPoints}</div>
+                          {currentWeek !== getWeekStartFixed() && (
+                            <div className="text-xs text-blue-600 mt-1 font-medium">
+                              {Math.round((currentPoints / maxPoints) * 100)}% achieved
+                            </div>
+                          )}
+                        </div>
+                        <div className="text-center p-6 bg-green-50 rounded-lg">
+                          <div className="text-3xl font-bold text-green-600 mb-2">
+                            {Array.isArray(completedTasks) ? completedTasks.length : 0}
+                          </div>
+                          <div className="text-sm text-green-800 font-medium">Tasks Completed</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {currentWeek === getWeekStartFixed() ? "This week" : "During week"}
+                          </div>
+                        </div>
+                        <div className="text-center p-6 bg-purple-50 rounded-lg">
+                          <div className="text-3xl font-bold text-purple-600 mb-2">
+                            {Array.isArray(completedTasks) ? new Set(completedTasks.map((t: CompletedTask) => t.taskId)).size : 0}
+                          </div>
+                          <div className="text-sm text-purple-800 font-medium">Unique Tasks</div>
+                          <div className="text-xs text-gray-500 mt-1">Different types</div>
+                        </div>
+                        <div className="text-center p-6 bg-orange-50 rounded-lg">
+                          <div className="text-3xl font-bold text-orange-600 mb-2">{calculateDayStreak()}</div>
+                          <div className="text-sm text-orange-800 font-medium">
+                            {currentWeek === getWeekStartFixed() ? "Day Streak" : "Active Days"}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {currentWeek === getWeekStartFixed() ? "Consecutive days" : "Days with tasks"}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-sm text-purple-800 font-medium">Unique Tasks</div>
-                      <div className="text-xs text-gray-500 mt-1">Different types</div>
-                    </div>
-                    <div className="text-center p-6 bg-orange-50 rounded-lg">
-                      <div className="text-3xl font-bold text-orange-600 mb-2">{calculateDayStreak()}</div>
-                      <div className="text-sm text-orange-800 font-medium">Day Streak</div>
-                      <div className="text-xs text-gray-500 mt-1">Consecutive days</div>
-                    </div>
-                  </div>
+                    </>
+                  )}
 
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold mb-4">Weekly Goal Progress</h3>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1">
-                        <Progress value={progressPercentage} className="h-3" />
+                  {!isLoading && !isWeeklyStatsLoading && (
+                    <div className="mb-6">
+                      <h3 className="text-lg font-semibold mb-4">
+                        {currentWeek === getWeekStartFixed() ? "Weekly Goal Progress" : "Week Performance"}
+                      </h3>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <Progress value={progressPercentage} className="h-3" />
+                        </div>
+                        <div className="text-sm font-medium">
+                          {Math.round(progressPercentage)}% Complete
+                        </div>
                       </div>
-                      <div className="text-sm font-medium">
-                        {Math.round(progressPercentage)}% Complete
-                      </div>
+                      {currentWeek !== getWeekStartFixed() && (
+                        <div className="text-xs text-gray-500 mt-2">
+                          {currentPoints >= maxPoints ? "Goal exceeded!" : 
+                           currentPoints >= maxPoints * 0.8 ? "Nearly achieved goal" :
+                           currentPoints >= maxPoints * 0.5 ? "Halfway to goal" : "Building momentum"}
+                        </div>
+                      )}
                     </div>
-                  </div>
+                  )}
 
                   {Array.isArray(completedTasks) && completedTasks.length > 0 && (
                     <div>
