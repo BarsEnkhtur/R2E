@@ -149,7 +149,7 @@ interface Badge {
 }
 
 // Enhanced Task Card Component
-function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji, handleEditTask }: {
+function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji, handleEditTask, handleEditTaskDefinition, handleDeleteTaskDefinition, isCustomTask }: {
   task: Task;
   openTaskDialog: (task: Task) => void;
   getCurrentTaskValue: (task: Task) => number;
@@ -158,6 +158,9 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
   isOnStreak: (taskId: string) => boolean;
   getStreakEmoji: (streak: number) => string;
   handleEditTask: (task: CompletedTask) => void;
+  handleEditTaskDefinition: (task: Task) => void;
+  handleDeleteTaskDefinition: (taskId: string) => void;
+  isCustomTask: boolean;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -288,19 +291,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => {
-                  // Create a temporary completed task object for editing
-                  const tempTask: CompletedTask = {
-                    id: 0,
-                    taskId: task.id,
-                    name: task.name,
-                    points: task.points,
-                    note: "",
-                    completedAt: new Date().toISOString(),
-                    weekStartDate: ""
-                  };
-                  handleEditTask(tempTask);
-                }}
+                onClick={() => handleEditTaskDefinition(task)}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <Edit className="w-4 h-4 mr-2" />
@@ -334,6 +325,11 @@ export default function MomentumTrackerEnhanced() {
   const [editingCompletedTask, setEditingCompletedTask] = useState<CompletedTask | null>(null);
   const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
   const [editTaskNote, setEditTaskNote] = useState("");
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
+  const [taskEditDialogOpen, setTaskEditDialogOpen] = useState(false);
+  const [editTaskName, setEditTaskName] = useState("");
+  const [editTaskDescription, setEditTaskDescription] = useState("");
+  const [editTaskPoints, setEditTaskPoints] = useState(1);
   
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
@@ -409,6 +405,30 @@ export default function MomentumTrackerEnhanced() {
     },
     enabled: !!user,
   });
+
+  // Fetch custom tasks
+  const { data: customTasks = [], isLoading: isCustomTasksLoading } = useQuery({
+    queryKey: ['/api/custom-tasks'],
+    queryFn: async () => {
+      const response = await fetch('/api/custom-tasks');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  // Combine default and custom tasks with unique keys
+  const allTasks: Task[] = [
+    ...defaultTasks,
+    ...customTasks.map((ct: CustomTask) => ({
+      id: `custom-${ct.taskId}`,
+      name: ct.name,
+      description: ct.description,
+      points: ct.points,
+      icon: Briefcase, // Default icon for custom tasks
+      color: ct.color
+    }))
+  ];
 
   // Calculate progress
   const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum: number, task: CompletedTask) => sum + task.points, 0) : 0;
@@ -636,6 +656,120 @@ export default function MomentumTrackerEnhanced() {
       id: editingCompletedTask.id,
       note: editTaskNote.trim() || undefined
     });
+  };
+
+  // Mutation to create custom task
+  const createCustomTaskMutation = useMutation({
+    mutationFn: async (taskData: { name: string; description: string; points: number; color: string }) => {
+      const response = await fetch('/api/custom-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+      });
+      if (!response.ok) throw new Error('Failed to create custom task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+      toast({
+        title: "Task created",
+        description: "New custom task has been added.",
+      });
+    }
+  });
+
+  // Mutation to update custom task
+  const updateCustomTaskMutation = useMutation({
+    mutationFn: async (data: { id: number; name: string; description: string; points: number; color: string }) => {
+      const response = await fetch(`/api/custom-tasks/${data.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          points: data.points,
+          color: data.color
+        })
+      });
+      if (!response.ok) throw new Error('Failed to update custom task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+      setTaskEditDialogOpen(false);
+      setEditingTask(null);
+      toast({
+        title: "Task updated",
+        description: "Task has been updated successfully.",
+      });
+    }
+  });
+
+  // Mutation to delete custom task
+  const deleteCustomTaskMutation = useMutation({
+    mutationFn: async (taskId: string) => {
+      // Find the custom task to get its database ID
+      const customTask = customTasks.find((ct: CustomTask) => ct.taskId === taskId);
+      if (!customTask) throw new Error('Custom task not found');
+      
+      const response = await fetch(`/api/custom-tasks/${customTask.id}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete custom task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+      toast({
+        title: "Task deleted",
+        description: "Custom task has been removed.",
+      });
+    }
+  });
+
+  const handleEditTaskDefinition = (task: Task) => {
+    setEditingTask(task);
+    setEditTaskName(task.name);
+    setEditTaskDescription(task.description);
+    setEditTaskPoints(task.points);
+    setTaskEditDialogOpen(true);
+  };
+
+  const handleUpdateTaskDefinition = () => {
+    if (!editingTask) return;
+    
+    // Check if this is a custom task (not a default task)
+    const customTask = customTasks.find((ct: CustomTask) => ct.taskId === editingTask.id);
+    if (customTask) {
+      updateCustomTaskMutation.mutate({
+        id: customTask.id,
+        name: editTaskName.trim(),
+        description: editTaskDescription.trim(),
+        points: editTaskPoints,
+        color: customTask.color
+      });
+    } else {
+      toast({
+        title: "Cannot edit default task",
+        description: "You can only edit custom tasks that you created.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleDeleteTaskDefinition = (taskId: string) => {
+    const customTask = customTasks.find((ct: CustomTask) => ct.taskId === taskId);
+    if (customTask) {
+      if (confirm("Are you sure you want to delete this custom task? This action cannot be undone.")) {
+        deleteCustomTaskMutation.mutate(taskId);
+      }
+    } else {
+      toast({
+        title: "Cannot delete default task",
+        description: "You can only delete custom tasks that you created.",
+        variant: "destructive"
+      });
+    }
   };
 
   const formatWeekDisplay = (weekStart: string) => {
@@ -879,7 +1013,7 @@ export default function MomentumTrackerEnhanced() {
                     </div>
                     
                     <div className="space-y-3">
-                      {defaultTasks.map((task) => (
+                      {allTasks.map((task) => (
                         <SortableTaskItem
                           key={task.id}
                           task={task}
