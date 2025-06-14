@@ -13,11 +13,46 @@ import {
   Search, 
   Edit, 
   Trash2, 
-  GripVertical,
   MessageCircle, 
   Code, 
   Briefcase, 
   Heart,
+  Users,
+  Lightbulb,
+  Star,
+  Bookmark,
+  Check,
+  Clock,
+  Camera,
+  Target,
+  Zap,
+  Globe,
+  Home,
+  Settings,
+  Music,
+  Book,
+  Coffee,
+  Phone,
+  Mail,
+  Calendar,
+  Flag,
+  Gift,
+  Shield,
+  Compass,
+  Diamond,
+  Rocket,
+  Crown,
+  Palette,
+  Mountain,
+  Smile,
+  Sun,
+  Moon,
+  Cloud,
+  Umbrella,
+  Car,
+  Bike,
+  Plane,
+  Train,
   Circle
 } from "lucide-react";
 
@@ -51,12 +86,14 @@ export default function TasksPage() {
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskPoints, setNewTaskPoints] = useState(1);
   const [newTaskColor, setNewTaskColor] = useState("blue");
+  const [newTaskIcon, setNewTaskIcon] = useState("Star");
+  const [showIconPicker, setShowIconPicker] = useState(false);
   
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Default tasks
+  // Default tasks with semantic icons
   const defaultTasks: Task[] = [
     {
       id: "job-application",
@@ -71,8 +108,8 @@ export default function TasksPage() {
       name: "Networking",
       description: "Connect with professionals",
       points: 2,
-      icon: MessageCircle,
-      color: "emerald"
+      icon: Users,
+      color: "green"
     },
     {
       id: "coding-practice",
@@ -89,6 +126,14 @@ export default function TasksPage() {
       points: 2,
       icon: Heart,
       color: "red"
+    },
+    {
+      id: "learn-skill",
+      name: "Learn New Skill",
+      description: "Study or practice new abilities",
+      points: 2,
+      icon: Lightbulb,
+      color: "orange"
     }
   ];
 
@@ -103,6 +148,60 @@ export default function TasksPage() {
     enabled: !!user,
   });
 
+  // Icon mapping for custom tasks
+  const getIconComponent = (iconName: string) => {
+    const iconMap: Record<string, React.ComponentType<any>> = {
+      Star, Bookmark, Check, Clock, Camera, Target, Zap, Globe, Home, Settings,
+      Music, Book, Coffee, Phone, Mail, Calendar, Flag, Gift, Shield, Compass,
+      Diamond, Rocket, Crown, Palette, Mountain, Smile, Sun, Moon, Cloud,
+      Umbrella, Car, Bike, Plane, Train, Heart, Users, Code, Briefcase, Lightbulb
+    };
+    return iconMap[iconName] || Star;
+  };
+
+  // Available icons for picker
+  const availableIcons = [
+    { name: "Star", component: Star },
+    { name: "Bookmark", component: Bookmark },
+    { name: "Check", component: Check },
+    { name: "Clock", component: Clock },
+    { name: "Camera", component: Camera },
+    { name: "Target", component: Target },
+    { name: "Zap", component: Zap },
+    { name: "Globe", component: Globe },
+    { name: "Home", component: Home },
+    { name: "Settings", component: Settings },
+    { name: "Music", component: Music },
+    { name: "Book", component: Book },
+    { name: "Coffee", component: Coffee },
+    { name: "Phone", component: Phone },
+    { name: "Mail", component: Mail },
+    { name: "Calendar", component: Calendar },
+    { name: "Flag", component: Flag },
+    { name: "Gift", component: Gift },
+    { name: "Shield", component: Shield },
+    { name: "Compass", component: Compass },
+    { name: "Diamond", component: Diamond },
+    { name: "Rocket", component: Rocket },
+    { name: "Crown", component: Crown },
+    { name: "Palette", component: Palette },
+    { name: "Mountain", component: Mountain },
+    { name: "Smile", component: Smile },
+    { name: "Sun", component: Sun },
+    { name: "Moon", component: Moon },
+    { name: "Cloud", component: Cloud },
+    { name: "Umbrella", component: Umbrella },
+    { name: "Car", component: Car },
+    { name: "Bike", component: Bike },
+    { name: "Plane", component: Plane },
+    { name: "Train", component: Train },
+    { name: "Heart", component: Heart },
+    { name: "Users", component: Users },
+    { name: "Code", component: Code },
+    { name: "Briefcase", component: Briefcase },
+    { name: "Lightbulb", component: Lightbulb }
+  ];
+
   // Combine all tasks
   const allTasks: Task[] = [
     ...defaultTasks,
@@ -111,7 +210,7 @@ export default function TasksPage() {
       name: ct.name,
       description: ct.description,
       points: ct.points,
-      icon: Circle,
+      icon: getIconComponent(ct.icon),
       color: ct.color
     }))
   ];
@@ -124,7 +223,7 @@ export default function TasksPage() {
 
   // Mutation to create custom task
   const createCustomTaskMutation = useMutation({
-    mutationFn: async (taskData: { name: string; description: string; points: number; color: string }) => {
+    mutationFn: async (taskData: { name: string; description: string; points: number; color: string; icon: string }) => {
       const response = await fetch('/api/custom-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -140,6 +239,8 @@ export default function TasksPage() {
       setNewTaskDescription("");
       setNewTaskPoints(1);
       setNewTaskColor("blue");
+      setNewTaskIcon("Star");
+      setShowIconPicker(false);
       toast({
         title: "Task created",
         description: "New custom task has been added.",
@@ -202,7 +303,8 @@ export default function TasksPage() {
       name: newTaskName.trim(),
       description: newTaskDescription.trim(),
       points: newTaskPoints,
-      color: newTaskColor
+      color: newTaskColor,
+      icon: newTaskIcon
     });
   };
 

@@ -1,0 +1,43 @@
+Title: Task Icons & Table Polish
+
+## Icon Library
+- Install and use `lucide-react` (v0.x).
+- There are ~430 built-in icons; map our default tasks to semantic icons:
+  - Job Application → `Briefcase`
+  - Coding Practice → `Code`
+  - Gym/Recovery/PT → `Heart`
+  - Learned New Skill → `Lightbulb`
+  - Networking → `Users`
+  - …and so on.
+- For **custom** tasks:
+  1. Provide an **icon picker** grid of 30–40 “generic” lucide icons (star, bookmark, check, clock, camera, etc.).
+  2. If user’s task doesn’t fit, fallback to a ★ star icon or allow them to paste an emoji.
+- Circle-background: wrap each icon in a 32px circle, tinted via Tailwind (e.g. `bg-blue-100`, `bg-red-100`, etc.) based on the selected category color.
+
+## Tasks Table Layout (`/tasks`)
+| Icon | Task Name               | Description              | Points    | Type      | Actions                |
+|------|-------------------------|--------------------------|-----------|-----------|------------------------|
+| [SVG] | **Job Application**     | Apply to a new position  | `3 pts`   | `Default` | ➕ /Add, ✎ /Edit, 🗑️ /Delete |
+
+1. **Columns**:
+   - **Icon**: 24×24px lucide SVG in a colored 32×32px circle.
+   - **Task Name**: Bold text, left-aligned.
+   - **Description**: Secondary text, ellipsis-truncated.
+   - **Points**: Badge pill, e.g. “3 pts”.
+   - **Type**: Gray “Default” or lilac “Custom” micro-label.
+   - **Actions**: Inline buttons for Add Today (➕), Edit (✎), Delete (🗑️).
+
+2. **Interactivity**:
+   - **Row hover**: `bg-gray-50` to show clickability.
+   - **Edit**: Opens `/tasks/:id/edit` modal with pre-filled fields.
+   - **Delete**: Confirmation toast before removal.
+   - **Bulk select**: Checkboxes and “Delete Selected” in table header.
+
+3. **Modal “Create / Edit Task”**:
+   - Fields: Name, Description, Points (stepper), Icon picker (lucide grid), Color picker.
+   - Validation: Name required, Points ≥ 1.
+
+## Outcome
+- Rich, semantically-mapped icons for all built-ins.
+- A curated subset of lucide icons and emoji fallback for custom tasks.
+- A clear, consistent table UI with full CRUD (Add/Edit/Delete) ready for QA.
