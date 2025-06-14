@@ -51,6 +51,7 @@ import {
   Flame,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Calendar,
   BarChart3,
   Settings,
