@@ -812,12 +812,47 @@ export default function MomentumTrackerEnhanced() {
                   <CardContent className="p-6">
                     <h3 className="card-title mb-4">Recent Badges</h3>
                     <div 
-                      className="text-center py-4 cursor-pointer hover:bg-gray-50 rounded-lg transition-colors"
+                      className="cursor-pointer hover:bg-gray-50 rounded-lg transition-colors p-2"
                       onClick={() => setActiveTab("badges")}
                       title="Click to view all badges"
                     >
-                      <div className="text-4xl mb-2">🏆</div>
-                      <div className="caption">Complete tasks to earn badges</div>
+                      {/* Show earned badges if any */}
+                      {(Array.isArray(completedTasks) && completedTasks.length > 0) ? (
+                        <div className="space-y-2">
+                          {completedTasks.length >= 1 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-lg">🎯</span>
+                              <span className="font-medium text-green-600">Getting Started</span>
+                            </div>
+                          )}
+                          {currentPoints >= 10 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-lg">📆</span>
+                              <span className="font-medium text-green-600">Consistency Champ</span>
+                            </div>
+                          )}
+                          {completedTasks.length >= 20 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-lg">⭐</span>
+                              <span className="font-medium text-green-600">Task Master</span>
+                            </div>
+                          )}
+                          {calculateDayStreak() >= 3 && (
+                            <div className="flex items-center gap-2 text-sm">
+                              <span className="text-lg">🔥</span>
+                              <span className="font-medium text-green-600">Streak Starter</span>
+                            </div>
+                          )}
+                          <div className="text-center mt-3">
+                            <div className="caption text-gray-500">Click to view all achievements</div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <div className="text-4xl mb-2">🏆</div>
+                          <div className="caption">Complete tasks to earn badges</div>
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1119,6 +1154,37 @@ export default function MomentumTrackerEnhanced() {
               </Button>
               <Button onClick={addPoints} disabled={createTaskMutation.isPending}>
                 {createTaskMutation.isPending ? 'Adding...' : `Complete Task (+${selectedTask ? getCurrentTaskValue(selectedTask) : 0} pts)`}
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Task Dialog */}
+      <Dialog open={editTaskDialogOpen} onOpenChange={setEditTaskDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Task: {editingCompletedTask?.name}</DialogTitle>
+            <DialogDescription>
+              Update your task note
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="editNote">Note</Label>
+              <Input
+                id="editNote"
+                value={editTaskNote}
+                onChange={(e) => setEditTaskNote(e.target.value)}
+                placeholder="What did you accomplish?"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setEditTaskDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateTask} disabled={updateTaskMutation.isPending}>
+                {updateTaskMutation.isPending ? 'Updating...' : 'Update Task'}
               </Button>
             </div>
           </div>
