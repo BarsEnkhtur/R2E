@@ -316,6 +316,9 @@ export default function MomentumTrackerEnhanced() {
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [editingName, setEditingName] = useState(false);
   const [userName, setUserName] = useState("");
+  const [editingCompletedTask, setEditingCompletedTask] = useState<CompletedTask | null>(null);
+  const [editTaskDialogOpen, setEditTaskDialogOpen] = useState(false);
+  const [editTaskNote, setEditTaskNote] = useState("");
   
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
@@ -519,6 +522,67 @@ export default function MomentumTrackerEnhanced() {
       name: selectedTask.name,
       points: getCurrentTaskValue(selectedTask),
       note: taskNote.trim() || undefined
+    });
+  };
+
+  // Mutation to delete a completed task
+  const deleteTaskMutation = useMutation({
+    mutationFn: async (taskId: number) => {
+      const response = await fetch(`/api/completed-tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+      if (!response.ok) throw new Error('Failed to delete task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      toast({
+        title: "Task deleted",
+        description: "Task has been removed from your progress.",
+      });
+    }
+  });
+
+  // Mutation to update a completed task
+  const updateTaskMutation = useMutation({
+    mutationFn: async (data: { id: number; note?: string }) => {
+      const response = await fetch(`/api/completed-tasks/${data.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ note: data.note })
+      });
+      if (!response.ok) throw new Error('Failed to update task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      setEditTaskDialogOpen(false);
+      setEditingCompletedTask(null);
+      setEditTaskNote("");
+      toast({
+        title: "Task updated",
+        description: "Task note has been updated.",
+      });
+    }
+  });
+
+  const handleDeleteTask = (taskId: number) => {
+    if (confirm("Are you sure you want to delete this task? This action cannot be undone.")) {
+      deleteTaskMutation.mutate(taskId);
+    }
+  };
+
+  const handleEditTask = (task: CompletedTask) => {
+    setEditingCompletedTask(task);
+    setEditTaskNote(task.note || "");
+    setEditTaskDialogOpen(true);
+  };
+
+  const handleUpdateTask = () => {
+    if (!editingCompletedTask) return;
+    updateTaskMutation.mutate({
+      id: editingCompletedTask.id,
+      note: editTaskNote.trim() || undefined
     });
   };
 
@@ -848,7 +912,7 @@ export default function MomentumTrackerEnhanced() {
                       <h3 className="text-lg font-semibold mb-4">Recent Achievements</h3>
                       <div className="grid gap-3">
                         {completedTasks.slice(0, 5).map((task: CompletedTask) => (
-                          <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                          <div key={task.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg group hover:bg-gray-100 transition-colors">
                             <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
                             <div className="flex-1">
                               <div className="font-medium">{task.name}</div>
@@ -858,6 +922,26 @@ export default function MomentumTrackerEnhanced() {
                               {task.note && (
                                 <div className="text-sm text-gray-600 mt-1 italic">"{task.note}"</div>
                               )}
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEditTask(task)}
+                                className="h-8 w-8 p-0 text-gray-500 hover:text-blue-600"
+                                title="Edit note"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteTask(task.id)}
+                                className="h-8 w-8 p-0 text-gray-500 hover:text-red-600"
+                                title="Delete task"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
                         ))}
