@@ -441,6 +441,43 @@ export default function MomentumTrackerEnhanced() {
     }))
   ];
 
+  // Calculate task frequency and multipliers for focus panel
+  const getTopTasks = () => {
+    if (!Array.isArray(completedTasks)) return [];
+    
+    const taskFrequency = completedTasks.reduce((acc: Record<string, { count: number; totalPoints: number; taskName: string; lastCompleted: string }>, task: CompletedTask) => {
+      if (!acc[task.taskId]) {
+        acc[task.taskId] = {
+          count: 0,
+          totalPoints: 0,
+          taskName: task.name,
+          lastCompleted: task.completedAt
+        };
+      }
+      acc[task.taskId].count += 1;
+      acc[task.taskId].totalPoints += task.points;
+      if (new Date(task.completedAt) > new Date(acc[task.taskId].lastCompleted)) {
+        acc[task.taskId].lastCompleted = task.completedAt;
+      }
+      return acc;
+    }, {});
+
+    const sortedTasks = Object.entries(taskFrequency)
+      .map(([taskId, data]) => ({
+        taskId,
+        ...data,
+        multiplier: Math.min(1 + (data.count - 1) * 0.5, 2.5), // Calculate multiplier based on frequency
+        task: allTasks.find(t => t.id === taskId || t.id === `custom-${taskId}`)
+      }))
+      .filter(item => item.task)
+      .sort((a, b) => b.multiplier - a.multiplier || b.count - a.count)
+      .slice(0, 4);
+
+    return sortedTasks;
+  };
+
+  const topTasks = getTopTasks();
+
   // Calculate progress
   const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum: number, task: CompletedTask) => sum + task.points, 0) : 0;
   const maxPoints = goalData?.goal || 15;
@@ -1002,21 +1039,97 @@ export default function MomentumTrackerEnhanced() {
           {/* Tab-based Content */}
           {activeTab === "tasks" && (
             <div className="dashboard-grid">
-              {/* Left Panel - Today's Tasks */}
+              {/* Left Panel - Focus Tasks */}
               <div className="space-y-4">
+                {/* Focus for This Week Panel */}
+                {topTasks.length > 0 && (
+                  <Card className="focus-card border-blue-200 bg-gradient-to-br from-blue-50 to-white">
+                    <CardContent className="p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-2">
+                          <Target className="w-5 h-5 text-blue-600" />
+                          <h2 className="section-title text-blue-800">Focus for This Week</h2>
+                        </div>
+                        <div className="text-sm text-blue-600 font-medium">
+                          Top momentum builders
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-3">
+                        {topTasks.map((topTask) => {
+                          const task = topTask.task!;
+                          const IconComponent = task.icon;
+                          return (
+                            <div 
+                              key={task.id}
+                              className="flex items-center gap-4 p-4 bg-white rounded-lg border border-blue-100 hover:border-blue-200 transition-all hover:shadow-sm"
+                            >
+                              {/* Task Icon with larger size */}
+                              <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <IconComponent className="w-6 h-6 text-blue-600" />
+                              </div>
+
+                              {/* Task Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <h3 className="font-semibold text-gray-900">{task.name}</h3>
+                                  {/* Multiplier Badge */}
+                                  <div className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
+                                    ×{topTask.multiplier.toFixed(1)}
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-4 text-sm text-gray-600">
+                                  <span>{topTask.count} times this week</span>
+                                  <span>•</span>
+                                  <span>{topTask.totalPoints} total points</span>
+                                </div>
+                                {/* Progress Ring Indicator */}
+                                <div className="flex items-center gap-2 mt-2">
+                                  <div className="w-16 h-2 bg-gray-200 rounded-full overflow-hidden">
+                                    <div 
+                                      className="h-full bg-blue-500 rounded-full transition-all"
+                                      style={{ width: `${Math.min((topTask.count / Math.max(...topTasks.map(t => t.count))) * 100, 100)}%` }}
+                                    ></div>
+                                  </div>
+                                  <span className="text-xs text-gray-500">Frequency</span>
+                                </div>
+                              </div>
+
+                              {/* Quick Add Button */}
+                              <Button 
+                                size="sm" 
+                                onClick={() => openTaskDialog(task)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 shadow-sm"
+                              >
+                                <Plus className="w-4 h-4 mr-2" />
+                                Add
+                              </Button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* All Tasks Panel */}
                 <Card className="focus-card">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-6">
-                      <h2 className="section-title">Today's Tasks</h2>
+                      <h2 className="section-title">
+                        {topTasks.length > 0 ? "All Tasks" : "Today's Tasks"}
+                      </h2>
                       <div className="flex items-center gap-3">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setShowAllTasks(!showAllTasks)}
-                          className="text-sm"
-                        >
-                          {showAllTasks ? "Show Less" : "Show All Tasks"}
-                        </Button>
+                        {topTasks.length > 0 && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowAllTasks(!showAllTasks)}
+                            className="text-sm"
+                          >
+                            {showAllTasks ? "Show Less" : `Show All (${allTasks.length})`}
+                          </Button>
+                        )}
                         <Button
                           size="sm"
                           className="bg-blue-600 hover:bg-blue-700 text-white"
@@ -1028,7 +1141,9 @@ export default function MomentumTrackerEnhanced() {
                     </div>
                     
                     <div className="space-y-3">
-                      {allTasks.map((task) => (
+                      {(showAllTasks || topTasks.length === 0 ? allTasks : allTasks.filter(task => 
+                        !topTasks.some(topTask => topTask.task?.id === task.id)
+                      )).map((task) => (
                         <SortableTaskItem
                           key={task.id}
                           task={task}
