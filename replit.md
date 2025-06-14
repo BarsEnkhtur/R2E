@@ -107,6 +107,14 @@ Road2Employment (R2E) is a personal momentum tracking application designed for j
 ```
 Changelog:
 - June 14, 2025. Initial setup
+- June 14, 2025. Dashboard Architecture Implementation:
+  - Created dedicated Dashboard page at /dashboard as default landing
+  - Implemented persistent navigation tabs (Dashboard, Tasks, Progress, Badges, Settings)
+  - Added Focus for This Week panel with top 3-4 tasks by multiplier
+  - Built compact widgets for Streak & Progress, Recent Badges, Recent Activity
+  - Separated full task management into dedicated /tasks page
+  - Enhanced week navigation with dynamic data loading and context updates
+  - Added client-side routing with no page reloads between views
 ```
 
 ## User Preferences
