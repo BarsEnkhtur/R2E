@@ -45,6 +45,8 @@ interface CustomTask {
 export default function TasksPage() {
   const [searchFilter, setSearchFilter] = useState("");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [newTaskName, setNewTaskName] = useState("");
   const [newTaskDescription, setNewTaskDescription] = useState("");
   const [newTaskPoints, setNewTaskPoints] = useState(1);
@@ -145,6 +147,33 @@ export default function TasksPage() {
     }
   });
 
+  // Mutation to update custom task
+  const updateCustomTaskMutation = useMutation({
+    mutationFn: async (data: { id: number; name: string; description: string; points: number; color: string }) => {
+      const response = await fetch(`/api/custom-tasks/${data.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: data.name,
+          description: data.description,
+          points: data.points,
+          color: data.color
+        })
+      });
+      if (!response.ok) throw new Error('Failed to update custom task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
+      setShowEditDialog(false);
+      setEditingTask(null);
+      toast({
+        title: "Task updated",
+        description: "Custom task has been updated successfully.",
+      });
+    }
+  });
+
   // Mutation to delete custom task
   const deleteCustomTaskMutation = useMutation({
     mutationFn: async (taskId: string) => {
@@ -175,6 +204,48 @@ export default function TasksPage() {
       points: newTaskPoints,
       color: newTaskColor
     });
+  };
+
+  const handleEditTask = (task: Task) => {
+    const isCustomTask = task.id.startsWith('custom-');
+    
+    if (!isCustomTask) {
+      toast({
+        title: "Cannot edit default task",
+        description: "You can only edit custom tasks that you created.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const cleanTaskId = task.id.replace('custom-', '');
+    const customTask = customTasks.find((ct: CustomTask) => ct.taskId === cleanTaskId);
+    
+    if (customTask) {
+      setEditingTask(task);
+      setNewTaskName(task.name);
+      setNewTaskDescription(task.description);
+      setNewTaskPoints(task.points);
+      setNewTaskColor(task.color);
+      setShowEditDialog(true);
+    }
+  };
+
+  const handleUpdateTask = () => {
+    if (!newTaskName.trim() || !editingTask) return;
+    
+    const cleanTaskId = editingTask.id.replace('custom-', '');
+    const customTask = customTasks.find((ct: CustomTask) => ct.taskId === cleanTaskId);
+    
+    if (customTask) {
+      updateCustomTaskMutation.mutate({
+        id: customTask.id,
+        name: newTaskName.trim(),
+        description: newTaskDescription.trim(),
+        points: newTaskPoints,
+        color: newTaskColor
+      });
+    }
   };
 
   const handleDeleteTask = (taskId: string) => {
@@ -290,6 +361,69 @@ export default function TasksPage() {
               </div>
             </DialogContent>
           </Dialog>
+          
+          {/* Edit Task Dialog */}
+          <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Edit Task</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="editTaskName">Task Name</Label>
+                  <Input
+                    id="editTaskName"
+                    value={newTaskName}
+                    onChange={(e) => setNewTaskName(e.target.value)}
+                    placeholder="Enter task name"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editTaskDescription">Description</Label>
+                  <Input
+                    id="editTaskDescription"
+                    value={newTaskDescription}
+                    onChange={(e) => setNewTaskDescription(e.target.value)}
+                    placeholder="Describe the task"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="editTaskPoints">Points</Label>
+                  <Input
+                    id="editTaskPoints"
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={newTaskPoints}
+                    onChange={(e) => setNewTaskPoints(parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                <div>
+                  <Label>Color</Label>
+                  <div className="flex gap-2 mt-2">
+                    {colorOptions.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => setNewTaskColor(color.value)}
+                        className={`w-6 h-6 rounded-full ${color.class} ${
+                          newTaskColor === color.value ? 'ring-2 ring-offset-2 ring-gray-400' : ''
+                        }`}
+                        title={color.label}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setShowEditDialog(false)}>
+                    Cancel
+                  </Button>
+                  <Button onClick={handleUpdateTask} disabled={updateCustomTaskMutation.isPending}>
+                    {updateCustomTaskMutation.isPending ? "Updating..." : "Update Task"}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
 
         {/* Search and Filters */}
@@ -361,9 +495,9 @@ export default function TasksPage() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleEditTask(task)}
                               className="text-gray-500 hover:text-blue-600"
                               title="Edit task"
-                              disabled={!isCustomTask}
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -373,7 +507,6 @@ export default function TasksPage() {
                               onClick={() => handleDeleteTask(task.id)}
                               className="text-gray-500 hover:text-red-600"
                               title="Delete task"
-                              disabled={!isCustomTask}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>

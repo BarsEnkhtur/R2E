@@ -358,10 +358,10 @@ export default function Dashboard() {
     <Layout>
       <div className="space-y-8">
         {/* Hero Banner */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg p-6">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold mb-2">
+              <h1 className="text-2xl font-bold mb-2 text-blue-900">
                 👋 Hey {editingName ? (
                   <Input
                     value={userName}
@@ -372,78 +372,76 @@ export default function Dashboard() {
                         setEditingName(false);
                       }
                     }}
-                    className="inline-block w-auto min-w-[100px] mx-2 px-2 py-1 text-2xl font-bold bg-transparent border-b-2 border-white text-white"
+                    className="inline-block w-auto min-w-[100px] mx-2 px-2 py-1 text-2xl font-bold bg-transparent border-b-2 border-blue-600 text-blue-900"
                     autoFocus
                     onFocus={(e) => e.target.select()}
                   />
                 ) : (
                   <span 
                     onClick={() => setEditingName(true)}
-                    className="cursor-pointer hover:text-blue-200 transition-colors inline-block mx-1"
+                    className="cursor-pointer hover:text-blue-700 transition-colors inline-block mx-1"
                     title="Click to edit name"
                   >
                     {userName}
                   </span>
                 )}, {getDynamicGreeting()}
               </h1>
-              <p className="text-blue-100">
+              <p className="text-blue-700">
                 {isCurrentWeek ? "Keep building momentum today" : `Viewing week: ${formatWeekDisplay(currentWeek)}`}
               </p>
             </div>
             <div className="text-right">
-              <div className="text-3xl font-bold mb-1">
-                {currentPoints}<span className="text-lg text-blue-200">/{maxPoints}</span>
+              <div className="text-3xl font-bold mb-1 text-blue-900">
+                {currentPoints}<span className="text-lg text-blue-600">/{maxPoints}</span>
               </div>
-              <div className="text-sm text-blue-100">Weekly Progress</div>
+              <div className="text-sm text-blue-700">Weekly Progress</div>
             </div>
           </div>
           
           {/* Progress Bar */}
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mb-6">
             <div className="flex-1">
-              <Progress value={progressPercentage} className="h-2 bg-blue-800" />
+              <Progress value={progressPercentage} className="h-3 bg-blue-200" />
             </div>
-            <div className="text-sm text-blue-100">
+            <div className="text-sm text-blue-700 font-medium">
               {Math.round(progressPercentage)}% complete
             </div>
           </div>
 
           {/* Week Navigation */}
-          <div className="flex items-center justify-between mt-4">
-            <div className="flex items-center gap-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToPreviousWeek}
-                className="text-blue-600 border-white bg-white hover:bg-blue-50"
-              >
-                <ChevronLeft className="w-4 h-4 mr-1" />
-                Previous
-              </Button>
-              <div className="text-center">
-                <div className="font-medium text-sm">{formatWeekDisplay(currentWeek)}</div>
-                {!isCurrentWeek && (
-                  <Button
-                    variant="link"
-                    size="sm"
-                    onClick={goToCurrentWeek}
-                    className="text-xs text-blue-200 p-0 h-auto"
-                  >
-                    Go to current week
-                  </Button>
-                )}
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToNextWeek}
-                disabled={isCurrentWeek}
-                className="text-blue-600 border-white bg-white hover:bg-blue-50 disabled:opacity-50"
-              >
-                Next
-                <ChevronRight className="w-4 h-4 ml-1" />
-              </Button>
+          <div className="flex items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToPreviousWeek}
+              className="text-blue-700 border-blue-300 bg-white hover:bg-blue-100"
+            >
+              <ChevronLeft className="w-4 h-4 mr-1" />
+              Previous
+            </Button>
+            <div className="text-center px-4">
+              <div className="font-semibold text-blue-900">{formatWeekDisplay(currentWeek)}</div>
+              {!isCurrentWeek && (
+                <Button
+                  variant="link"
+                  size="sm"
+                  onClick={goToCurrentWeek}
+                  className="text-xs text-blue-600 p-0 h-auto hover:text-blue-800"
+                >
+                  Go to current week
+                </Button>
+              )}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={goToNextWeek}
+              disabled={isCurrentWeek}
+              className="text-blue-700 border-blue-300 bg-white hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+              <ChevronRight className="w-4 h-4 ml-1" />
+            </Button>
           </div>
         </div>
 
