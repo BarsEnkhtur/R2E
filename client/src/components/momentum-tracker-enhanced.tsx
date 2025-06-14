@@ -148,7 +148,7 @@ interface Badge {
 }
 
 // Enhanced Task Card Component
-function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji }: {
+function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAttention, getTaskStreak, isOnStreak, getStreakEmoji, handleEditTask }: {
   task: Task;
   openTaskDialog: (task: Task) => void;
   getCurrentTaskValue: (task: Task) => number;
@@ -156,6 +156,7 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
   getTaskStreak: (taskId: string) => number;
   isOnStreak: (taskId: string) => boolean;
   getStreakEmoji: (streak: number) => string;
+  handleEditTask: (task: CompletedTask) => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
   
@@ -286,6 +287,19 @@ function SortableTaskItem({ task, openTaskDialog, getCurrentTaskValue, needsAtte
               <Button
                 variant="ghost"
                 size="sm"
+                onClick={() => {
+                  // Create a temporary completed task object for editing
+                  const tempTask: CompletedTask = {
+                    id: 0,
+                    taskId: task.id,
+                    name: task.name,
+                    points: task.points,
+                    note: "",
+                    completedAt: new Date().toISOString(),
+                    weekStartDate: ""
+                  };
+                  handleEditTask(tempTask);
+                }}
                 className="text-gray-500 hover:text-gray-700"
               >
                 <Edit className="w-4 h-4 mr-2" />
@@ -469,8 +483,45 @@ export default function MomentumTrackerEnhanced() {
   // Helper functions
   const getCurrentTaskValue = (task: Task): number => task.points;
   const needsAttention = (taskId: string): boolean => false;
-  const getTaskStreak = (taskId: string): number => calculateDayStreak();
-  const isOnStreak = (taskId: string): boolean => calculateDayStreak() > 0;
+  
+  // Calculate individual task streak
+  const getTaskStreak = (taskId: string): number => {
+    if (!Array.isArray(completedTasks) || completedTasks.length === 0) return 0;
+    
+    // Filter tasks for this specific task ID
+    const taskCompletions = completedTasks.filter(t => t.taskId === taskId);
+    if (taskCompletions.length === 0) return 0;
+    
+    // Group by date
+    const tasksByDate = taskCompletions.reduce((acc: Record<string, CompletedTask[]>, task: CompletedTask) => {
+      const date = new Date(task.completedAt).toDateString();
+      if (!acc[date]) acc[date] = [];
+      acc[date].push(task);
+      return acc;
+    }, {});
+    
+    // Count consecutive days with this task
+    let streak = 0;
+    const today = new Date();
+    
+    for (let i = 0; i < 30; i++) {
+      const checkDate = new Date(today);
+      checkDate.setDate(today.getDate() - i);
+      const dateString = checkDate.toDateString();
+      
+      if (tasksByDate[dateString] && tasksByDate[dateString].length > 0) {
+        streak++;
+      } else if (i === 0) {
+        continue; // Allow for no tasks today
+      } else {
+        break;
+      }
+    }
+    
+    return streak;
+  };
+  
+  const isOnStreak = (taskId: string): boolean => getTaskStreak(taskId) > 0;
   const getStreakEmoji = (streak: number): string => {
     if (streak >= 7) return "🔥";
     if (streak >= 3) return "⚡";
@@ -593,6 +644,31 @@ export default function MomentumTrackerEnhanced() {
     return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
   };
 
+  // Week navigation functions
+  const goToPreviousWeek = () => {
+    const current = new Date(currentWeek);
+    current.setDate(current.getDate() - 7);
+    setSelectedWeek(current.toISOString().split('T')[0]);
+  };
+
+  const goToNextWeek = () => {
+    const current = new Date(currentWeek);
+    current.setDate(current.getDate() + 7);
+    const today = new Date();
+    const nextWeek = new Date(current);
+    
+    // Don't allow navigation beyond current week
+    if (nextWeek <= today) {
+      setSelectedWeek(current.toISOString().split('T')[0]);
+    }
+  };
+
+  const goToCurrentWeek = () => {
+    setSelectedWeek("");
+  };
+
+  const isCurrentWeek = currentWeek === getWeekStartFixed();
+
   if (isLoading || isGoalLoading || isAuthLoading) {
     return (
       <div className="min-h-screen py-8 px-4">
@@ -658,6 +734,44 @@ export default function MomentumTrackerEnhanced() {
 
           {/* Hero Greeting Area */}
           <div className="hero-greeting mb-6">
+            {/* Week Navigation */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToPreviousWeek}
+                  className="flex items-center gap-2"
+                >
+                  <ChevronDown className="w-4 h-4 rotate-90" />
+                  Previous Week
+                </Button>
+                <div className="text-center">
+                  <div className="font-semibold text-lg">{formatWeekDisplay(currentWeek)}</div>
+                  {!isCurrentWeek && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={goToCurrentWeek}
+                      className="text-xs text-blue-600 p-0 h-auto"
+                    >
+                      Go to current week
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToNextWeek}
+                  disabled={isCurrentWeek}
+                  className="flex items-center gap-2"
+                >
+                  Next Week
+                  <ChevronDown className="w-4 h-4 -rotate-90" />
+                </Button>
+              </div>
+            </div>
+
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h1 className="hero-title mb-2">
@@ -686,7 +800,7 @@ export default function MomentumTrackerEnhanced() {
                   )}, {getDynamicGreeting()}
                 </h1>
                 <p className="body-text">
-                  Add today's tasks to keep your momentum going
+                  {isCurrentWeek ? "Add today's tasks to keep your momentum going" : `Viewing week: ${formatWeekDisplay(currentWeek)}`}
                 </p>
               </div>
               <div className="text-right">
@@ -774,6 +888,7 @@ export default function MomentumTrackerEnhanced() {
                           getTaskStreak={getTaskStreak}
                           isOnStreak={isOnStreak}
                           getStreakEmoji={getStreakEmoji}
+                          handleEditTask={handleEditTask}
                         />
                       ))}
                     </div>
