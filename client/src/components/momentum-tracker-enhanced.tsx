@@ -417,6 +417,28 @@ export default function MomentumTrackerEnhanced() {
     enabled: !!user,
   });
 
+  // Fetch weekly statistics for the selected week
+  const { data: weeklyStats, isLoading: isWeeklyStatsLoading } = useQuery({
+    queryKey: ['/api/task-stats', currentWeek],
+    queryFn: async () => {
+      const response = await fetch(`/api/task-stats?weekStartDate=${currentWeek}`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  // Fetch weekly history for context
+  const { data: weeklyHistory = [], isLoading: isHistoryLoading } = useQuery({
+    queryKey: ['/api/weekly-history'],
+    queryFn: async () => {
+      const response = await fetch('/api/weekly-history');
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
   // Fetch custom tasks
   const { data: customTasks = [], isLoading: isCustomTasksLoading } = useQuery({
     queryKey: ['/api/custom-tasks'],
@@ -515,38 +537,60 @@ export default function MomentumTrackerEnhanced() {
     }
   };
 
-  // Calculate day streak from completed tasks
+  // Calculate day streak from completed tasks (context-aware for week navigation)
   const calculateDayStreak = (): number => {
-    if (!Array.isArray(completedTasks) || completedTasks.length === 0) return 0;
+    const isCurrentWeek = currentWeek === getWeekStartFixed();
     
-    // Group tasks by date
-    const tasksByDate = completedTasks.reduce((acc: Record<string, CompletedTask[]>, task: CompletedTask) => {
-      const date = new Date(task.completedAt).toDateString();
-      if (!acc[date]) acc[date] = [];
-      acc[date].push(task);
-      return acc;
-    }, {});
-    
-    // Count consecutive days with tasks
-    let streak = 0;
-    const today = new Date();
-    
-    for (let i = 0; i < 30; i++) { // Check last 30 days
-      const checkDate = new Date(today);
-      checkDate.setDate(today.getDate() - i);
-      const dateString = checkDate.toDateString();
+    if (isCurrentWeek) {
+      // For current week, calculate actual consecutive day streak
+      if (!Array.isArray(completedTasks) || completedTasks.length === 0) return 0;
       
-      if (tasksByDate[dateString] && tasksByDate[dateString].length > 0) {
-        streak++;
-      } else if (i === 0) {
-        // If no tasks today, check if yesterday had tasks to continue streak
-        continue;
-      } else {
-        break;
+      // Group tasks by date
+      const tasksByDate = completedTasks.reduce((acc: Record<string, CompletedTask[]>, task: CompletedTask) => {
+        const date = new Date(task.completedAt).toDateString();
+        if (!acc[date]) acc[date] = [];
+        acc[date].push(task);
+        return acc;
+      }, {});
+      
+      // Count consecutive days with tasks
+      let streak = 0;
+      const today = new Date();
+      
+      for (let i = 0; i < 30; i++) { // Check last 30 days
+        const checkDate = new Date(today);
+        checkDate.setDate(today.getDate() - i);
+        const dateString = checkDate.toDateString();
+        
+        if (tasksByDate[dateString] && tasksByDate[dateString].length > 0) {
+          streak++;
+        } else if (i === 0) {
+          // If no tasks today, check if yesterday had tasks to continue streak
+          continue;
+        } else {
+          break;
+        }
       }
+      
+      return streak;
+    } else {
+      // For historical weeks, show days active in that specific week
+      if (!Array.isArray(completedTasks) || completedTasks.length === 0) return 0;
+      
+      const weekStart = new Date(currentWeek);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      
+      const daysActive = new Set();
+      completedTasks.forEach(task => {
+        const taskDate = new Date(task.completedAt);
+        if (taskDate >= weekStart && taskDate <= weekEnd) {
+          daysActive.add(taskDate.toDateString());
+        }
+      });
+      
+      return daysActive.size;
     }
-    
-    return streak;
   };
 
   // Helper functions
@@ -599,10 +643,14 @@ export default function MomentumTrackerEnhanced() {
   };
   const getCurrentStreak = () => {
     const streak = calculateDayStreak();
+    const isCurrentWeek = currentWeek === getWeekStartFixed();
+    
     return { 
       streak, 
       streakIcon: getStreakEmoji(streak), 
-      streakText: streak > 0 ? `${streak}-day streak` : "Getting started" 
+      streakText: isCurrentWeek 
+        ? (streak > 0 ? `${streak}-day streak` : "Getting started")
+        : (streak > 0 ? `${streak} active days` : "No activity")
     };
   };
 
@@ -1168,7 +1216,9 @@ export default function MomentumTrackerEnhanced() {
               <div className="space-y-4">
                 <Card className="focus-card">
                   <CardContent className="p-6">
-                    <h3 className="card-title mb-4">Streak & Progress</h3>
+                    <h3 className="card-title mb-4">
+                      {currentWeek === getWeekStartFixed() ? "Streak & Progress" : "Week Statistics"}
+                    </h3>
                     <div className="space-y-4">
                       <div 
                         className="text-center p-4 bg-orange-50 rounded-lg cursor-pointer hover:bg-orange-100 transition-colors"
@@ -1177,15 +1227,27 @@ export default function MomentumTrackerEnhanced() {
                       >
                         <div className="text-3xl mb-2">{getCurrentStreak().streakIcon || "🎯"}</div>
                         <div className="text-2xl font-bold text-orange-600">{calculateDayStreak()}</div>
-                        <div className="caption">Day Streak</div>
+                        <div className="caption">
+                          {currentWeek === getWeekStartFixed() ? "Day Streak" : "Active Days"}
+                        </div>
                       </div>
                       <div 
                         className="text-center p-4 bg-blue-50 rounded-lg cursor-pointer hover:bg-blue-100 transition-colors"
                         onClick={() => setActiveTab("progress")}
                         title="Click to view detailed progress"
                       >
-                        <div className="text-2xl font-bold text-blue-600">{currentPoints}</div>
-                        <div className="caption">Points This Week</div>
+                        <div className="text-2xl font-bold text-blue-600">
+                          {currentPoints}
+                          <span className="text-sm text-gray-500">/{maxPoints}</span>
+                        </div>
+                        <div className="caption">
+                          {currentWeek === getWeekStartFixed() ? "Points This Week" : "Week Total"}
+                        </div>
+                        {currentWeek !== getWeekStartFixed() && (
+                          <div className="text-xs text-gray-500 mt-1">
+                            Goal: {Math.round((currentPoints / maxPoints) * 100)}% achieved
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>
@@ -1245,10 +1307,27 @@ export default function MomentumTrackerEnhanced() {
               <div className="space-y-4">
                 <Card className="focus-card">
                   <CardContent className="p-6">
-                    <h3 className="card-title mb-4">Recent Activity</h3>
-                    {Array.isArray(completedTasks) && completedTasks.length > 0 ? (
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="card-title">
+                        {currentWeek === getWeekStartFixed() ? "Recent Activity" : "Week Activity"}
+                      </h3>
+                      {currentWeek !== getWeekStartFixed() && (
+                        <div className="text-xs text-gray-500">
+                          {formatWeekDisplay(currentWeek)}
+                        </div>
+                      )}
+                    </div>
+                    {isLoading ? (
+                      <div className="text-center py-8">
+                        <div className="animate-spin w-8 h-8 border-2 border-slate-300 border-t-blue-600 rounded-full mx-auto mb-3"></div>
+                        <p className="text-sm text-slate-600">Loading tasks...</p>
+                      </div>
+                    ) : Array.isArray(completedTasks) && completedTasks.length > 0 ? (
                       <div className="space-y-3 max-h-96 overflow-y-auto">
-                        {completedTasks.slice(0, 10).map((task: CompletedTask) => (
+                        {completedTasks
+                          .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
+                          .slice(0, 10)
+                          .map((task: CompletedTask) => (
                           <div 
                             key={task.id} 
                             className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
@@ -1262,6 +1341,11 @@ export default function MomentumTrackerEnhanced() {
                               <div className="font-medium text-sm">{task.name}</div>
                               <div className="caption text-gray-500">
                                 +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
+                                {new Date(task.completedAt).toLocaleTimeString('en-US', {
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  hour12: true
+                                })}
                               </div>
                               {task.note && (
                                 <div className="caption text-gray-600 mt-1 italic">"{task.note}"</div>
@@ -1273,7 +1357,11 @@ export default function MomentumTrackerEnhanced() {
                     ) : (
                       <div className="text-center py-4">
                         <div className="text-4xl mb-2">📝</div>
-                        <div className="caption">No activities yet this week</div>
+                        <div className="caption">
+                          {currentWeek === getWeekStartFixed() 
+                            ? "No activities yet this week" 
+                            : "No activities during this week"}
+                        </div>
                       </div>
                     )}
                   </CardContent>
