@@ -115,6 +115,14 @@ Changelog:
   - Separated full task management into dedicated /tasks page
   - Enhanced week navigation with dynamic data loading and context updates
   - Added client-side routing with no page reloads between views
+- June 14, 2025. Task Icons & Table Polish Implementation:
+  - Integrated lucide-react with 40+ semantic icons for task management
+  - Mapped default tasks to semantic icons (Briefcase, Users, Code, Heart, Lightbulb)
+  - Built icon picker with 8-column grid of curated lucide icons for custom tasks
+  - Implemented polished task table with proper colored icon circles (32px)
+  - Added complete CRUD functionality with edit/delete modals for all tasks
+  - Enhanced table layout with hover states, type badges, and action buttons
+  - Completed Settings page with profile management and notification controls
 ```
 
 ## User Preferences

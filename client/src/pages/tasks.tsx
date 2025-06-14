@@ -438,11 +438,48 @@ export default function TasksPage() {
                   />
                 </div>
                 <div>
+                  <Label>Icon</Label>
+                  <div className="mt-2">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => setShowIconPicker(!showIconPicker)}
+                      className="flex items-center gap-2"
+                    >
+                      {React.createElement(getIconComponent(newTaskIcon), { className: "w-4 h-4" })}
+                      {newTaskIcon}
+                    </Button>
+                    {showIconPicker && (
+                      <div className="mt-3 p-3 border rounded-lg bg-gray-50 max-h-48 overflow-y-auto">
+                        <div className="grid grid-cols-8 gap-2">
+                          {availableIcons.map((icon) => (
+                            <button
+                              key={icon.name}
+                              type="button"
+                              onClick={() => {
+                                setNewTaskIcon(icon.name);
+                                setShowIconPicker(false);
+                              }}
+                              className={`p-2 rounded hover:bg-gray-200 transition-colors ${
+                                newTaskIcon === icon.name ? 'bg-blue-100 ring-1 ring-blue-500' : ''
+                              }`}
+                              title={icon.name}
+                            >
+                              {React.createElement(icon.component, { className: "w-4 h-4" })}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div>
                   <Label>Color</Label>
                   <div className="flex gap-2 mt-2">
                     {colorOptions.map((color) => (
                       <button
                         key={color.value}
+                        type="button"
                         onClick={() => setNewTaskColor(color.value)}
                         className={`w-6 h-6 rounded-full ${color.class} ${
                           newTaskColor === color.value ? 'ring-2 ring-offset-2 ring-gray-400' : ''
