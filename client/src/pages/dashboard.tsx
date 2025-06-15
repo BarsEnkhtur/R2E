@@ -198,6 +198,7 @@ export default function Dashboard() {
   const weeklyGoal = progressData?.goal || 15;
   const totalPoints = progressData?.points || 0;
   const topTasksData = progressData?.topTasks || [];
+  const completionsData = progressData?.completions || [];
 
   // Calculate progress
   const progressPercentage = Math.min((totalPoints / weeklyGoal) * 100, 100);
@@ -456,8 +457,20 @@ export default function Dashboard() {
                             <div>
                               <h3 className="font-medium text-gray-900">{topTask.taskName}</h3>
                               <p className="text-sm text-gray-600">
-                                {topTask.count}x this week • {Math.round(topTask.points * topTask.count)} pts total
+                                {topTask.count}x this week • {Math.round(topTask.points)} pts total
                               </p>
+                              {completionsData.length > 0 && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  {(() => {
+                                    const taskCompletions = completionsData.filter((c: any) => c.taskId === topTask.taskId);
+                                    if (taskCompletions.length > 0) {
+                                      const avgMultiplier = taskCompletions.reduce((sum: number, c: any) => sum + c.multiplier, 0) / taskCompletions.length;
+                                      return `Avg multiplier: ${avgMultiplier.toFixed(1)}x`;
+                                    }
+                                    return '';
+                                  })()}
+                                </div>
+                              )}
                             </div>
                           </div>
                           {topTask.task ? (

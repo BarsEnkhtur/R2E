@@ -46,18 +46,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const weekStartDate = start;
       const tasks = await storage.getCompletedTasks(userId, weekStartDate);
       
+      // Get task stats to understand base points and multipliers
+      const taskStats = await storage.getTaskStats(userId, weekStartDate);
+      const taskStatsMap = new Map(taskStats.map(stat => [stat.taskId, stat]));
+      
       // Get weekly goal
       const goalData = await storage.calculateDynamicGoal(userId, weekStartDate);
       
       // Get weekly history
       const history = await storage.getWeeklyHistory(userId);
       
-      // Calculate top tasks
-      const taskCounts = tasks.reduce((acc: Record<string, {name: string, points: number, count: number}>, task) => {
+      // Enhanced task data with individual completions including multiplier info
+      const completions = tasks.map(task => {
+        const stat = taskStatsMap.get(task.taskId);
+        const basePoints = stat?.basePoints || task.points;
+        const multiplier = task.points / basePoints; // Calculate actual multiplier used
+        
+        return {
+          taskId: task.taskId,
+          timestamp: task.completedAt,
+          basePoints,
+          multiplier,
+          actualPoints: task.points,
+          name: task.name,
+          note: task.note
+        };
+      });
+      
+      // Calculate top tasks using actual completion points
+      const taskCounts = tasks.reduce((acc: Record<string, {name: string, points: number, count: number, basePoints: number}>, task) => {
         if (!acc[task.taskId]) {
-          acc[task.taskId] = { name: task.name, points: 0, count: 0 };
+          const stat = taskStatsMap.get(task.taskId);
+          acc[task.taskId] = { 
+            name: task.name, 
+            points: 0, 
+            count: 0,
+            basePoints: stat?.basePoints || task.points
+          };
         }
-        acc[task.taskId].points += task.points;
+        acc[task.taskId].points += task.points; // Use actual points earned
         acc[task.taskId].count += 1;
         return acc;
       }, {});
@@ -67,10 +94,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         .slice(0, 5);
       
       const progressData = {
-        points: tasks.reduce((sum, task) => sum + task.points, 0),
+        points: tasks.reduce((sum, task) => sum + task.points, 0), // Total actual points earned
         goal: goalData,
         tasksCompleted: tasks.length,
         topTasks,
+        completions, // Individual completion data with multipliers
         history: history.slice(0, 8)
       };
       
