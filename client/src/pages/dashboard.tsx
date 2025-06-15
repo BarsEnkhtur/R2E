@@ -23,8 +23,11 @@ import {
   DollarSign, 
   Heart, 
   Briefcase,
-  Circle
+  Circle,
+  Trophy,
+  TrendingUp
 } from "lucide-react";
+import { format, startOfWeek, endOfWeek, getISOWeek } from "date-fns";
 
 // Helper function to get task category icon
 const getTaskCategoryIcon = (taskId: string): string => {
@@ -57,6 +60,7 @@ interface CompletedTask {
 
 interface CustomTask {
   id: number;
+  userId: string;
   taskId: string;
   name: string;
   description: string;
@@ -115,15 +119,11 @@ export default function Dashboard() {
     }
   ];
 
-  // Helper function to get current week start date
+  // Helper function to get current week start date (Monday)
   const getWeekStartFixed = (): string => {
     const now = new Date();
-    const utcDate = new Date(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
-    const dayOfWeek = utcDate.getDay();
-    const daysBack = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const weekStart = new Date(utcDate);
-    weekStart.setDate(utcDate.getDate() - daysBack);
-    return weekStart.toISOString().split('T')[0];
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
+    return format(weekStart, 'yyyy-MM-dd');
   };
 
   const currentWeek = selectedWeek || getWeekStartFixed();
@@ -131,11 +131,12 @@ export default function Dashboard() {
   // Helper to calculate week date range
   const getWeekRange = (weekStartDate: string) => {
     const start = new Date(weekStartDate);
-    const end = new Date(start);
-    end.setDate(start.getDate() + 6);
+    const end = endOfWeek(start, { weekStartsOn: 1 });
     return {
-      start: start.toISOString().split('T')[0],
-      end: end.toISOString().split('T')[0]
+      start: format(start, 'yyyy-MM-dd'),
+      end: format(end, 'yyyy-MM-dd'),
+      display: `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`,
+      weekNumber: getISOWeek(start)
     };
   };
 
@@ -154,11 +155,6 @@ export default function Dashboard() {
     enabled: !!user,
   });
 
-  // Extract data from progress response
-  const completedTasks = progressData?.topTasks || [];
-  const weeklyGoal = progressData?.goal || 15;
-  const totalPoints = progressData?.points || 0;
-
   // Fetch custom tasks
   const { data: customTasks = [], isLoading: isCustomTasksLoading } = useQuery({
     queryKey: ['/api/custom-tasks'],
@@ -166,6 +162,18 @@ export default function Dashboard() {
       const response = await fetch('/api/custom-tasks');
       if (!response.ok) return [];
       return response.json();
+    },
+    enabled: !!user,
+  });
+
+  // Fetch AI badges for Recent Badges widget
+  const { data: aiBadges = [], isLoading: isBadgesLoading } = useQuery({
+    queryKey: ['/api/ai-badges'],
+    queryFn: async () => {
+      const response = await fetch('/api/ai-badges');
+      if (!response.ok) return [];
+      const badges = await response.json();
+      return badges.filter((badge: any) => badge.unlockedAt).slice(0, 3);
     },
     enabled: !!user,
   });
@@ -183,43 +191,27 @@ export default function Dashboard() {
     }))
   ];
 
-  // Fetch AI badges for Recent Badges widget
-  const { data: aiBadges = [], isLoading: isBadgesLoading } = useQuery({
-    queryKey: ['/api/ai-badges'],
-    queryFn: async () => {
-      const response = await fetch('/api/ai-badges');
-      if (!response.ok) return [];
-      const badges = await response.json();
-      return badges.filter((badge: any) => badge.unlockedAt).slice(0, 3);
-    },
-    enabled: !!user,
-  });
+  // Extract data from progress response
+  const weeklyGoal = progressData?.goal || 15;
+  const totalPoints = progressData?.points || 0;
+  const topTasksData = progressData?.topTasks || [];
 
-  // Calculate task frequency and multipliers for focus panel
+  // Calculate progress
+  const progressPercentage = Math.min((totalPoints / weeklyGoal) * 100, 100);
+
+  // Get top tasks for focus panel
   const getTopTasks = () => {
-    if (!Array.isArray(completedTasks)) return [];
-    
-    return completedTasks.map((task: any) => ({
+    return topTasksData.slice(0, 4).map((task: any) => ({
       taskId: task.taskId || task.id,
       taskName: task.name,
       points: task.points,
       count: task.count || 1,
-        multiplier: Math.min(1 + (data.count - 1) * 0.5, 2.5),
-        task: allTasks.find(t => t.id === taskId || t.id === `custom-${taskId}`)
-      }))
-      .filter(item => item.task)
-      .sort((a, b) => b.multiplier - a.multiplier || b.count - a.count)
-      .slice(0, 4);
-
-    return sortedTasks;
+      multiplier: Math.min(1 + ((task.count || 1) - 1) * 0.5, 2.5),
+      task: allTasks.find(t => t.id === task.taskId || t.id === `custom-${task.taskId}`)
+    })).filter(item => item.task);
   };
 
   const topTasks = getTopTasks();
-
-  // Calculate progress
-  const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum: number, task: CompletedTask) => sum + task.points, 0) : 0;
-  const maxPoints = goalData?.goal || 15;
-  const progressPercentage = Math.min((currentPoints / maxPoints) * 100, 100);
 
   // Initialize user name from email
   useEffect(() => {
@@ -229,45 +221,9 @@ export default function Dashboard() {
     }
   }, [user, userName]);
 
-  // Calculate day streak
-  const calculateDayStreak = (): number => {
-    if (!Array.isArray(completedTasks) || completedTasks.length === 0) return 0;
-    
-    const tasksByDate = completedTasks.reduce((acc: Record<string, CompletedTask[]>, task: CompletedTask) => {
-      const date = new Date(task.completedAt).toDateString();
-      if (!acc[date]) acc[date] = [];
-      acc[date].push(task);
-      return acc;
-    }, {});
-    
-    let streak = 0;
-    const today = new Date();
-    
-    for (let i = 0; i < 30; i++) {
-      const checkDate = new Date(today);
-      checkDate.setDate(today.getDate() - i);
-      const dateString = checkDate.toDateString();
-      
-      if (tasksByDate[dateString] && tasksByDate[dateString].length > 0) {
-        streak++;
-      } else if (i === 0) {
-        continue;
-      } else {
-        break;
-      }
-    }
-    
-    return streak;
-  };
-
   // Dynamic greeting based on progress
   const getDynamicGreeting = (): string => {
-    const streak = calculateDayStreak();
-    if (streak >= 7) {
-      return `you're on a ${streak}-day streak! 🔥`;
-    } else if (streak >= 3) {
-      return `${streak}-day streak going strong! ⚡`;
-    } else if (progressPercentage >= 80) {
+    if (progressPercentage >= 80) {
       return "you're crushing it this week! 💪";
     } else if (progressPercentage >= 60) {
       return "keep that momentum going! 🚀";
@@ -276,12 +232,13 @@ export default function Dashboard() {
     }
   };
 
-  // Week navigation functions
+  // Week navigation functions with ISO week calculation
   const formatWeekDisplay = (weekStart: string) => {
     const start = new Date(weekStart);
     const end = new Date(start);
     end.setDate(start.getDate() + 6);
-    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    const weekNumber = getISOWeek(start);
+    return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} (Week ${weekNumber})`;
   };
 
   const goToPreviousWeek = () => {
@@ -321,18 +278,27 @@ export default function Dashboard() {
       return response.json();
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
       queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/dynamic-goal'] });
+      toast({
+        title: "Task completed!",
+        description: "Great job on staying consistent.",
+      });
       setIsDialogOpen(false);
       setSelectedTask(null);
       setTaskNote("");
+    },
+    onError: (error: any) => {
       toast({
-        title: "Task completed!",
-        description: "Great job! Keep building that momentum.",
+        title: "Error",
+        description: error.message || "Failed to complete task",
+        variant: "destructive",
       });
     }
   });
 
-  const addPoints = () => {
+  const handleTaskSubmit = () => {
     if (!selectedTask) return;
     
     createTaskMutation.mutate({
@@ -343,7 +309,11 @@ export default function Dashboard() {
     });
   };
 
-  if (isLoading || isGoalLoading || isAuthLoading) {
+  const handleNameSave = () => {
+    setEditingName(false);
+  };
+
+  if (isAuthLoading || isLoading) {
     return (
       <Layout>
         <div className="text-center py-12">
@@ -356,246 +326,210 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="space-y-8">
-        {/* Hero Banner */}
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Hero Section */}
+        <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold mb-2 text-blue-900">
-                👋 Hey {editingName ? (
+              <h1 className="text-3xl font-bold text-blue-900 mb-2">
+                Hey {editingName ? (
                   <Input
                     value={userName}
                     onChange={(e) => setUserName(e.target.value)}
-                    onBlur={() => setEditingName(false)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        setEditingName(false);
-                      }
-                    }}
-                    className="inline-block w-auto min-w-[100px] mx-2 px-2 py-1 text-2xl font-bold bg-transparent border-b-2 border-blue-600 text-blue-900"
+                    onBlur={handleNameSave}
+                    onKeyPress={(e) => e.key === 'Enter' && handleNameSave()}
+                    className="inline-block w-32 text-3xl font-bold"
                     autoFocus
-                    onFocus={(e) => e.target.select()}
                   />
                 ) : (
-                  <span 
-                    onClick={() => setEditingName(true)}
-                    className="cursor-pointer hover:text-blue-700 transition-colors inline-block mx-1"
-                    title="Click to edit name"
-                  >
+                  <span onClick={() => setEditingName(true)} className="cursor-pointer hover:text-blue-700">
                     {userName}
                   </span>
                 )}, {getDynamicGreeting()}
               </h1>
-              <p className="text-blue-700">
-                {isCurrentWeek ? "Keep building momentum today" : `Viewing week: ${formatWeekDisplay(currentWeek)}`}
-              </p>
+              <p className="text-blue-800">Stay consistent, build momentum, and achieve your goals.</p>
             </div>
-            <div className="text-right">
-              <div className="text-3xl font-bold mb-1 text-blue-900">
-                {currentPoints}<span className="text-lg text-blue-600">/{maxPoints}</span>
+
+            {/* Week Navigation */}
+            <div className="flex items-center gap-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousWeek}
+                className="text-blue-700 border-blue-300 bg-white hover:bg-blue-100"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                Previous
+              </Button>
+              <div className="text-center px-4">
+                <div className="font-semibold text-blue-900">{formatWeekDisplay(currentWeek)}</div>
+                {!isCurrentWeek && (
+                  <Button
+                    variant="link"
+                    size="sm"
+                    onClick={goToCurrentWeek}
+                    className="text-xs text-blue-600 p-0 h-auto hover:text-blue-800"
+                  >
+                    Go to current week
+                  </Button>
+                )}
               </div>
-              <div className="text-sm text-blue-700">Weekly Progress</div>
-            </div>
-          </div>
-          
-          {/* Progress Bar */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex-1">
-              <Progress value={progressPercentage} className="h-3 bg-blue-200" />
-            </div>
-            <div className="text-sm text-blue-700 font-medium">
-              {Math.round(progressPercentage)}% complete
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextWeek}
+                className="text-blue-700 border-blue-300 bg-white hover:bg-blue-100"
+              >
+                Next
+                <ChevronRight className="w-4 h-4 ml-1" />
+              </Button>
             </div>
           </div>
 
-          {/* Week Navigation */}
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToPreviousWeek}
-              className="text-blue-700 border-blue-300 bg-white hover:bg-blue-100"
-            >
-              <ChevronLeft className="w-4 h-4 mr-1" />
-              Previous
-            </Button>
-            <div className="text-center px-4">
-              <div className="font-semibold text-blue-900">{formatWeekDisplay(currentWeek)}</div>
-              {!isCurrentWeek && (
-                <Button
-                  variant="link"
-                  size="sm"
-                  onClick={goToCurrentWeek}
-                  className="text-xs text-blue-600 p-0 h-auto hover:text-blue-800"
-                >
-                  Go to current week
-                </Button>
-              )}
+          {/* Progress Bar */}
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm text-blue-800">
+              <span>Weekly Progress</span>
+              <span>{totalPoints} / {weeklyGoal} points</span>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToNextWeek}
-              disabled={isCurrentWeek}
-              className="text-blue-700 border-blue-300 bg-white hover:bg-blue-100 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Next
-              <ChevronRight className="w-4 h-4 ml-1" />
-            </Button>
+            <Progress value={progressPercentage} className="h-3 bg-blue-200" />
+            <p className="text-sm text-blue-700">
+              {progressPercentage >= 100 
+                ? "🎉 Goal achieved! Keep it up!" 
+                : `${weeklyGoal - totalPoints} points to reach your goal`}
+            </p>
           </div>
         </div>
 
-        {/* Focus for This Week Panel */}
-        {topTasks.length > 0 && (
-          <Card className="border-blue-200 bg-gradient-to-br from-blue-50 to-white">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Focus for This Week */}
+          <div className="lg:col-span-2">
+            <Card>
+              <CardContent className="p-6">
+                <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
                   <Target className="w-5 h-5 text-blue-600" />
-                  <h2 className="text-xl font-semibold text-blue-800">Focus for This Week</h2>
-                </div>
-                <div className="text-sm text-blue-600 font-medium">
-                  Top momentum builders
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {topTasks.map((topTask) => {
-                  const task = topTask.task!;
-                  const IconComponent = task.icon;
-                  return (
-                    <div 
-                      key={task.id}
-                      className="flex items-center gap-4 p-4 bg-white rounded-lg border border-blue-100 hover:border-blue-200 transition-all hover:shadow-sm"
-                    >
-                      <div className="flex-shrink-0 w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                        <IconComponent className="w-6 h-6 text-blue-600" />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold text-gray-900">{task.name}</h3>
-                          <div className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-bold rounded-full">
-                            ×{topTask.multiplier.toFixed(1)}
+                  Focus for This Week
+                </h2>
+                {topTasks.length > 0 ? (
+                  <div className="space-y-3">
+                    {topTasks.map((topTask: any, index: number) => {
+                      const IconComponent = topTask.task.icon;
+                      return (
+                        <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                              <IconComponent className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div>
+                              <h3 className="font-medium text-gray-900">{topTask.task.name}</h3>
+                              <p className="text-sm text-gray-600">
+                                {topTask.count}x this week • +{Math.round(topTask.points * topTask.multiplier)} pts each
+                              </p>
+                            </div>
                           </div>
+                          <Button
+                            onClick={() => openTaskDialog(topTask.task)}
+                            className="bg-blue-600 hover:bg-blue-700 text-white"
+                          >
+                            Add
+                          </Button>
                         </div>
-                        <div className="flex items-center gap-4 text-sm text-gray-600">
-                          <span>{topTask.count} times</span>
-                          <span>•</span>
-                          <span>{topTask.totalPoints} points</span>
-                        </div>
-                      </div>
-
-                      <Button 
-                        size="sm" 
-                        onClick={() => openTaskDialog(task)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 shadow-sm"
-                      >
-                        <Plus className="w-4 h-4 mr-2" />
-                        Add
-                      </Button>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Compact Widgets */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Streak & Progress Widget */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Flame className="w-5 h-5 text-orange-500" />
-                Streak & Progress
-              </h3>
-              <div className="space-y-4">
-                <div className="text-center p-4 bg-orange-50 rounded-lg">
-                  <div className="text-3xl mb-2">🔥</div>
-                  <div className="text-2xl font-bold text-orange-600">{calculateDayStreak()}</div>
-                  <div className="text-sm text-gray-600">Day Streak</div>
-                </div>
-                <div className="text-center p-4 bg-blue-50 rounded-lg">
-                  <div className="text-2xl font-bold text-blue-600">{currentPoints}</div>
-                  <div className="text-sm text-gray-600">Points This Week</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Recent Badges Widget */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-4 flex items-center gap-2">
-                <Award className="w-5 h-5 text-purple-500" />
-                Recent Badges
-              </h3>
-              <div className="space-y-3">
-                {completedTasks.length >= 1 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-lg">🎯</span>
-                    <span className="font-medium text-green-600">Getting Started</span>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    <Target className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                    <p>Complete some tasks to see your focus areas</p>
                   </div>
                 )}
-                {currentPoints >= 10 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-lg">📆</span>
-                    <span className="font-medium text-green-600">Consistency Champ</span>
-                  </div>
-                )}
-                {calculateDayStreak() >= 3 && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-lg">🔥</span>
-                    <span className="font-medium text-green-600">Streak Starter</span>
-                  </div>
-                )}
-                <Button variant="link" className="text-xs p-0 h-auto text-blue-600">
-                  View All Badges →
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Recent Activity Widget */}
-          <Card>
-            <CardContent className="p-6">
-              <h3 className="font-semibold mb-4">Recent Activity</h3>
-              {Array.isArray(completedTasks) && completedTasks.length > 0 ? (
+          {/* Sidebar Widgets */}
+          <div className="space-y-6">
+            {/* Streak & Progress Widget */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Flame className="w-4 h-4 text-orange-500" />
+                  Streak & Progress
+                </h3>
                 <div className="space-y-3">
-                  {completedTasks
-                    .sort((a, b) => new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime())
-                    .slice(0, 3)
-                    .map((task: CompletedTask) => (
-                    <div 
-                      key={task.id} 
-                      className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                      title="Click to view details"
-                    >
-                      <div className="flex-shrink-0">
-                        <span className="text-lg">{getTaskCategoryIcon(task.taskId)}</span>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="font-medium text-sm">{task.name}</div>
-                        <div className="text-xs text-gray-500">
-                          +{task.points} points • {new Date(task.completedAt).toLocaleDateString()}
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">This Week</span>
+                    <span className="font-medium">{totalPoints} pts</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Weekly Goal</span>
+                    <span className="font-medium">{weeklyGoal} pts</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600">Progress</span>
+                    <span className="font-medium text-blue-600">{Math.round(progressPercentage)}%</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Badges Widget */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <Award className="w-4 h-4 text-yellow-500" />
+                  Recent Badges
+                </h3>
+                {aiBadges.length > 0 ? (
+                  <div className="space-y-2">
+                    {aiBadges.map((badge: any, index: number) => (
+                      <div key={index} className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
+                        <Trophy className="w-4 h-4 text-yellow-600" />
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{badge.name}</p>
+                          <p className="text-xs text-gray-600">+{badge.xpReward || 10} XP</p>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  <Button variant="link" className="text-xs p-0 h-auto text-blue-600">
-                    View All Activity →
-                  </Button>
-                </div>
-              ) : (
-                <div className="text-center py-4">
-                  <div className="text-4xl mb-2">📝</div>
-                  <div className="text-sm text-gray-500">No activities yet</div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <Trophy className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">Complete tasks to earn badges</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Recent Activity Widget */}
+            <Card>
+              <CardContent className="p-6">
+                <h3 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                  <TrendingUp className="w-4 h-4 text-green-500" />
+                  Recent Activity
+                </h3>
+                {topTasksData.length > 0 ? (
+                  <div className="space-y-2">
+                    {topTasksData.slice(0, 3).map((task: any, index: number) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                        <div>
+                          <p className="text-sm font-medium text-gray-900">{task.name}</p>
+                          <p className="text-xs text-gray-600">{task.count} times</p>
+                        </div>
+                        <span className="text-sm font-medium text-green-600">+{task.points}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-gray-500">
+                    <TrendingUp className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p className="text-sm">No activity this week</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Task Completion Dialog */}
@@ -609,17 +543,21 @@ export default function Dashboard() {
                 <Label htmlFor="note">Add a note (optional)</Label>
                 <Input
                   id="note"
+                  placeholder="What did you accomplish?"
                   value={taskNote}
                   onChange={(e) => setTaskNote(e.target.value)}
-                  placeholder="What did you accomplish?"
                 />
               </div>
-              <div className="flex justify-end space-x-2">
+              <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={addPoints} disabled={createTaskMutation.isPending}>
-                  {createTaskMutation.isPending ? "Adding..." : `Add ${selectedTask?.points} Points`}
+                <Button 
+                  onClick={handleTaskSubmit}
+                  disabled={createTaskMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {createTaskMutation.isPending ? "Adding..." : `+${selectedTask?.points} pts`}
                 </Button>
               </div>
             </div>

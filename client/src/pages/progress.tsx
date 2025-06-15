@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { ChevronLeft, ChevronRight, TrendingUp, Calendar, Target, Award } from "lucide-react";
-import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from "date-fns";
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, getISOWeek } from "date-fns";
 
 interface CompletedTask {
   id: number;
@@ -37,14 +37,15 @@ export default function ProgressPage() {
 
   const { user, isLoading: isAuthLoading } = useAuth();
 
-  // Calculate week date range
+  // Calculate week date range with ISO week number
   const getWeekRange = (weekStartDate: string) => {
     const start = new Date(weekStartDate);
     const end = endOfWeek(start, { weekStartsOn: 1 }); // Sunday end
+    const weekNumber = getISOWeek(start);
     return {
       start: format(start, 'yyyy-MM-dd'),
       end: format(end, 'yyyy-MM-dd'),
-      display: `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`
+      display: `${format(start, 'MMM d')} – ${format(end, 'MMM d')} (Week ${weekNumber})`
     };
   };
 
@@ -78,7 +79,7 @@ export default function ProgressPage() {
         }, {});
         
         const topTasks = Object.values(taskCounts)
-          .sort((a, b) => b.points - a.points)
+          .sort((a: any, b: any) => b.points - a.points)
           .slice(0, 5);
         
         return {

@@ -138,6 +138,13 @@ Changelog:
   - Updated week navigation with proper ISO week calculation and current week detection
   - Integrated top tasks display from actual completion data with points and counts
   - Added Recent Performance table with real date ranges and achievement status
+- June 15, 2025. Dashboard Week Navigation, Badge Wiring & Week Number Implementation:
+  - Enabled "Next" button on Dashboard week scroller for all weeks (removed current week restriction)
+  - Implemented proper data binding using /api/progress endpoint for Focus and Streak widgets
+  - Added ISO week numbers to both Dashboard and Progress page date displays (Week 24, etc.)
+  - Integrated authentic badge data from /api/ai-badges into Recent Badges widget
+  - Removed all hard-coded badge arrays and fallback data for authentic API responses
+  - Added comprehensive week navigation controls matching Progress page functionality
 ```
 
 ## User Preferences
