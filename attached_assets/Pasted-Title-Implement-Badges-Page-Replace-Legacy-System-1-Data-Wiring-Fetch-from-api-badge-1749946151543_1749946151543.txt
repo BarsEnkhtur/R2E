@@ -1,0 +1,54 @@
+Title: Implement Badges Page & Replace Legacy System
+
+## 1. Data Wiring
+- **Fetch** from `/api/badges` (or equivalent) on mount:
+  - `allBadges: Badge[]` — includes `{ id, title, description, iconName, rarity, xp, criteria, unlockedDate? }`
+- **Remove** any legacy badge code—use only the new API shape.
+
+## 2. Page Layout (`/badges`)
+1. **Stats Row** (cards):
+   - **Total Badges**: count of `allBadges`
+   - **Total XP**: sum of `xp` for unlocked badges
+   - **Legendary**: count where `rarity === 'legendary'` and `unlockedDate` present
+   - **Recent Badges**: show the 3 most recently `unlockedDate` badges
+
+2. **Empty State** (when no unlocked badges):
+   - Centered trophy icon + “No Badges Yet”
+   - Subtitle: “Start completing tasks to unlock your first achievements!”
+   - Mini-list of example badge types:
+     • Consistency streaks  
+     • Task completion milestones  
+     • Weekly goal achievements  
+     • Special activity patterns  
+
+3. **Badge Gallery** (grid):
+   - 3–4 columns on desktop, 1–2 on mobile.
+   - **Card** for each badge:
+     - **Icon**: SVG (use `lucide-react` or supplied `iconName`)
+     - **Title** (bold)
+     - **Rarity Tag**: pill (Common / Uncommon / Rare / Legendary) with distinct tailwind colors:
+       - `gray` / `green` / `blue` / `orange`
+     - **Description** (smaller text)
+     - **Locked Overlay**: if `!unlockedDate`, render a semi-opaque cover with a lock icon and “Locked” label.
+     - **Unlocked Date**: if `unlockedDate`, show e.g. “Unlocked Jun 12, 2025”
+
+4. **Rarity Legend** (footer):
+   - Recreate the “Badge Rarity System” bar:
+     - `Common – Basic achievements`
+     - `Uncommon – Regular milestones`
+     - `Rare – Significant progress`
+     - `Legendary – Exceptional feats`
+   - Use matching pill colors.
+
+## 3. Interactivity & Performance
+- **Lazy-load** badge icons and grid (e.g. React’s `Suspense`/`lazy`).
+- **Filter Bar** (optional): top-right dropdown to filter by rarity or show only unlocked/locked.
+- **Responsive**: ensure grid reflows and stats row stacks on narrow screens.
+- **Loading State**: skeleton cards while fetching.
+
+## Outcome
+A complete Badges page that:
+- Reuses your existing rarity legend and example copy.
+- Fully displays unlocked vs locked badges in an attractive grid.
+- Surfaces key stats at the top.
+- Replaces any old badge wiring with a single source of truth from `/api/badges`.
