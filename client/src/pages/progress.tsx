@@ -31,46 +31,70 @@ interface WeeklyHistory {
 export default function ProgressPage() {
   const [currentWeek, setCurrentWeek] = useState(() => {
     const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 6 });
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday start
     return format(weekStart, 'yyyy-MM-dd');
   });
 
   const { user, isLoading: isAuthLoading } = useAuth();
 
-  // Fetch completed tasks for current week
-  const { data: completedTasks = [], isLoading: tasksLoading } = useQuery({
-    queryKey: ['/api/completed-tasks', { weekStartDate: currentWeek }],
+  // Calculate week date range
+  const getWeekRange = (weekStartDate: string) => {
+    const start = new Date(weekStartDate);
+    const end = endOfWeek(start, { weekStartsOn: 1 }); // Sunday end
+    return {
+      start: format(start, 'yyyy-MM-dd'),
+      end: format(end, 'yyyy-MM-dd'),
+      display: `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`
+    };
+  };
+
+  const currentWeekRange = getWeekRange(currentWeek);
+
+  // Fetch progress data for current week
+  const { data: progressData, isLoading: progressLoading } = useQuery({
+    queryKey: ['/api/progress', currentWeekRange.start, currentWeekRange.end],
     queryFn: async () => {
-      const response = await fetch(`/api/completed-tasks?weekStartDate=${currentWeek}`);
-      if (!response.ok) return [];
+      const response = await fetch(`/api/progress?start=${currentWeekRange.start}&end=${currentWeekRange.end}`);
+      if (!response.ok) {
+        // Fallback to existing endpoints for compatibility
+        const [tasksRes, goalRes, historyRes] = await Promise.all([
+          fetch(`/api/completed-tasks?weekStartDate=${currentWeek}`),
+          fetch(`/api/dynamic-goal/${currentWeek}`),
+          fetch('/api/weekly-history')
+        ]);
+        
+        const tasks = tasksRes.ok ? await tasksRes.json() : [];
+        const goalData = goalRes.ok ? await goalRes.json() : { goal: 15 };
+        const history = historyRes.ok ? await historyRes.json() : [];
+        
+        // Calculate top tasks
+        const taskCounts = tasks.reduce((acc: Record<string, {name: string, points: number, count: number}>, task: CompletedTask) => {
+          if (!acc[task.taskId]) {
+            acc[task.taskId] = { name: task.name, points: 0, count: 0 };
+          }
+          acc[task.taskId].points += task.points;
+          acc[task.taskId].count += 1;
+          return acc;
+        }, {});
+        
+        const topTasks = Object.values(taskCounts)
+          .sort((a, b) => b.points - a.points)
+          .slice(0, 5);
+        
+        return {
+          points: tasks.reduce((sum: number, task: CompletedTask) => sum + task.points, 0),
+          goal: goalData.goal,
+          tasksCompleted: tasks.length,
+          topTasks,
+          history: history.slice(0, 8)
+        };
+      }
       return response.json();
     },
     enabled: !!user,
   });
 
-  // Fetch weekly history
-  const { data: weeklyHistory = [], isLoading: historyLoading } = useQuery({
-    queryKey: ['/api/weekly-history'],
-    queryFn: async () => {
-      const response = await fetch('/api/weekly-history');
-      if (!response.ok) return [];
-      return response.json();
-    },
-    enabled: !!user,
-  });
-
-  // Fetch weekly goal
-  const { data: goalData, isLoading: goalLoading } = useQuery({
-    queryKey: ['/api/dynamic-goal', currentWeek],
-    queryFn: async () => {
-      const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
-      if (!response.ok) return { goal: 15 };
-      return response.json();
-    },
-    enabled: !!user,
-  });
-
-  const isCurrentWeek = currentWeek === format(startOfWeek(new Date(), { weekStartsOn: 6 }), 'yyyy-MM-dd');
+  const isCurrentWeek = currentWeek === format(startOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd');
   
   const goToPreviousWeek = () => {
     const current = new Date(currentWeek + 'T00:00:00');
@@ -86,44 +110,19 @@ export default function ProgressPage() {
 
   const goToCurrentWeek = () => {
     const now = new Date();
-    const weekStart = startOfWeek(now, { weekStartsOn: 6 });
+    const weekStart = startOfWeek(now, { weekStartsOn: 1 });
     setCurrentWeek(format(weekStart, 'yyyy-MM-dd'));
   };
 
-  const formatWeekDisplay = (weekStartDate: string) => {
-    const start = new Date(weekStartDate + 'T00:00:00');
-    const end = endOfWeek(start, { weekStartsOn: 6 });
-    return `${format(start, 'MMM d')}–${format(end, 'd')}`;
-  };
-
-  // Calculate current week stats
-  const currentPoints = Array.isArray(completedTasks) ? completedTasks.reduce((sum: number, task: CompletedTask) => sum + task.points, 0) : 0;
-  const weeklyGoal = goalData?.goal || 15;
+  // Calculate current week stats from progress data
+  const currentPoints = progressData?.points || 0;
+  const weeklyGoal = progressData?.goal || 15;
   const progressPercentage = Math.min((currentPoints / weeklyGoal) * 100, 100);
-  const tasksThisWeek = completedTasks.length;
+  const tasksThisWeek = progressData?.tasksCompleted || 0;
+  const topTasksThisWeek = progressData?.topTasks || [];
+  const recentHistory = progressData?.history || [];
 
-  // Calculate task frequency for current week
-  const taskFrequency = completedTasks.reduce((acc: Record<string, { count: number; totalPoints: number; taskName: string }>, task: CompletedTask) => {
-    if (!acc[task.taskId]) {
-      acc[task.taskId] = { count: 0, totalPoints: 0, taskName: task.name };
-    }
-    acc[task.taskId].count++;
-    acc[task.taskId].totalPoints += task.points;
-    return acc;
-  }, {});
-
-  const topTasks = Object.entries(taskFrequency)
-    .map(([taskId, data]) => ({ taskId, ...data }))
-    .sort((a, b) => b.totalPoints - a.totalPoints)
-    .slice(0, 3);
-
-  // Calculate streaks and trends
-  const recentWeeks = weeklyHistory.slice(-4);
-  const averagePoints = recentWeeks.length > 0 
-    ? recentWeeks.reduce((sum, week) => sum + week.totalPoints, 0) / recentWeeks.length 
-    : 0;
-
-  if (isAuthLoading || tasksLoading || historyLoading || goalLoading) {
+  if (isAuthLoading || progressLoading) {
     return (
       <Layout>
         <div className="text-center py-12">
@@ -156,15 +155,15 @@ export default function ProgressPage() {
               Previous
             </Button>
             <div className="text-center px-4">
-              <div className="font-semibold text-blue-900">{formatWeekDisplay(currentWeek)}</div>
+              <div className="font-semibold text-blue-900">{currentWeekRange.display}</div>
               {!isCurrentWeek && (
-                <Button
-                  variant="link"
-                  size="sm"
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
                   onClick={goToCurrentWeek}
-                  className="text-xs text-blue-600 p-0 h-auto"
+                  className="text-xs text-blue-600 hover:text-blue-800 mt-1"
                 >
-                  Current week
+                  Current Week
                 </Button>
               )}
             </div>
@@ -172,8 +171,7 @@ export default function ProgressPage() {
               variant="outline"
               size="sm"
               onClick={goToNextWeek}
-              disabled={isCurrentWeek}
-              className="text-blue-700 border-blue-300 disabled:opacity-50"
+              className="text-blue-700 border-blue-300"
             >
               Next
               <ChevronRight className="w-4 h-4 ml-1" />
@@ -181,175 +179,163 @@ export default function ProgressPage() {
           </div>
         </div>
 
-        {/* Current Week Stats */}
+        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Target className="w-5 h-5 text-blue-600" />
-                </div>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Points This Week</p>
+                  <p className="text-sm font-medium text-gray-600">Points This Week</p>
                   <p className="text-2xl font-bold text-gray-900">{currentPoints}</p>
                 </div>
+                <TrendingUp className="w-8 h-8 text-blue-600" />
               </div>
             </CardContent>
           </Card>
-
+          
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <TrendingUp className="w-5 h-5 text-green-600" />
-                </div>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Weekly Goal</p>
+                  <p className="text-sm font-medium text-gray-600">Weekly Goal</p>
                   <p className="text-2xl font-bold text-gray-900">{weeklyGoal}</p>
                 </div>
+                <Target className="w-8 h-8 text-green-600" />
               </div>
             </CardContent>
           </Card>
-
+          
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Calendar className="w-5 h-5 text-purple-600" />
-                </div>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Tasks Completed</p>
+                  <p className="text-sm font-medium text-gray-600">Tasks Completed</p>
                   <p className="text-2xl font-bold text-gray-900">{tasksThisWeek}</p>
                 </div>
+                <Award className="w-8 h-8 text-purple-600" />
               </div>
             </CardContent>
           </Card>
-
+          
           <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Award className="w-5 h-5 text-orange-600" />
-                </div>
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-600">Progress</p>
+                  <p className="text-sm font-medium text-gray-600">Progress</p>
                   <p className="text-2xl font-bold text-gray-900">{Math.round(progressPercentage)}%</p>
                 </div>
+                <Calendar className="w-8 h-8 text-orange-600" />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        {/* Progress Bar */}
+        {/* Weekly Goal Progress */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Weekly Goal Progress</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <Target className="w-5 h-5 text-green-600" />
+              Weekly Goal Progress
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Current: {currentPoints} points</span>
-                <span>Goal: {weeklyGoal} points</span>
+                <span>Progress</span>
+                <span>{currentPoints} / {weeklyGoal} points</span>
               </div>
-              <Progress value={progressPercentage} className="h-3" />
+              <Progress value={progressPercentage} className="w-full" />
               <p className="text-sm text-gray-600">
                 {progressPercentage >= 100 
-                  ? `🎉 Goal achieved! You exceeded your target by ${currentPoints - weeklyGoal} points.`
-                  : `${weeklyGoal - currentPoints} points remaining to reach your goal.`
-                }
+                  ? "🎉 Goal achieved! Great work!" 
+                  : `${weeklyGoal - currentPoints} points to go`}
               </p>
             </div>
           </CardContent>
         </Card>
 
         {/* Top Tasks This Week */}
-        {topTasks.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Top Tasks This Week</CardTitle>
-            </CardHeader>
-            <CardContent>
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Top Tasks This Week
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {topTasksThisWeek.length > 0 ? (
               <div className="space-y-3">
-                {topTasks.map((task, index) => (
-                  <div key={task.taskId} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-xs font-medium text-blue-600">
-                        {index + 1}
-                      </div>
-                      <span className="font-medium">{task.taskName}</span>
+                {topTasksThisWeek.map((task: any, index: number) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div>
+                      <p className="font-medium text-gray-900">{task.name}</p>
+                      <p className="text-sm text-gray-600">{task.count} times completed</p>
                     </div>
                     <div className="text-right">
-                      <div className="font-medium">{task.totalPoints} points</div>
-                      <div className="text-sm text-gray-500">{task.count} times</div>
+                      <p className="font-semibold text-blue-600">{task.points} pts</p>
                     </div>
                   </div>
                 ))}
               </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <p className="text-gray-500 text-center py-4">No tasks completed this week yet</p>
+            )}
+          </CardContent>
+        </Card>
 
-        {/* Weekly History */}
-        {weeklyHistory.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Recent Performance</CardTitle>
-            </CardHeader>
-            <CardContent>
+        {/* Recent Performance */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-orange-600" />
+              Recent Performance
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {recentHistory.length > 0 ? (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="text-left border-b">
-                    <tr>
-                      <th className="pb-2 font-medium">Week</th>
-                      <th className="pb-2 font-medium text-right">Points</th>
-                      <th className="pb-2 font-medium text-right">Tasks</th>
-                      <th className="pb-2 font-medium text-right">Goal</th>
-                      <th className="pb-2 font-medium text-center">Status</th>
+                  <thead>
+                    <tr className="border-b">
+                      <th className="text-left p-2 text-sm font-medium text-gray-600">Week</th>
+                      <th className="text-left p-2 text-sm font-medium text-gray-600">Points</th>
+                      <th className="text-left p-2 text-sm font-medium text-gray-600">Tasks</th>
+                      <th className="text-left p-2 text-sm font-medium text-gray-600">Goal</th>
+                      <th className="text-left p-2 text-sm font-medium text-gray-600">Status</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y">
-                    {weeklyHistory.slice(-8).reverse().map((week) => (
-                      <tr key={week.id} className="hover:bg-gray-50">
-                        <td className="py-2">{formatWeekDisplay(week.weekStartDate)}</td>
-                        <td className="py-2 text-right font-medium">{week.totalPoints}</td>
-                        <td className="py-2 text-right">{week.tasksCompleted}</td>
-                        <td className="py-2 text-right">{week.weeklyGoal}</td>
-                        <td className="py-2 text-center">
-                          {week.goalAchieved ? (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              ✓ Achieved
+                  <tbody>
+                    {recentHistory.map((week: WeeklyHistory) => {
+                      const weekStart = new Date(week.weekStartDate);
+                      const weekEnd = endOfWeek(weekStart, { weekStartsOn: 1 });
+                      const weekDisplay = `${format(weekStart, 'MMM d')} – ${format(weekEnd, 'MMM d')}`;
+                      
+                      return (
+                        <tr key={week.id} className="border-b">
+                          <td className="p-2 text-sm text-gray-900">{weekDisplay}</td>
+                          <td className="p-2 text-sm font-medium text-blue-600">{week.totalPoints}</td>
+                          <td className="p-2 text-sm text-gray-900">{week.tasksCompleted}</td>
+                          <td className="p-2 text-sm text-gray-900">{week.weeklyGoal}</td>
+                          <td className="p-2">
+                            <span className={`inline-flex px-2 py-1 text-xs font-medium rounded-full ${
+                              week.goalAchieved 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-gray-100 text-gray-800'
+                            }`}>
+                              {week.goalAchieved ? 'Achieved' : 'In Progress'}
                             </span>
-                          ) : (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                              Incomplete
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Performance Insights */}
-        {recentWeeks.length > 0 && (
-          <Card className="bg-blue-50 border-blue-200">
-            <CardHeader>
-              <CardTitle className="text-lg text-blue-900">Performance Insights</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 text-sm text-blue-800">
-                <p>• <strong>Average weekly points:</strong> {Math.round(averagePoints)} over last {recentWeeks.length} weeks</p>
-                <p>• <strong>Goal achievement rate:</strong> {Math.round((recentWeeks.filter(w => w.goalAchieved).length / recentWeeks.length) * 100)}% in recent weeks</p>
-                <p>• <strong>Total tasks completed:</strong> {weeklyHistory.reduce((sum, week) => sum + week.tasksCompleted, 0)} all-time</p>
-                <p>• <strong>Current vs average:</strong> {currentPoints > averagePoints ? 'Above' : currentPoints < averagePoints ? 'Below' : 'At'} average performance</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+            ) : (
+              <p className="text-gray-500 text-center py-4">No performance history available</p>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </Layout>
   );

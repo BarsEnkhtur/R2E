@@ -1,0 +1,36 @@
+Title: Fix Week Scroller Data & Badge API Wiring
+
+## 1. Week Scroller & Progress Tab
+- **Date Range:** Calculate each week as Mon–Sun (or your chosen locale), not Jun 9–13.  
+  - Use the current date to derive the start/end of the selected ISO week.  
+  - Display “Jun 8 – Jun 14” (for week 24), “Jun 15 – Jun 21” (week 25), etc.
+- **Data Fetch:** On week change, call `/api/progress?start=YYYY-MM-DD&end=YYYY-MM-DD`  
+  - Return `{ points, goal, tasksCompleted, topTasks: [{name, points, count}], history: [...] }`
+- **UI Binding:**
+  1. Update the four stat cards (“Points This Week,” “Weekly Goal,” “Tasks Completed,” “Progress %”) from the API response.
+  2. Populate the “Weekly Goal Progress” bar and status text dynamically.
+  3. Render “Top Tasks This Week” list from `topTasks`.
+  4. Fill the “Recent Performance” table with the last N weeks from `history`, showing real date ranges, points, tasks, goal, and status badge.
+
+## 2. Badges Page: Remove Hard-Coded & Wire Real Data
+- **Remove** any dummy badge arrays or hard-coded “0 badges” logic.
+- **API Fetch:** On mount, call `/api/badges` → returns `[{ id, title, description, iconName, rarity, xp, unlockedDate? }]`.
+- **Stats Row:**  
+  - **Total Badges** = count of items with `unlockedDate`.  
+  - **Total XP** = sum of all unlocked badges’ `xp`.  
+  - **Legendary** = count of unlocked where `rarity==='legendary'`.  
+  - **Recent Badges** = 3 most‐recent by `unlockedDate`.
+- **Gallery Grid:**  
+  - Loop over all badges: unlocked cards show icon + title + date; locked cards show lock overlay.  
+  - Use `iconName` to render the proper lucide-react SVG.
+- **Filters:** Let users filter by rarity and show unlocked/locked toggles.
+
+## 3. Testing & Validation
+- Add unit tests or manual smoke tests to confirm:
+  - Week scroller updates date labels and data payload correctly.
+  - Progress tab cards & charts reflect API values.
+  - Badges page shows real unlocked badges after you log a qualifying task.
+
+**Outcome:**  
+- Accurate, date-aligned week navigation with live performance data.  
+- Badges page fully driven by the real badge API—no more empty states when you’ve earned achievements.  
