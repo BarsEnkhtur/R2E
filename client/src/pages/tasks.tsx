@@ -484,6 +484,21 @@ export default function TasksPage() {
       }))
   ];
 
+  // Helper function to calculate next completion points
+  const getNextCompletionPoints = (taskId: string, basePoints: number) => {
+    const cleanTaskId = taskId.startsWith('custom-') ? taskId.replace('custom-', '') : taskId;
+    const stat = taskStats.find((s: any) => s.taskId === cleanTaskId);
+    if (!stat) {
+      return { points: basePoints, multiplier: 1.0 };
+    }
+    
+    const nextCount = stat.timesThisWeek + 1;
+    const nextMultiplier = Math.min(1 + (nextCount - 1) * 0.5, 2.0);
+    const nextPoints = Math.round(basePoints * nextMultiplier);
+    
+    return { points: nextPoints, multiplier: nextMultiplier };
+  };
+
   // Filter tasks based on search
   const filteredTasks = allTasks.filter(task =>
     task.name.toLowerCase().includes(searchFilter.toLowerCase()) ||
@@ -955,7 +970,21 @@ export default function TasksPage() {
                         <TableCell className="font-medium">{task.name}</TableCell>
                         <TableCell className="text-gray-600">{task.description}</TableCell>
                         <TableCell>
-                          <Badge variant="outline">{task.points} pts</Badge>
+                          {(() => {
+                            const nextCompletion = getNextCompletionPoints(task.id, task.points);
+                            return (
+                              <div className="flex flex-col">
+                                <Badge variant="outline" className="text-center">
+                                  {nextCompletion.points} pts
+                                </Badge>
+                                {nextCompletion.multiplier > 1.0 && (
+                                  <span className="text-xs text-gray-500 mt-1">
+                                    {nextCompletion.multiplier.toFixed(1)}x multiplier
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <Badge variant={task.type === "Default" ? "secondary" : "default"}>
@@ -968,10 +997,13 @@ export default function TasksPage() {
                               size="sm"
                               variant="ghost"
                               onClick={() => openTaskDialog(task)}
-                              className="h-8 w-8 p-0 text-green-600 hover:text-green-800"
+                              className="h-8 px-2 text-green-600 hover:text-green-800 hover:bg-green-50"
                               title="Complete Task"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-3 h-3 mr-1" />
+                              <span className="text-xs font-medium">
+                                +{getNextCompletionPoints(task.id, task.points).points}
+                              </span>
                             </Button>
                             <Button
                               size="sm"
