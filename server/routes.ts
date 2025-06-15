@@ -13,6 +13,13 @@ function getWeekStartDate(date: Date): string {
   return d.toISOString().split('T')[0]; // Return YYYY-MM-DD format
 }
 
+function computeMultiplier(count: number): number {
+  const maxBonus = 0.5;
+  const scale = 3;
+  const bonus = maxBonus * Math.log1p(count - 1) / Math.log1p(scale);
+  return 1 + Math.min(bonus, maxBonus);
+}
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // Setup Google OAuth authentication
   await setupAuth(app);
@@ -251,6 +258,120 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error(`Error creating completed task: ${error}`);
       res.status(500).json({ error: "Failed to create completed task" });
+    }
+  });
+
+  // Get completions with detailed history
+  app.get("/api/completions", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const weekStart = req.query.weekStart as string;
+      const weekEnd = req.query.weekEnd as string;
+      
+      let tasks;
+      if (weekStart && weekEnd) {
+        // Get tasks for specific date range
+        tasks = await storage.getCompletedTasks(userId, weekStart);
+        // Filter by date range if needed
+        const startDate = new Date(weekStart);
+        const endDate = new Date(weekEnd);
+        tasks = tasks.filter(task => {
+          const taskDate = new Date(task.completedAt);
+          return taskDate >= startDate && taskDate <= endDate;
+        });
+      } else {
+        // Get current week
+        const weekStartDate = getWeekStartDate(new Date());
+        tasks = await storage.getCompletedTasks(userId, weekStartDate);
+      }
+
+      // Format completions with proper structure
+      const completions = tasks.map(task => ({
+        id: task.id,
+        taskId: task.taskId,
+        taskName: task.name,
+        timestamp: task.completedAt,
+        notes: task.note || '',
+        pointsEarned: task.points
+      }));
+
+      res.json(completions);
+    } catch (error) {
+      console.error(`Error fetching completions: ${error}`);
+      res.status(500).json({ error: "Failed to fetch completions" });
+    }
+  });
+
+  // Update completion notes
+  app.patch("/api/completions/:id", isAuthenticated, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { notes } = req.body;
+      
+      const updatedTask = await storage.updateCompletedTask(id, { note: notes });
+      res.json(updatedTask);
+    } catch (error) {
+      console.error(`Error updating completion: ${error}`);
+      res.status(500).json({ error: "Failed to update completion" });
+    }
+  });
+
+  // Delete completion and recalculate multipliers
+  app.delete("/api/completions/:id", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const id = parseInt(req.params.id);
+      
+      // Get the task before deletion to recalculate stats
+      const tasks = await storage.getCompletedTasks(userId);
+      const taskToDelete = tasks.find(t => t.id === id);
+      
+      if (!taskToDelete) {
+        return res.status(404).json({ error: "Completion not found" });
+      }
+
+      const weekStartDate = taskToDelete.weekStartDate;
+      
+      // Delete the completion
+      await storage.deleteCompletedTask(id);
+      
+      // Recalculate multipliers for the affected week and task
+      const remainingTasks = await storage.getCompletedTasks(userId, weekStartDate);
+      const sameTaskCompletions = remainingTasks.filter(t => t.taskId === taskToDelete.taskId);
+      
+      // Update task stats
+      if (sameTaskCompletions.length > 0) {
+        const multiplier = computeMultiplier(sameTaskCompletions.length);
+        const basePoints = sameTaskCompletions[0].points / multiplier; // Reverse calculate base points
+        const newCurrentValue = Math.round(basePoints * computeMultiplier(sameTaskCompletions.length + 1));
+        
+        await storage.updateTaskStats(userId, taskToDelete.taskId, weekStartDate, {
+          currentValue: newCurrentValue,
+          timesThisWeek: sameTaskCompletions.length,
+          lastCompleted: sameTaskCompletions[sameTaskCompletions.length - 1]?.completedAt
+        });
+      } else {
+        // No more completions for this task this week - we could delete the task stat
+        // For now, we'll leave it but reset times to 0
+        await storage.updateTaskStats(userId, taskToDelete.taskId, weekStartDate, {
+          timesThisWeek: 0,
+          lastCompleted: null
+        });
+      }
+      
+      // Update weekly history
+      const totalPoints = remainingTasks.reduce((sum, t) => sum + t.points, 0);
+      await storage.createOrUpdateWeeklyHistory({
+        userId,
+        weekStartDate,
+        totalPoints,
+        tasksCompleted: remainingTasks.length
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error(`Error deleting completion: ${error}`);
+      res.status(500).json({ error: "Failed to delete completion" });
     }
   });
 
