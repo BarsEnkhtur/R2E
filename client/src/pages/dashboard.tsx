@@ -208,7 +208,7 @@ export default function Dashboard() {
       count: task.count || 1,
       multiplier: Math.min(1 + ((task.count || 1) - 1) * 0.5, 2.5),
       task: allTasks.find(t => t.id === task.taskId || t.id === `custom-${task.taskId}`)
-    })).filter(item => item.task);
+    })).filter((item: any) => item.task);
   };
 
   const topTasks = getTopTasks();

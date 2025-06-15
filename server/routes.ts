@@ -329,6 +329,78 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get default tasks with any custom overrides
+  app.get("/api/default-tasks", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const customTasks = await storage.getCustomTasks(userId);
+      
+      // Default tasks with potential custom overrides
+      const defaultTasks = [
+        {
+          id: "job-application",
+          name: "Job Application",
+          description: "Apply to a new position",
+          points: 3,
+          icon: "Briefcase",
+          color: "blue"
+        },
+        {
+          id: "networking",
+          name: "Networking", 
+          description: "Connect with professionals",
+          points: 2,
+          icon: "Users",
+          color: "green"
+        },
+        {
+          id: "coding-practice",
+          name: "Coding Practice",
+          description: "Solve coding challenges", 
+          points: 2,
+          icon: "Code",
+          color: "purple"
+        },
+        {
+          id: "gym-recovery",
+          name: "Gym/Recovery/PT",
+          description: "Physical wellness",
+          points: 2,
+          icon: "Heart", 
+          color: "red"
+        },
+        {
+          id: "learn-skill",
+          name: "Learn New Skill",
+          description: "Study or practice new abilities",
+          points: 2,
+          icon: "Lightbulb",
+          color: "orange"
+        }
+      ];
+
+      // Apply any custom overrides
+      const tasksWithOverrides = defaultTasks.map(defaultTask => {
+        const override = customTasks.find((ct: any) => ct.taskId === defaultTask.id);
+        return override ? {
+          ...defaultTask,
+          name: override.name,
+          description: override.description,
+          points: override.points,
+          icon: override.icon,
+          color: override.color,
+          hasOverride: true,
+          overrideId: override.id
+        } : defaultTask;
+      });
+
+      res.json(tasksWithOverrides);
+    } catch (error) {
+      console.error(`Error fetching default tasks: ${error}`);
+      res.status(500).json({ error: "Failed to fetch default tasks" });
+    }
+  });
+
   // PUBLIC SHARE SYSTEM ROUTES
 
   // Create a public share of current week's progress
