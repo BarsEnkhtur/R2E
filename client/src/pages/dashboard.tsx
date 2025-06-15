@@ -203,7 +203,15 @@ export default function Dashboard() {
   // Calculate progress
   const progressPercentage = Math.min((totalPoints / weeklyGoal) * 100, 100);
 
-  // Get top tasks for focus panel with dynamic multiplier calculation
+  // New logarithmic multiplier function matching backend
+  const computeMultiplier = (count: number): number => {
+    const maxBonus = 0.5;
+    const scale = 3;
+    const bonus = maxBonus * Math.log1p(count - 1) / Math.log1p(scale);
+    return 1 + Math.min(bonus, maxBonus);
+  };
+
+  // Get top tasks for focus panel with logarithmic multiplier calculation
   const getTopTasks = () => {
     if (!topTasksData || topTasksData.length === 0) return [];
     
@@ -222,10 +230,10 @@ export default function Dashboard() {
         foundTask = allTasks.find(t => t.id === taskId.replace('custom-', ''));
       }
       
-      // Calculate what the next completion would be worth
+      // Calculate what the next completion would be worth using logarithmic curve
       const currentCount = task.count || 1;
       const basePoints = task.basePoints || foundTask?.points || 1;
-      const nextMultiplier = Math.min(1 + currentCount * 0.5, 2.5); // Next completion multiplier (1x, 1.5x, 2x, 2.5x)
+      const nextMultiplier = computeMultiplier(currentCount + 1); // Next completion multiplier with 1.5x cap
       const nextPoints = Math.round(basePoints * nextMultiplier);
       
       return {

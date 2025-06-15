@@ -392,12 +392,14 @@ export default function TasksPage() {
 
   const weekRange = getCurrentWeekRange();
 
-  const { data: progressData } = useQuery({
+  const { data: progressData, isLoading: isProgressLoading } = useQuery({
     queryKey: ['/api/progress', weekRange.start, weekRange.end],
     queryFn: async () => {
       const response = await fetch(`/api/progress?start=${weekRange.start}&end=${weekRange.end}`);
       if (!response.ok) throw new Error('Failed to fetch progress data');
-      return response.json();
+      const data = await response.json();
+      console.log('Progress data received:', data);
+      return data;
     },
     enabled: !!user,
   });
@@ -407,6 +409,8 @@ export default function TasksPage() {
     acc[taskData.taskId] = taskData;
     return acc;
   }, {});
+
+  console.log('Weekly data by ID:', weeklyDataById);
 
   // Icon mapping for custom tasks
   const getIconComponent = (iconName: string) => {

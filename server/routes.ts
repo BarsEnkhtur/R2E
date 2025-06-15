@@ -76,14 +76,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Build comprehensive weekly task data for frontend
       const weeklyTaskData: Record<string, any> = {};
       
+      // Initialize data for all tasks that have stats (even if no completions this week)
+      taskStats.forEach(stat => {
+        weeklyTaskData[stat.taskId] = {
+          taskId: stat.taskId,
+          displayName: stat.taskName,
+          basePoints: stat.basePoints,
+          completions: 0,
+          totalPoints: 0,
+          currentMultiplier: 1.0
+        };
+      });
+      
       // Process completed tasks to build weekly stats
       tasks.forEach(task => {
         if (!weeklyTaskData[task.taskId]) {
-          const stat = taskStatsMap.get(task.taskId);
           weeklyTaskData[task.taskId] = {
             taskId: task.taskId,
             displayName: task.name,
-            basePoints: stat?.basePoints || task.points,
+            basePoints: task.points,
             completions: 0,
             totalPoints: 0,
             currentMultiplier: 1.0
