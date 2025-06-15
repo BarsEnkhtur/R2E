@@ -73,6 +73,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       });
       
+      // Build comprehensive weekly task data for frontend
+      const weeklyTaskData: Record<string, any> = {};
+      
+      // Process completed tasks to build weekly stats
+      tasks.forEach(task => {
+        if (!weeklyTaskData[task.taskId]) {
+          const stat = taskStatsMap.get(task.taskId);
+          weeklyTaskData[task.taskId] = {
+            taskId: task.taskId,
+            displayName: task.name,
+            basePoints: stat?.basePoints || task.points,
+            completions: 0,
+            totalPoints: 0,
+            currentMultiplier: 1.0
+          };
+        }
+        
+        weeklyTaskData[task.taskId].completions += 1;
+        weeklyTaskData[task.taskId].totalPoints += task.points;
+      });
+      
+      // Calculate current multipliers for next completion
+      Object.values(weeklyTaskData).forEach((taskData: any) => {
+        const nextCount = taskData.completions + 1;
+        taskData.currentMultiplier = Math.min(1 + (nextCount - 1) * 0.5, 2.5);
+      });
+      
       // Calculate top tasks using actual completion points
       const taskCounts = tasks.reduce((acc: Record<string, {name: string, points: number, count: number, basePoints: number}>, task) => {
         if (!acc[task.taskId]) {
@@ -99,6 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         tasksCompleted: tasks.length,
         topTasks,
         completions, // Individual completion data with multipliers
+        weeklyTaskData: Object.values(weeklyTaskData), // Weekly task statistics for Tasks page
         history: history.slice(0, 8)
       };
       

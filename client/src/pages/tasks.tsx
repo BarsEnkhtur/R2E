@@ -377,23 +377,36 @@ export default function TasksPage() {
     enabled: !!user,
   });
 
-  // Fetch current week's task stats for dynamic multipliers
-  const getCurrentWeek = () => {
+  // Fetch weekly task data from progress API
+  const getCurrentWeekRange = () => {
     const now = new Date();
     const monday = new Date(now);
     monday.setDate(now.getDate() - now.getDay() + 1);
-    return monday.toISOString().split('T')[0];
+    const sunday = new Date(monday);
+    sunday.setDate(monday.getDate() + 6);
+    return {
+      start: monday.toISOString().split('T')[0],
+      end: sunday.toISOString().split('T')[0]
+    };
   };
 
-  const { data: taskStats = [] } = useQuery({
-    queryKey: ['/api/task-stats', getCurrentWeek()],
+  const weekRange = getCurrentWeekRange();
+
+  const { data: progressData } = useQuery({
+    queryKey: ['/api/progress', weekRange.start, weekRange.end],
     queryFn: async () => {
-      const response = await fetch(`/api/task-stats?weekStartDate=${getCurrentWeek()}`);
-      if (!response.ok) return [];
+      const response = await fetch(`/api/progress?start=${weekRange.start}&end=${weekRange.end}`);
+      if (!response.ok) throw new Error('Failed to fetch progress data');
       return response.json();
     },
     enabled: !!user,
   });
+
+  // Create a map of weekly task data by taskId for quick lookup
+  const weeklyDataById = (progressData?.weeklyTaskData || []).reduce((acc: Record<string, any>, taskData: any) => {
+    acc[taskData.taskId] = taskData;
+    return acc;
+  }, {});
 
   // Icon mapping for custom tasks
   const getIconComponent = (iconName: string) => {
@@ -484,19 +497,14 @@ export default function TasksPage() {
       }))
   ];
 
-  // Helper function to calculate next completion points
-  const getNextCompletionPoints = (taskId: string, basePoints: number) => {
+  // Helper function to get weekly stats for a task
+  const getWeeklyStats = (taskId: string) => {
     const cleanTaskId = taskId.startsWith('custom-') ? taskId.replace('custom-', '') : taskId;
-    const stat = taskStats.find((s: any) => s.taskId === cleanTaskId);
-    if (!stat) {
-      return { points: basePoints, multiplier: 1.0 };
-    }
-    
-    const nextCount = stat.timesThisWeek + 1;
-    const nextMultiplier = Math.min(1 + (nextCount - 1) * 0.5, 2.5); // 1x, 1.5x, 2x, 2.5x max
-    const nextPoints = Math.round(basePoints * nextMultiplier);
-    
-    return { points: nextPoints, multiplier: nextMultiplier };
+    return weeklyDataById[cleanTaskId] || {
+      completions: 0,
+      totalPoints: 0,
+      currentMultiplier: 1.0
+    };
   };
 
   // Filter tasks based on search
@@ -952,14 +960,19 @@ export default function TasksPage() {
                     <TableHead className="w-12"></TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Description</TableHead>
-                    <TableHead className="w-20">Points</TableHead>
+                    <TableHead className="w-20">Base pts</TableHead>
+                    <TableHead className="w-32">This Week</TableHead>
+                    <TableHead className="w-32">Next Add</TableHead>
                     <TableHead className="w-20">Type</TableHead>
-                    <TableHead className="w-24">Actions</TableHead>
+                    <TableHead className="w-32">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredTasks.map((task) => {
                     const IconComponent = task.icon;
+                    const stats = getWeeklyStats(task.id);
+                    const nextPoints = Math.round(task.points * stats.currentMultiplier);
+                    
                     return (
                       <TableRow key={task.id} className="hover:bg-gray-50">
                         <TableCell>
@@ -970,21 +983,17 @@ export default function TasksPage() {
                         <TableCell className="font-medium">{task.name}</TableCell>
                         <TableCell className="text-gray-600">{task.description}</TableCell>
                         <TableCell>
-                          {(() => {
-                            const nextCompletion = getNextCompletionPoints(task.id, task.points);
-                            return (
-                              <div className="flex flex-col">
-                                <Badge variant="outline" className="text-center">
-                                  {nextCompletion.points} pts
-                                </Badge>
-                                {nextCompletion.multiplier > 1.0 && (
-                                  <span className="text-xs text-gray-500 mt-1">
-                                    {nextCompletion.multiplier.toFixed(1)}x multiplier
-                                  </span>
-                                )}
-                              </div>
-                            );
-                          })()}
+                          <Badge variant="outline">{task.points} pts</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {stats.completions}× → <strong>{stats.totalPoints} pts</strong>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            +{task.points} × {stats.currentMultiplier.toFixed(1)} → <strong>{nextPoints} pts</strong>
+                          </div>
                         </TableCell>
                         <TableCell>
                           <Badge variant={task.type === "Default" ? "secondary" : "default"}>
@@ -1001,9 +1010,7 @@ export default function TasksPage() {
                               title="Complete Task"
                             >
                               <Plus className="w-3 h-3 mr-1" />
-                              <span className="text-xs font-medium">
-                                +{getNextCompletionPoints(task.id, task.points).points}
-                              </span>
+                              <span className="text-xs font-medium">+{nextPoints}</span>
                             </Button>
                             <Button
                               size="sm"
