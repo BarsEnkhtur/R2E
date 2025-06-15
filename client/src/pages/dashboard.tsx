@@ -204,14 +204,32 @@ export default function Dashboard() {
 
   // Get top tasks for focus panel
   const getTopTasks = () => {
-    return topTasksData.slice(0, 4).map((task: any) => ({
-      taskId: task.taskId || task.id,
-      taskName: task.name,
-      points: task.points,
-      count: task.count || 1,
-      multiplier: Math.min(1 + ((task.count || 1) - 1) * 0.5, 2.5),
-      task: allTasks.find(t => t.id === task.taskId || t.id === `custom-${task.taskId}`)
-    })).filter((item: any) => item.task);
+    if (!topTasksData || topTasksData.length === 0) return [];
+    
+    return topTasksData.slice(0, 4).map((task: any) => {
+      // Try multiple ways to find the task
+      const taskId = task.taskId || task.id;
+      let foundTask = allTasks.find(t => t.id === taskId);
+      
+      // If not found, try with custom prefix
+      if (!foundTask) {
+        foundTask = allTasks.find(t => t.id === `custom-${taskId}`);
+      }
+      
+      // If still not found, try without custom prefix
+      if (!foundTask && taskId.startsWith('custom-')) {
+        foundTask = allTasks.find(t => t.id === taskId.replace('custom-', ''));
+      }
+      
+      return {
+        taskId: taskId,
+        taskName: task.name || foundTask?.name || 'Unknown Task',
+        points: task.points || foundTask?.points || 1,
+        count: task.count || 1,
+        multiplier: Math.min(1 + ((task.count || 1) - 1) * 0.5, 2.5),
+        task: foundTask
+      };
+    }).filter((item: any) => item.task || item.taskName !== 'Unknown Task');
   };
 
   const topTasks = getTopTasks();
@@ -425,7 +443,7 @@ export default function Dashboard() {
                   <Target className="w-5 h-5 text-blue-600" />
                   Focus for This Week
                 </h2>
-                {topTasksData && topTasksData.length > 0 ? (
+                {topTasks.length > 0 ? (
                   <div className="space-y-3">
                     {topTasks.map((topTask: any, index: number) => {
                       const IconComponent = topTask.task?.icon || Target;
@@ -436,19 +454,23 @@ export default function Dashboard() {
                               <IconComponent className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
-                              <h3 className="font-medium text-gray-900">{topTask.task?.name || topTask.taskName}</h3>
+                              <h3 className="font-medium text-gray-900">{topTask.taskName}</h3>
                               <p className="text-sm text-gray-600">
                                 {topTask.count}x this week • +{Math.round(topTask.points * topTask.multiplier)} pts each
                               </p>
                             </div>
                           </div>
-                          {topTask.task && (
+                          {topTask.task ? (
                             <Button
                               onClick={() => openTaskDialog(topTask.task)}
                               className="bg-blue-600 hover:bg-blue-700 text-white"
                             >
                               Add
                             </Button>
+                          ) : (
+                            <div className="text-xs text-gray-500 px-3 py-1 bg-gray-200 rounded">
+                              {topTask.points} pts
+                            </div>
                           )}
                         </div>
                       );

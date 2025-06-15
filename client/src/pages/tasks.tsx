@@ -191,6 +191,9 @@ export default function TasksPage() {
   const [newTaskColor, setNewTaskColor] = useState("blue");
   const [newTaskIcon, setNewTaskIcon] = useState("Star");
   const [showIconPicker, setShowIconPicker] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [taskNote, setTaskNote] = useState("");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
@@ -691,6 +694,55 @@ export default function TasksPage() {
     deleteTaskMutation.mutate(task);
   };
 
+  // Task dialog functions
+  const openTaskDialog = (task: Task) => {
+    setSelectedTask(task);
+    setTaskNote("");
+    setIsDialogOpen(true);
+  };
+
+  // Mutation to create a new completed task
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData: { taskId: string; name: string; points: number; note?: string }) => {
+      const response = await fetch('/api/completed-tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData)
+      });
+      if (!response.ok) throw new Error('Failed to create task');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      toast({
+        title: "Task completed!",
+        description: "Great job on staying consistent.",
+      });
+      setIsDialogOpen(false);
+      setSelectedTask(null);
+      setTaskNote("");
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to complete task",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const handleTaskSubmit = () => {
+    if (!selectedTask) return;
+    
+    createTaskMutation.mutate({
+      taskId: selectedTask.id.startsWith('custom-') ? selectedTask.id.replace('custom-', '') : selectedTask.id,
+      name: selectedTask.name,
+      points: selectedTask.points,
+      note: taskNote.trim() || undefined
+    });
+  };
+
   if (isAuthLoading) {
     return (
       <Layout>
@@ -897,8 +949,18 @@ export default function TasksPage() {
                             <Button
                               size="sm"
                               variant="ghost"
+                              onClick={() => openTaskDialog(task)}
+                              className="h-8 w-8 p-0 text-green-600 hover:text-green-800"
+                              title="Complete Task"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
                               onClick={() => handleEditTask(task)}
                               className="h-8 w-8 p-0"
+                              title="Edit Task"
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
@@ -908,6 +970,7 @@ export default function TasksPage() {
                                   size="sm"
                                   variant="ghost"
                                   className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
+                                  title={task.type === "Default" ? "Reset Task" : "Delete Task"}
                                 >
                                   <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -1068,6 +1131,38 @@ export default function TasksPage() {
                 </Button>
               </div>
             </form>
+          </DialogContent>
+        </Dialog>
+
+        {/* Task Completion Dialog */}
+        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Complete Task: {selectedTask?.name}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="note">Add a note (optional)</Label>
+                <Input
+                  id="note"
+                  placeholder="What did you accomplish?"
+                  value={taskNote}
+                  onChange={(e) => setTaskNote(e.target.value)}
+                />
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleTaskSubmit}
+                  disabled={createTaskMutation.isPending}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {createTaskMutation.isPending ? "Adding..." : `+${selectedTask?.points} pts`}
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>
