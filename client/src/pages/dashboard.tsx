@@ -128,27 +128,36 @@ export default function Dashboard() {
 
   const currentWeek = selectedWeek || getWeekStartFixed();
 
-  // Fetch completed tasks
-  const { data: completedTasks = [], isLoading } = useQuery({
-    queryKey: ['/api/completed-tasks', currentWeek],
+  // Helper to calculate week date range
+  const getWeekRange = (weekStartDate: string) => {
+    const start = new Date(weekStartDate);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return {
+      start: start.toISOString().split('T')[0],
+      end: end.toISOString().split('T')[0]
+    };
+  };
+
+  const currentWeekRange = getWeekRange(currentWeek);
+
+  // Fetch progress data for current week
+  const { data: progressData, isLoading } = useQuery({
+    queryKey: ['/api/progress', currentWeekRange.start, currentWeekRange.end],
     queryFn: async () => {
-      const response = await fetch(`/api/completed-tasks?weekStartDate=${currentWeek}`);
-      if (!response.ok) return [];
+      const response = await fetch(`/api/progress?start=${currentWeekRange.start}&end=${currentWeekRange.end}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch progress data');
+      }
       return response.json();
     },
     enabled: !!user,
   });
 
-  // Fetch weekly goal
-  const { data: goalData, isLoading: isGoalLoading } = useQuery({
-    queryKey: ['/api/dynamic-goal', currentWeek],
-    queryFn: async () => {
-      const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
-      if (!response.ok) return { goal: 15 };
-      return response.json();
-    },
-    enabled: !!user,
-  });
+  // Extract data from progress response
+  const completedTasks = progressData?.topTasks || [];
+  const weeklyGoal = progressData?.goal || 15;
+  const totalPoints = progressData?.points || 0;
 
   // Fetch custom tasks
   const { data: customTasks = [], isLoading: isCustomTasksLoading } = useQuery({
@@ -174,31 +183,27 @@ export default function Dashboard() {
     }))
   ];
 
+  // Fetch AI badges for Recent Badges widget
+  const { data: aiBadges = [], isLoading: isBadgesLoading } = useQuery({
+    queryKey: ['/api/ai-badges'],
+    queryFn: async () => {
+      const response = await fetch('/api/ai-badges');
+      if (!response.ok) return [];
+      const badges = await response.json();
+      return badges.filter((badge: any) => badge.unlockedAt).slice(0, 3);
+    },
+    enabled: !!user,
+  });
+
   // Calculate task frequency and multipliers for focus panel
   const getTopTasks = () => {
     if (!Array.isArray(completedTasks)) return [];
     
-    const taskFrequency = completedTasks.reduce((acc: Record<string, { count: number; totalPoints: number; taskName: string; lastCompleted: string }>, task: CompletedTask) => {
-      if (!acc[task.taskId]) {
-        acc[task.taskId] = {
-          count: 0,
-          totalPoints: 0,
-          taskName: task.name,
-          lastCompleted: task.completedAt
-        };
-      }
-      acc[task.taskId].count += 1;
-      acc[task.taskId].totalPoints += task.points;
-      if (new Date(task.completedAt) > new Date(acc[task.taskId].lastCompleted)) {
-        acc[task.taskId].lastCompleted = task.completedAt;
-      }
-      return acc;
-    }, {});
-
-    const sortedTasks = Object.entries(taskFrequency)
-      .map(([taskId, data]) => ({
-        taskId,
-        ...data,
+    return completedTasks.map((task: any) => ({
+      taskId: task.taskId || task.id,
+      taskName: task.name,
+      points: task.points,
+      count: task.count || 1,
         multiplier: Math.min(1 + (data.count - 1) * 0.5, 2.5),
         task: allTasks.find(t => t.id === taskId || t.id === `custom-${taskId}`)
       }))
@@ -288,12 +293,7 @@ export default function Dashboard() {
   const goToNextWeek = () => {
     const current = new Date(currentWeek);
     current.setDate(current.getDate() + 7);
-    const today = new Date();
-    const nextWeek = new Date(current);
-    
-    if (nextWeek <= today) {
-      setSelectedWeek(current.toISOString().split('T')[0]);
-    }
+    setSelectedWeek(current.toISOString().split('T')[0]);
   };
 
   const goToCurrentWeek = () => {
