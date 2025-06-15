@@ -397,9 +397,7 @@ export default function TasksPage() {
     queryFn: async () => {
       const response = await fetch(`/api/progress?start=${weekRange.start}&end=${weekRange.end}`);
       if (!response.ok) throw new Error('Failed to fetch progress data');
-      const data = await response.json();
-      console.log('Progress data received:', data);
-      return data;
+      return response.json();
     },
     enabled: !!user,
   });
@@ -409,8 +407,6 @@ export default function TasksPage() {
     acc[taskData.taskId] = taskData;
     return acc;
   }, {});
-
-  console.log('Weekly data by ID:', weeklyDataById);
 
   // Icon mapping for custom tasks
   const getIconComponent = (iconName: string) => {
