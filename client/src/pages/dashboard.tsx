@@ -217,7 +217,7 @@ export default function Dashboard() {
       }
       
       // If still not found, try without custom prefix
-      if (!foundTask && taskId.startsWith('custom-')) {
+      if (!foundTask && taskId && taskId.startsWith('custom-')) {
         foundTask = allTasks.find(t => t.id === taskId.replace('custom-', ''));
       }
       
