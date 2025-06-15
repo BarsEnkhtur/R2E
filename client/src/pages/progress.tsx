@@ -341,8 +341,8 @@ export default function ProgressPage() {
 
         {/* Completion History */}
         <CompletionHistory 
-          weekStart={weekRange.start} 
-          weekEnd={weekRange.end} 
+          weekStart={currentWeekRange.start} 
+          weekEnd={currentWeekRange.end} 
         />
       </div>
     </Layout>
