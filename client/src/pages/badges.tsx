@@ -32,25 +32,13 @@ export default function BadgesPage() {
   const [filterRarity, setFilterRarity] = useState<string>('all');
   const [showLocked, setShowLocked] = useState(true);
 
-  // Fetch AI badges with proper data mapping
+  // Fetch AI badges - authentic data only
   const { data: badgesData = [], isLoading: badgesLoading } = useQuery({
     queryKey: ['/api/ai-badges'],
     queryFn: async () => {
       const response = await fetch('/api/ai-badges');
       if (!response.ok) return [];
-      const rawBadges = await response.json();
-      
-      // Map API response to expected format
-      return rawBadges.map((badge: any) => ({
-        id: badge.id || badge.badgeId,
-        name: badge.name || badge.title,
-        description: badge.description,
-        icon: badge.icon || badge.iconName || 'Trophy',
-        tier: badge.tier || 'bronze',
-        xpReward: badge.xpReward || badge.xp || 10,
-        rarity: badge.rarity || 'common',
-        unlockedAt: badge.unlockedAt || badge.earnedAt
-      }));
+      return response.json();
     },
     enabled: !!user,
   });

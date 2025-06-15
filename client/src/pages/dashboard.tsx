@@ -247,17 +247,28 @@ export default function Dashboard() {
   const goToPreviousWeek = () => {
     const current = new Date(currentWeek);
     current.setDate(current.getDate() - 7);
-    setSelectedWeek(current.toISOString().split('T')[0]);
+    const newWeek = current.toISOString().split('T')[0];
+    setSelectedWeek(newWeek);
+    // Invalidate queries for new week
+    queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/ai-badges', 'recent'] });
   };
 
   const goToNextWeek = () => {
     const current = new Date(currentWeek);
     current.setDate(current.getDate() + 7);
-    setSelectedWeek(current.toISOString().split('T')[0]);
+    const newWeek = current.toISOString().split('T')[0];
+    setSelectedWeek(newWeek);
+    // Invalidate queries for new week
+    queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/ai-badges', 'recent'] });
   };
 
   const goToCurrentWeek = () => {
     setSelectedWeek("");
+    // Invalidate queries for current week
+    queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
+    queryClient.invalidateQueries({ queryKey: ['/api/ai-badges', 'recent'] });
   };
 
   const isCurrentWeek = currentWeek === getWeekStartFixed();
@@ -414,10 +425,10 @@ export default function Dashboard() {
                   <Target className="w-5 h-5 text-blue-600" />
                   Focus for This Week
                 </h2>
-                {topTasks.length > 0 ? (
+                {topTasksData && topTasksData.length > 0 ? (
                   <div className="space-y-3">
                     {topTasks.map((topTask: any, index: number) => {
-                      const IconComponent = topTask.task.icon;
+                      const IconComponent = topTask.task?.icon || Target;
                       return (
                         <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
                           <div className="flex items-center gap-3">
@@ -425,18 +436,20 @@ export default function Dashboard() {
                               <IconComponent className="w-5 h-5 text-blue-600" />
                             </div>
                             <div>
-                              <h3 className="font-medium text-gray-900">{topTask.task.name}</h3>
+                              <h3 className="font-medium text-gray-900">{topTask.task?.name || topTask.taskName}</h3>
                               <p className="text-sm text-gray-600">
                                 {topTask.count}x this week • +{Math.round(topTask.points * topTask.multiplier)} pts each
                               </p>
                             </div>
                           </div>
-                          <Button
-                            onClick={() => openTaskDialog(topTask.task)}
-                            className="bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            Add
-                          </Button>
+                          {topTask.task && (
+                            <Button
+                              onClick={() => openTaskDialog(topTask.task)}
+                              className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                              Add
+                            </Button>
+                          )}
                         </div>
                       );
                     })}
@@ -484,14 +497,16 @@ export default function Dashboard() {
                   <Award className="w-4 h-4 text-yellow-500" />
                   Recent Badges
                 </h3>
-                {aiBadges.length > 0 ? (
+                {!isBadgesLoading && aiBadges.length > 0 ? (
                   <div className="space-y-2">
                     {aiBadges.map((badge: any, index: number) => (
-                      <div key={index} className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
-                        <Trophy className="w-4 h-4 text-yellow-600" />
+                      <div key={badge.id || index} className="flex items-center gap-2 p-2 bg-yellow-50 rounded-lg">
+                        <div className="text-lg">{badge.icon || "🏆"}</div>
                         <div>
                           <p className="text-sm font-medium text-gray-900">{badge.name}</p>
-                          <p className="text-xs text-gray-600">+{badge.xpReward || 10} XP</p>
+                          <p className="text-xs text-gray-600">
+                            +{badge.xpReward || 10} XP • {new Date(badge.unlockedAt).toLocaleDateString()}
+                          </p>
                         </div>
                       </div>
                     ))}
