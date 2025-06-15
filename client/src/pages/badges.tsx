@@ -32,27 +32,42 @@ export default function BadgesPage() {
   const [filterRarity, setFilterRarity] = useState<string>('all');
   const [showLocked, setShowLocked] = useState(true);
 
-  // Fetch AI badges
-  const { data: badges = [], isLoading: badgesLoading } = useQuery({
+  // Fetch AI badges with proper data mapping
+  const { data: badgesData = [], isLoading: badgesLoading } = useQuery({
     queryKey: ['/api/ai-badges'],
     queryFn: async () => {
       const response = await fetch('/api/ai-badges');
       if (!response.ok) return [];
-      return response.json();
+      const rawBadges = await response.json();
+      
+      // Map API response to expected format
+      return rawBadges.map((badge: any) => ({
+        id: badge.id || badge.badgeId,
+        name: badge.name || badge.title,
+        description: badge.description,
+        icon: badge.icon || badge.iconName || 'Trophy',
+        tier: badge.tier || 'bronze',
+        xpReward: badge.xpReward || badge.xp || 10,
+        rarity: badge.rarity || 'common',
+        unlockedAt: badge.unlockedAt || badge.earnedAt
+      }));
     },
     enabled: !!user,
   });
 
-  // Calculate badge statistics
+  // Filter only unlocked badges for statistics
+  const unlockedBadges = badgesData.filter((badge: AiBadge) => badge.unlockedAt);
+
+  // Calculate badge statistics from authentic data
   const badgeStats: BadgeStats = {
-    totalBadges: badges.length,
-    totalXp: badges.reduce((sum: number, badge: AiBadge) => sum + (badge.xpReward || 0), 0),
-    rarityBreakdown: badges.reduce((acc: Record<string, number>, badge: AiBadge) => {
+    totalBadges: unlockedBadges.length,
+    totalXp: unlockedBadges.reduce((sum: number, badge: AiBadge) => sum + (badge.xpReward || 0), 0),
+    rarityBreakdown: unlockedBadges.reduce((acc: Record<string, number>, badge: AiBadge) => {
       const rarity = badge.rarity || 'common';
       acc[rarity] = (acc[rarity] || 0) + 1;
       return acc;
     }, {}),
-    recentBadges: badges
+    recentBadges: unlockedBadges
       .sort((a: AiBadge, b: AiBadge) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
       .slice(0, 3)
   };
@@ -96,10 +111,11 @@ export default function BadgesPage() {
     );
   }
 
-  // Filter badges
-  const filteredBadges = badges.filter((badge: AiBadge) => {
-    if (filterRarity !== 'all' && badge.rarity !== filterRarity) return false;
-    return true; // All badges are unlocked since we fetch from api/ai-badges
+  // Filter badges based on rarity and locked status
+  const filteredBadges = badgesData.filter((badge: AiBadge) => {
+    const rarityMatch = filterRarity === 'all' || badge.rarity === filterRarity;
+    const lockMatch = showLocked || badge.unlockedAt;
+    return rarityMatch && lockMatch;
   });
 
   return (
@@ -113,7 +129,7 @@ export default function BadgesPage() {
           </div>
           
           {/* Filter Controls */}
-          {badges.length > 0 && (
+          {badgesData.length > 0 && (
             <div className="flex items-center gap-2">
               <Filter className="w-4 h-4 text-gray-500" />
               <select
@@ -223,7 +239,7 @@ export default function BadgesPage() {
         )}
 
         {/* Badge Gallery */}
-        {badges.length > 0 ? (
+        {badgesData.length > 0 ? (
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">
@@ -264,7 +280,7 @@ export default function BadgesPage() {
                 ))}
               </div>
               
-              {filteredBadges.length === 0 && badges.length > 0 && (
+              {filteredBadges.length === 0 && badgesData.length > 0 && (
                 <div className="text-center py-8">
                   <div className="text-gray-400 mb-2">
                     <Filter className="w-8 h-8 mx-auto" />
