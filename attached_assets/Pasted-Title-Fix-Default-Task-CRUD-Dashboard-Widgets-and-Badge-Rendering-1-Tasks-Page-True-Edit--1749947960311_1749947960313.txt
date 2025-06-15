@@ -1,0 +1,49 @@
+Title: Fix Default Task CRUD, Dashboard Widgets, and Badge Rendering
+
+## 1. Tasks Page – True “Edit” & “Delete” for All Tasks
+- **Allow Delete on Default Tasks**  
+  - Remove any guards preventing `DELETE /api/tasks/:id` for `type==='Default'`.  
+  - Confirm the trash-can icon invokes the delete API and then removes the row.
+
+- **Convert “Edit” into In-Place Update, Not Create**  
+  - Ensure the Edit modal uses the *existing* task’s `id` in its form payload.  
+  - On submit, call `PUT /api/tasks/:id` (not POST) with updated fields (name, description, points, iconName, color).  
+  - After successful update, update that row’s data in state rather than appending a new row.
+
+- **Icon & Color Persistence**  
+  - In the Edit form, populate the icon picker and color picker from the task’s current `iconName` and `color`.  
+  - Bind those fields back into the PUT request so changes show immediately.
+
+## 2. Dashboard – Restore Widgets & Task List
+- **Re-bind Dashboard “Focus for This Week”**  
+  - On Dashboard mount and on week-change, fetch `/api/progress?start=…&end=…`.  
+  - If `progress.topTasks` is non-empty, render them; if empty, show placeholder.  
+- **“Recent Badges” Widget**  
+  - Fetch `/api/ai-badges?recent=true` (top 3 unlocked).  
+  - If the array has items, render their icons + titles; otherwise, show “Complete tasks to earn badges.”
+
+- **Ensure “Next” Button Works**  
+  - Re-enable “Next” when not on the latest week. It must advance the date range and re-fetch both progress and recent badges.
+
+## 3. Badges Page – Real Data Only
+- **Remove all hard-coded badge arrays** in `BadgesPage.tsx`.  
+- **Confirm fetch to `/api/ai-badges`** returns earned badges.  
+- **Render only badges with `unlockedAt`** (or according to your filter), show locked ones with overlay if `showLocked` is true.
+
+## Acceptance Criteria
+1. **Tasks Page**  
+   - Deleting *any* task (default or custom) removes it.  
+   - Editing a task updates that same row (icon, color, name, points) without creating a duplicate.
+
+2. **Dashboard**  
+   - Focus panel shows real topTasks or the placeholder if none.  
+   - Recent Badges widget displays real earned badges or placeholder.  
+   - Next/Previous week navigation updates both Dashboard and Progress pages correctly.
+
+3. **Badges Page**  
+   - Only API-driven badges render—no hard-coded “0 badges” when you have earned badges.
+
+Please tackle in this order:  
+1) Task CRUD fixes  
+2) Dashboard widget rebinding  
+3) Badges API wiring  

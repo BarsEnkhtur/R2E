@@ -623,7 +623,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = getUserId(req);
       const badges = await storage.getAiBadges(userId);
-      res.json(badges);
+      
+      // If recent=true query param, return only recent badges
+      if (req.query.recent === 'true') {
+        const recentBadges = badges
+          .filter(badge => badge.unlockedAt)
+          .sort((a, b) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
+          .slice(0, 3);
+        res.json(recentBadges);
+      } else {
+        res.json(badges);
+      }
     } catch (error) {
       console.error("Error fetching AI badges:", error);
       res.status(500).json({ error: "Failed to fetch AI badges" });

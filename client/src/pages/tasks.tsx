@@ -329,7 +329,7 @@ export default function TasksPage() {
           return response.json();
         }
       } else {
-        // For default tasks, we'll create a custom task override
+        // For default tasks, create a custom task override
         const response = await fetch('/api/custom-tasks', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -361,21 +361,34 @@ export default function TasksPage() {
 
   // Mutation to delete task
   const deleteTaskMutation = useMutation({
-    mutationFn: async (taskId: string) => {
-      const cleanTaskId = taskId.replace('custom-', '');
-      const customTask = customTasks.find((ct: CustomTask) => ct.taskId === cleanTaskId);
-      if (customTask) {
-        const response = await fetch(`/api/custom-tasks/${customTask.id}`, {
-          method: 'DELETE'
-        });
-        if (!response.ok) throw new Error('Failed to delete task');
+    mutationFn: async (task: Task) => {
+      if (task.type === "Custom") {
+        const cleanTaskId = task.id.replace('custom-', '');
+        const customTask = customTasks.find((ct: CustomTask) => ct.taskId === cleanTaskId);
+        if (customTask) {
+          const response = await fetch(`/api/custom-tasks/${customTask.id}`, {
+            method: 'DELETE'
+          });
+          if (!response.ok) throw new Error('Failed to delete task');
+        }
+      } else {
+        // For default tasks, check if there's a custom override to delete
+        const customOverride = customTasks.find((ct: CustomTask) => ct.taskId === task.id);
+        if (customOverride) {
+          const response = await fetch(`/api/custom-tasks/${customOverride.id}`, {
+            method: 'DELETE'
+          });
+          if (!response.ok) throw new Error('Failed to delete task override');
+        }
       }
     },
-    onSuccess: () => {
+    onSuccess: (_, task) => {
       queryClient.invalidateQueries({ queryKey: ['/api/custom-tasks'] });
       toast({
-        title: "Task deleted",
-        description: "Task has been successfully deleted.",
+        title: task.type === "Default" ? "Task reset" : "Task deleted",
+        description: task.type === "Default" 
+          ? "Task has been reset to default settings."
+          : "Task has been successfully deleted.",
       });
     }
   });
@@ -413,8 +426,8 @@ export default function TasksPage() {
     }
   };
 
-  const handleDelete = (taskId: string) => {
-    deleteTaskMutation.mutate(taskId);
+  const handleDelete = (task: Task) => {
+    deleteTaskMutation.mutate(task);
   };
 
   if (isAuthLoading) {
@@ -628,36 +641,37 @@ export default function TasksPage() {
                             >
                               <Edit className="w-4 h-4" />
                             </Button>
-                            {task.type === "Custom" && (
-                              <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  className="h-8 w-8 p-0 text-red-600 hover:text-red-800"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Task</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    {task.type === "Default" 
+                                      ? `Are you sure you want to reset "${task.name}" to its default settings? This will remove any customizations.`
+                                      : `Are you sure you want to delete "${task.name}"? This action cannot be undone.`
+                                    }
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleDelete(task)}
+                                    className="bg-red-600 hover:bg-red-700"
                                   >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                  <AlertDialogHeader>
-                                    <AlertDialogTitle>Delete Task</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                      Are you sure you want to delete "{task.name}"? This action cannot be undone.
-                                    </AlertDialogDescription>
-                                  </AlertDialogHeader>
-                                  <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                    <AlertDialogAction
-                                      onClick={() => handleDelete(task.id)}
-                                      className="bg-red-600 hover:bg-red-700"
-                                    >
-                                      Delete
-                                    </AlertDialogAction>
-                                  </AlertDialogFooter>
-                                </AlertDialogContent>
-                              </AlertDialog>
-                            )}
+                                    {task.type === "Default" ? "Reset" : "Delete"}
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
                           </div>
                         </TableCell>
                       </TableRow>

@@ -168,12 +168,15 @@ export default function Dashboard() {
 
   // Fetch AI badges for Recent Badges widget
   const { data: aiBadges = [], isLoading: isBadgesLoading } = useQuery({
-    queryKey: ['/api/ai-badges'],
+    queryKey: ['/api/ai-badges', 'recent'],
     queryFn: async () => {
-      const response = await fetch('/api/ai-badges');
+      const response = await fetch('/api/ai-badges?recent=true');
       if (!response.ok) return [];
       const badges = await response.json();
-      return badges.filter((badge: any) => badge.unlockedAt).slice(0, 3);
+      return badges
+        .filter((badge: any) => badge.unlockedAt)
+        .sort((a: any, b: any) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
+        .slice(0, 3);
     },
     enabled: !!user,
   });
