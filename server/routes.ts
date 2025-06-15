@@ -95,12 +95,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
       
       // New logarithmic multiplier function with 1.5x cap
-      function computeMultiplier(count: number): number {
+      const computeMultiplier = (count: number): number => {
         const maxBonus = 0.5;
         const scale = 3;
         const bonus = maxBonus * Math.log1p(count - 1) / Math.log1p(scale);
         return 1 + Math.min(bonus, maxBonus);
-      }
+      };
 
       // Calculate current multipliers for next completion
       Object.values(weeklyTaskData).forEach((taskData: any) => {
@@ -180,6 +180,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const now = new Date();
       const weekStartDate = getWeekStartDate(now);
 
+      // New logarithmic multiplier function with 1.5x cap
+      const computeMultiplier = (count: number): number => {
+        const maxBonus = 0.5;
+        const scale = 3;
+        const bonus = maxBonus * Math.log1p(count - 1) / Math.log1p(scale);
+        return 1 + Math.min(bonus, maxBonus);
+      };
+
       // Get or create task stats for this week
       let taskStat = await storage.getTaskStatByTaskId(userId, taskId, weekStartDate);
       
@@ -196,9 +204,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
           weekStartDate
         });
       } else {
-        // Task already done this week - apply multiplier
+        // Task already done this week - apply logarithmic multiplier
         const newTimesThisWeek = taskStat.timesThisWeek + 1;
-        const multiplier = Math.min(1 + (newTimesThisWeek - 1) * 0.5, 2.5); // 1x, 1.5x, 2x, 2.5x max
+        const multiplier = computeMultiplier(newTimesThisWeek);
         const newCurrentValue = Math.round(basePoints * multiplier);
         
         taskStat = await storage.updateTaskStats(userId, taskId, weekStartDate, {

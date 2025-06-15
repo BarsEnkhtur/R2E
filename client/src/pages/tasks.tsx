@@ -497,6 +497,14 @@ export default function TasksPage() {
       }))
   ];
 
+  // New logarithmic multiplier function matching backend
+  const computeMultiplier = (count: number): number => {
+    const maxBonus = 0.5;
+    const scale = 3;
+    const bonus = maxBonus * Math.log1p(count - 1) / Math.log1p(scale);
+    return 1 + Math.min(bonus, maxBonus);
+  };
+
   // Helper function to get weekly stats for a task
   const getWeeklyStats = (taskId: string) => {
     const cleanTaskId = taskId.startsWith('custom-') ? taskId.replace('custom-', '') : taskId;
@@ -742,7 +750,7 @@ export default function TasksPage() {
     setIsDialogOpen(true);
   };
 
-  // Mutation to create a new completed task
+  // Mutation to create a new completed task with optimistic updates
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: { taskId: string; name: string; points: number; note?: string }) => {
       const response = await fetch('/api/completed-tasks', {
@@ -753,18 +761,78 @@ export default function TasksPage() {
       if (!response.ok) throw new Error('Failed to create task');
       return response.json();
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/progress'] });
+    onMutate: async (taskData) => {
+      // Get current stats for this task
+      const stats = getWeeklyStats(taskData.taskId);
+      const currentMultiplier = stats.currentMultiplier;
+      const actualPoints = Math.round(taskData.points * currentMultiplier);
+      
+      // Cancel outgoing refetches
+      await queryClient.cancelQueries({ queryKey: ['/api/progress', weekRange.start, weekRange.end] });
+      
+      // Snapshot current data
+      const previousData = queryClient.getQueryData(['/api/progress', weekRange.start, weekRange.end]);
+      
+      // Optimistically update
+      queryClient.setQueryData(['/api/progress', weekRange.start, weekRange.end], (old: any) => {
+        if (!old) return old;
+        
+        const updatedWeeklyTaskData = [...(old.weeklyTaskData || [])];
+        const existingIndex = updatedWeeklyTaskData.findIndex((t: any) => t.taskId === taskData.taskId);
+        
+        if (existingIndex >= 0) {
+          // Update existing task
+          const existing = updatedWeeklyTaskData[existingIndex];
+          const newCompletions = existing.completions + 1;
+          const newCurrentMultiplier = computeMultiplier(newCompletions + 1); // For next completion
+          
+          updatedWeeklyTaskData[existingIndex] = {
+            ...existing,
+            completions: newCompletions,
+            totalPoints: existing.totalPoints + actualPoints,
+            currentMultiplier: newCurrentMultiplier
+          };
+        } else {
+          // Add new task
+          updatedWeeklyTaskData.push({
+            taskId: taskData.taskId,
+            displayName: taskData.name,
+            basePoints: taskData.points,
+            completions: 1,
+            totalPoints: actualPoints,
+            currentMultiplier: computeMultiplier(2) // Next completion will be 2nd
+          });
+        }
+        
+        return {
+          ...old,
+          weeklyTaskData: updatedWeeklyTaskData,
+          points: old.points + actualPoints,
+          tasksCompleted: old.tasksCompleted + 1
+        };
+      });
+      
+      return { previousData, actualPoints };
+    },
+    onSuccess: (_, taskData, context) => {
+      // Invalidate queries to sync with server
+      queryClient.invalidateQueries({ queryKey: ['/api/progress', weekRange.start, weekRange.end] });
       queryClient.invalidateQueries({ queryKey: ['/api/completed-tasks'] });
+      
       toast({
         title: "Task completed!",
-        description: "Great job on staying consistent.",
+        description: `You earned ${context?.actualPoints || taskData.points} points for ${taskData.name}`,
       });
       setIsDialogOpen(false);
       setSelectedTask(null);
       setTaskNote("");
     },
-    onError: (error: any) => {
+    onError: (error: any, taskData, context) => {
+      // Rollback optimistic update
+      if (context?.previousData) {
+        queryClient.setQueryData(['/api/progress', weekRange.start, weekRange.end], context.previousData);
+      }
+      
       toast({
         title: "Error",
         description: error.message || "Failed to complete task",
@@ -776,10 +844,14 @@ export default function TasksPage() {
   const handleTaskSubmit = () => {
     if (!selectedTask) return;
     
+    const cleanTaskId = selectedTask.id.startsWith('custom-') ? selectedTask.id.replace('custom-', '') : selectedTask.id;
+    const stats = getWeeklyStats(selectedTask.id);
+    const actualPoints = Math.round(selectedTask.points * stats.currentMultiplier);
+    
     createTaskMutation.mutate({
-      taskId: selectedTask.id.startsWith('custom-') ? selectedTask.id.replace('custom-', '') : selectedTask.id,
+      taskId: cleanTaskId,
       name: selectedTask.name,
-      points: selectedTask.points,
+      points: selectedTask.points, // Send base points, backend will calculate multiplier
       note: taskNote.trim() || undefined
     });
   };
