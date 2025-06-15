@@ -243,6 +243,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Debug endpoint to check multiplier distribution
+  app.get("/api/debug/multipliers", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const weekStartDate = req.query.weekStartDate as string || getWeekStartDate(new Date());
+      
+      // Get all completed tasks for this week
+      const tasks = await storage.getCompletedTasks(userId, weekStartDate);
+      
+      // Calculate multiplier distribution
+      const multiplierDistribution: Record<string, number> = {};
+      
+      tasks.forEach(task => {
+        // Get task stats to calculate what the multiplier should have been
+        const taskGroup = tasks.filter(t => t.taskId === task.taskId);
+        const taskIndex = taskGroup.findIndex(t => t.id === task.id) + 1; // 1-based index
+        
+        // Calculate what multiplier this completion should have
+        const computeMultiplier = (count: number): number => {
+          const maxBonus = 0.5;
+          const scale = 3;
+          const bonus = maxBonus * Math.log1p(count - 1) / Math.log1p(scale);
+          return 1 + Math.min(bonus, maxBonus);
+        };
+        
+        const expectedMultiplier = computeMultiplier(taskIndex);
+        const actualMultiplier = task.points / (task.points / expectedMultiplier); // Reverse calculate
+        
+        const multiplierKey = expectedMultiplier.toFixed(2);
+        multiplierDistribution[multiplierKey] = (multiplierDistribution[multiplierKey] || 0) + 1;
+      });
+      
+      res.json({
+        weekStartDate,
+        totalCompletions: tasks.length,
+        multiplierDistribution,
+        maxMultiplierFound: Math.max(...Object.keys(multiplierDistribution).map(k => parseFloat(k))),
+        tasks: tasks.map(task => ({
+          taskId: task.taskId,
+          name: task.name,
+          points: task.points,
+          completedAt: task.completedAt
+        }))
+      });
+    } catch (error) {
+      console.error(`Error fetching multiplier debug data: ${error}`);
+      res.status(500).json({ error: "Failed to fetch debug data" });
+    }
+  });
+
   // Generate micro feedback for completed task
   app.post("/api/micro-feedback", isAuthenticated, async (req, res) => {
     try {
