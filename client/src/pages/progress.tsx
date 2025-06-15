@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
+import CompletionHistory from "@/components/completion-history";
 import { ChevronLeft, ChevronRight, TrendingUp, Calendar, Target, Award } from "lucide-react";
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, getISOWeek } from "date-fns";
 
@@ -337,6 +338,12 @@ export default function ProgressPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Completion History */}
+        <CompletionHistory 
+          weekStart={weekRange.start} 
+          weekEnd={weekRange.end} 
+        />
       </div>
     </Layout>
   );
