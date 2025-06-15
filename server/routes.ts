@@ -123,6 +123,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get task stats for a specific week
+  app.get("/api/task-stats", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const weekStartDate = req.query.weekStartDate as string || getWeekStartDate(new Date());
+      const stats = await storage.getTaskStats(userId, weekStartDate);
+      res.json(stats);
+    } catch (error) {
+      console.error(`Error fetching task stats: ${error}`);
+      res.status(500).json({ error: "Failed to fetch task stats" });
+    }
+  });
+
   // Create a new completed task with compounding logic
   app.post("/api/completed-tasks", isAuthenticated, async (req, res) => {
     try {

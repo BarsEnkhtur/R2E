@@ -377,6 +377,24 @@ export default function TasksPage() {
     enabled: !!user,
   });
 
+  // Fetch current week's task stats for dynamic multipliers
+  const getCurrentWeek = () => {
+    const now = new Date();
+    const monday = new Date(now);
+    monday.setDate(now.getDate() - now.getDay() + 1);
+    return monday.toISOString().split('T')[0];
+  };
+
+  const { data: taskStats = [] } = useQuery({
+    queryKey: ['/api/task-stats', getCurrentWeek()],
+    queryFn: async () => {
+      const response = await fetch(`/api/task-stats?weekStartDate=${getCurrentWeek()}`);
+      if (!response.ok) return [];
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
   // Icon mapping for custom tasks
   const getIconComponent = (iconName: string) => {
     const iconMap: Record<string, React.ComponentType<any>> = {
