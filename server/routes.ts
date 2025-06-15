@@ -94,10 +94,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
         weeklyTaskData[task.taskId].totalPoints += task.points;
       });
       
+      // New logarithmic multiplier function with 1.5x cap
+      function computeMultiplier(count: number): number {
+        const maxBonus = 0.5;
+        const scale = 3;
+        const bonus = maxBonus * Math.log1p(count - 1) / Math.log1p(scale);
+        return 1 + Math.min(bonus, maxBonus);
+      }
+
       // Calculate current multipliers for next completion
       Object.values(weeklyTaskData).forEach((taskData: any) => {
         const nextCount = taskData.completions + 1;
-        taskData.currentMultiplier = Math.min(1 + (nextCount - 1) * 0.5, 2.5);
+        taskData.currentMultiplier = computeMultiplier(nextCount);
       });
       
       // Calculate top tasks using actual completion points
