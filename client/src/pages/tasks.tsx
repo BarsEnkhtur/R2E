@@ -56,7 +56,106 @@ import {
   Users, 
   Code, 
   Briefcase, 
-  Lightbulb
+  Lightbulb,
+  Trophy,
+  Award,
+  TrendingUp,
+  Gamepad2,
+  Dumbbell,
+  GraduationCap,
+  Wallet,
+  ShoppingCart,
+  Utensils,
+  Wrench,
+  Hammer,
+  Scissors,
+  Paintbrush,
+  Calculator,
+  Building,
+  School,
+  Hospital,
+  MapPin,
+  Navigation,
+  Anchor,
+  TreePine,
+  Flower,
+  Leaf,
+  Apple,
+  Cherry,
+  Laptop,
+  Smartphone,
+  Tablet,
+  Headphones,
+  Gamepad,
+  Monitor,
+  Keyboard,
+  Mouse,
+  Printer,
+  Wifi,
+  Bluetooth,
+  Battery,
+  Volume2,
+  Play,
+  Pause,
+  StopCircle,
+  SkipForward,
+  Repeat,
+  Shuffle,
+  Radio,
+  Tv,
+  Film,
+  Image,
+  FileText,
+  Folder,
+  Archive,
+  Download,
+  Upload,
+  Share,
+  Link,
+  Copy,
+  Trash,
+  Save,
+  Edit3,
+  PenTool,
+  Type,
+  Bold,
+  Italic,
+  Underline,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  List,
+  CheckSquare,
+  Square,
+  Circle,
+  Triangle,
+  Hexagon,
+  Octagon,
+  Minus,
+  X,
+  ChevronUp,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  RotateCw,
+  RotateCcw,
+  RefreshCw,
+  Maximize,
+  Minimize,
+  Move,
+  Lock,
+  Unlock,
+  Eye,
+  EyeOff,
+  Filter,
+  Grid,
+  Layers,
+  Package,
+  Box
 } from "lucide-react";
 
 interface Task {
@@ -109,42 +208,110 @@ export default function TasksPage() {
     { name: "indigo", class: "bg-indigo-500" }
   ];
 
-  // Available icons for tasks (using curated lucide icons)
+  // Available icons for tasks (comprehensive icon set)
   const availableIcons = [
+    // Core task icons
     { name: "Star", component: Star },
-    { name: "Bookmark", component: Bookmark },
-    { name: "Check", component: Check },
-    { name: "Clock", component: Clock },
-    { name: "Camera", component: Camera },
     { name: "Target", component: Target },
-    { name: "Zap", component: Zap },
-    { name: "Globe", component: Globe },
-    { name: "Home", component: Home },
-    { name: "Settings", component: Settings },
-    { name: "Music", component: Music },
-    { name: "Book", component: Book },
-    { name: "Coffee", component: Coffee },
-    { name: "Phone", component: Phone },
-    { name: "Mail", component: Mail },
-    { name: "Calendar", component: Calendar },
+    { name: "Check", component: Check },
     { name: "Flag", component: Flag },
-    { name: "Gift", component: Gift },
-    { name: "Shield", component: Shield },
-    { name: "Compass", component: Compass },
-    { name: "Diamond", component: Diamond },
-    { name: "Rocket", component: Rocket },
-    { name: "Crown", component: Crown },
+    { name: "Trophy", component: Trophy },
+    { name: "Award", component: Award },
+    
+    // Work & Career
+    { name: "Briefcase", component: Briefcase },
+    { name: "Users", component: Users },
+    { name: "Code", component: Code },
+    { name: "Building", component: Building },
+    { name: "GraduationCap", component: GraduationCap },
+    { name: "Calculator", component: Calculator },
+    
+    // Health & Fitness
+    { name: "Heart", component: Heart },
+    { name: "Dumbbell", component: Dumbbell },
+    { name: "Apple", component: Apple },
+    
+    // Learning & Growth
+    { name: "Book", component: Book },
+    { name: "Lightbulb", component: Lightbulb },
+    { name: "School", component: School },
+    
+    // Tech & Devices
+    { name: "Laptop", component: Laptop },
+    { name: "Smartphone", component: Smartphone },
+    { name: "Monitor", component: Monitor },
+    { name: "Gamepad", component: Gamepad },
+    { name: "Headphones", component: Headphones },
+    
+    // Communication
+    { name: "Mail", component: Mail },
+    { name: "Phone", component: Phone },
+    { name: "Share", component: Share },
+    
+    // Time & Schedule
+    { name: "Clock", component: Clock },
+    { name: "Calendar", component: Calendar },
+    
+    // Creative & Design
     { name: "Palette", component: Palette },
-    { name: "Mountain", component: Mountain },
-    { name: "Smile", component: Smile },
-    { name: "Sun", component: Sun },
-    { name: "Moon", component: Moon },
-    { name: "Cloud", component: Cloud },
-    { name: "Umbrella", component: Umbrella },
+    { name: "Paintbrush", component: Paintbrush },
+    { name: "Camera", component: Camera },
+    { name: "Music", component: Music },
+    { name: "Film", component: Film },
+    
+    // Tools & Utilities
+    { name: "Wrench", component: Wrench },
+    { name: "Hammer", component: Hammer },
+    { name: "Scissors", component: Scissors },
+    { name: "Settings", component: Settings },
+    
+    // Travel & Transportation
     { name: "Car", component: Car },
     { name: "Bike", component: Bike },
     { name: "Plane", component: Plane },
-    { name: "Train", component: Train }
+    { name: "Train", component: Train },
+    { name: "MapPin", component: MapPin },
+    
+    // Nature & Weather
+    { name: "Sun", component: Sun },
+    { name: "Moon", component: Moon },
+    { name: "Cloud", component: Cloud },
+    { name: "TreePine", component: TreePine },
+    { name: "Flower", component: Flower },
+    { name: "Mountain", component: Mountain },
+    
+    // Objects & Items
+    { name: "Coffee", component: Coffee },
+    { name: "Gift", component: Gift },
+    { name: "Wallet", component: Wallet },
+    { name: "ShoppingCart", component: ShoppingCart },
+    { name: "Utensils", component: Utensils },
+    { name: "Home", component: Home },
+    
+    // Shapes & Symbols
+    { name: "Circle", component: Circle },
+    { name: "Square", component: Square },
+    { name: "Diamond", component: Diamond },
+    { name: "Crown", component: Crown },
+    { name: "Shield", component: Shield },
+    
+    // Navigation & Direction
+    { name: "Compass", component: Compass },
+    { name: "Navigation", component: Navigation },
+    { name: "TrendingUp", component: TrendingUp },
+    { name: "Rocket", component: Rocket },
+    
+    // Files & Documents
+    { name: "FileText", component: FileText },
+    { name: "Folder", component: Folder },
+    { name: "Archive", component: Archive },
+    { name: "Bookmark", component: Bookmark },
+    
+    // Fun & Entertainment
+    { name: "Gamepad2", component: Gamepad2 },
+    { name: "Smile", component: Smile },
+    { name: "Globe", component: Globe },
+    { name: "Zap", component: Zap }
   ];
 
   // Default tasks with semantic icons
@@ -210,26 +377,90 @@ export default function TasksPage() {
   // Icon mapping for custom tasks
   const getIconComponent = (iconName: string) => {
     const iconMap: Record<string, React.ComponentType<any>> = {
-      Star, Bookmark, Check, Clock, Camera, Target, Zap, Globe, Home, Settings,
-      Music, Book, Coffee, Phone, Mail, Calendar, Flag, Gift, Shield, Compass,
-      Diamond, Rocket, Crown, Palette, Mountain, Smile, Sun, Moon, Cloud,
-      Umbrella, Car, Bike, Plane, Train, Heart, Users, Code, Briefcase, Lightbulb
+      // Core task icons
+      Star, Target, Check, Flag, Trophy, Award,
+      
+      // Work & Career
+      Briefcase, Users, Code, Building, GraduationCap, Calculator,
+      
+      // Health & Fitness
+      Heart, Dumbbell, Apple,
+      
+      // Learning & Growth
+      Book, Lightbulb, School,
+      
+      // Tech & Devices
+      Laptop, Smartphone, Monitor, Gamepad, Headphones,
+      
+      // Communication
+      Mail, Phone, Share,
+      
+      // Time & Schedule
+      Clock, Calendar,
+      
+      // Creative & Design
+      Palette, Paintbrush, Camera, Music, Film,
+      
+      // Tools & Utilities
+      Wrench, Hammer, Scissors, Settings,
+      
+      // Travel & Transportation
+      Car, Bike, Plane, Train, MapPin,
+      
+      // Nature & Weather
+      Sun, Moon, Cloud, TreePine, Flower, Mountain,
+      
+      // Objects & Items
+      Coffee, Gift, Wallet, ShoppingCart, Utensils, Home,
+      
+      // Shapes & Symbols
+      Circle, Square, Diamond, Crown, Shield,
+      
+      // Navigation & Direction
+      Compass, Navigation, TrendingUp, Rocket,
+      
+      // Files & Documents
+      FileText, Folder, Archive, Bookmark,
+      
+      // Fun & Entertainment
+      Gamepad2, Smile, Globe, Zap,
+      
+      // Legacy support
+      Umbrella
     };
     return iconMap[iconName] || Star;
   };
 
-  // Combine all tasks
+  // Combine all tasks with override logic
   const allTasks: Task[] = [
-    ...defaultTasks,
-    ...customTasks.map((ct: CustomTask) => ({
-      id: `custom-${ct.taskId}`,
-      name: ct.name,
-      description: ct.description,
-      points: ct.points,
-      icon: getIconComponent(ct.icon),
-      color: ct.color,
-      type: "Custom"
-    }))
+    // Start with default tasks and apply any custom overrides
+    ...defaultTasks.map(defaultTask => {
+      const override = customTasks.find((ct: CustomTask) => ct.taskId === defaultTask.id);
+      if (override) {
+        return {
+          ...defaultTask,
+          name: override.name,
+          description: override.description,
+          points: override.points,
+          icon: getIconComponent(override.icon),
+          color: override.color,
+          type: "Default" // Keep as Default type but with override data
+        };
+      }
+      return defaultTask;
+    }),
+    // Add pure custom tasks (those that don't override defaults)
+    ...customTasks
+      .filter((ct: CustomTask) => !defaultTasks.some(dt => dt.id === ct.taskId))
+      .map((ct: CustomTask) => ({
+        id: `custom-${ct.taskId}`,
+        name: ct.name,
+        description: ct.description,
+        points: ct.points,
+        icon: getIconComponent(ct.icon),
+        color: ct.color,
+        type: "Custom"
+      }))
   ];
 
   // Filter tasks based on search
@@ -268,14 +499,25 @@ export default function TasksPage() {
         setNewTaskIcon(customTask.icon);
       }
     } else {
-      // For default tasks, use the task data
-      setNewTaskName(task.name);
-      setNewTaskDescription(task.description);
-      setNewTaskPoints(task.points);
-      setNewTaskColor(task.color);
-      // Find the icon name for default tasks
-      const iconName = availableIcons.find(icon => icon.component === task.icon)?.name || "Star";
-      setNewTaskIcon(iconName);
+      // For default tasks, check if there's an existing override
+      const existingOverride = customTasks.find((ct: CustomTask) => ct.taskId === task.id);
+      if (existingOverride) {
+        // Use override data
+        setNewTaskName(existingOverride.name);
+        setNewTaskDescription(existingOverride.description);
+        setNewTaskPoints(existingOverride.points);
+        setNewTaskColor(existingOverride.color);
+        setNewTaskIcon(existingOverride.icon);
+      } else {
+        // Use default task data
+        setNewTaskName(task.name);
+        setNewTaskDescription(task.description);
+        setNewTaskPoints(task.points);
+        setNewTaskColor(task.color);
+        // Find the icon name for default tasks
+        const iconName = availableIcons.find(icon => icon.component === task.icon)?.name || "Briefcase";
+        setNewTaskIcon(iconName);
+      }
     }
     setShowEditDialog(true);
   };
@@ -329,22 +571,41 @@ export default function TasksPage() {
           return response.json();
         }
       } else {
-        // For default tasks, create a custom task override
-        const response = await fetch('/api/custom-tasks', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            taskId: editingTask?.id || updateData.id,
-            name: updateData.name,
-            description: updateData.description,
-            points: updateData.points,
-            color: updateData.color,
-            icon: updateData.icon,
-            isActive: true
-          })
-        });
-        if (!response.ok) throw new Error('Failed to create task override');
-        return response.json();
+        // For default tasks, check if override exists
+        const existingOverride = customTasks.find((ct: CustomTask) => ct.taskId === editingTask?.id);
+        if (existingOverride) {
+          // Update existing override
+          const response = await fetch(`/api/custom-tasks/${existingOverride.id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: updateData.name,
+              description: updateData.description,
+              points: updateData.points,
+              color: updateData.color,
+              icon: updateData.icon
+            })
+          });
+          if (!response.ok) throw new Error('Failed to update task override');
+          return response.json();
+        } else {
+          // Create new override
+          const response = await fetch('/api/custom-tasks', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              taskId: editingTask?.id || updateData.id,
+              name: updateData.name,
+              description: updateData.description,
+              points: updateData.points,
+              color: updateData.color,
+              icon: updateData.icon,
+              isActive: true
+            })
+          });
+          if (!response.ok) throw new Error('Failed to create task override');
+          return response.json();
+        }
       }
     },
     onSuccess: () => {
