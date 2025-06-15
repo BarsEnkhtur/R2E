@@ -456,7 +456,7 @@ export default function Dashboard() {
                             <div>
                               <h3 className="font-medium text-gray-900">{topTask.taskName}</h3>
                               <p className="text-sm text-gray-600">
-                                {topTask.count}x this week • +{Math.round(topTask.points * topTask.multiplier)} pts each
+                                {topTask.count}x this week • {Math.round(topTask.points * topTask.count)} pts total
                               </p>
                             </div>
                           </div>

@@ -145,6 +145,12 @@ Changelog:
   - Integrated authentic badge data from /api/ai-badges into Recent Badges widget
   - Removed all hard-coded badge arrays and fallback data for authentic API responses
   - Added comprehensive week navigation controls matching Progress page functionality
+- June 15, 2025. Task Completion & Dashboard Enhancement:
+  - Added task completion functionality to tasks page with green plus button and completion dialog
+  - Fixed JavaScript error preventing dashboard loading (null check for taskId.startsWith)
+  - Improved dashboard focus panel clarity: changed "pts each" to "pts total" for better understanding
+  - Enhanced task matching logic for proper dashboard data display
+  - Completed full CRUD operations for both default and custom tasks with proper icon persistence
 ```
 
 ## User Preferences
