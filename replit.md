@@ -131,6 +131,13 @@ Changelog:
   - Added Trophy icon empty state with motivational copy and example badge types
   - Built rarity legend with gradient badges for Common/Uncommon/Rare/Legendary
   - Integrated loading states and responsive breakpoints for mobile compatibility
+- June 15, 2025. Week Scroller Data & Progress Tab Enhancement:
+  - Fixed week scroller to use authentic Monday-Sunday date ranges (Jun 8 – Jun 14)
+  - Implemented /api/progress endpoint with start/end date parameters for real data
+  - Enhanced Progress page with dynamic stats cards using authentic API responses
+  - Updated week navigation with proper ISO week calculation and current week detection
+  - Integrated top tasks display from actual completion data with points and counts
+  - Added Recent Performance table with real date ranges and achievement status
 ```
 
 ## User Preferences

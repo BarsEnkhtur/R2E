@@ -32,11 +32,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get progress data for a specific date range
+  app.get("/api/progress", isAuthenticated, async (req, res) => {
+    try {
+      const userId = getUserId(req);
+      const { start, end } = req.query as { start?: string; end?: string };
+      
+      if (!start || !end) {
+        return res.status(400).json({ error: "start and end dates are required" });
+      }
+      
+      // Get tasks for the date range
+      const weekStartDate = start;
+      const tasks = await storage.getCompletedTasks(userId, weekStartDate);
+      
+      // Get weekly goal
+      const goalData = await storage.calculateDynamicGoal(userId, weekStartDate);
+      
+      // Get weekly history
+      const history = await storage.getWeeklyHistory(userId);
+      
+      // Calculate top tasks
+      const taskCounts = tasks.reduce((acc: Record<string, {name: string, points: number, count: number}>, task) => {
+        if (!acc[task.taskId]) {
+          acc[task.taskId] = { name: task.name, points: 0, count: 0 };
+        }
+        acc[task.taskId].points += task.points;
+        acc[task.taskId].count += 1;
+        return acc;
+      }, {});
+      
+      const topTasks = Object.values(taskCounts)
+        .sort((a, b) => b.points - a.points)
+        .slice(0, 5);
+      
+      const progressData = {
+        points: tasks.reduce((sum, task) => sum + task.points, 0),
+        goal: goalData,
+        tasksCompleted: tasks.length,
+        topTasks,
+        history: history.slice(0, 8)
+      };
+      
+      res.json(progressData);
+    } catch (error) {
+      console.error(`Error fetching progress data: ${error}`);
+      res.status(500).json({ error: "Failed to fetch progress data" });
+    }
+  });
+
   // Get completed tasks (optionally filtered by week)
   app.get("/api/completed-tasks", isAuthenticated, async (req, res) => {
     try {
       const userId = getUserId(req);
-      const weekStartDate = req.query.week as string | undefined;
+      const weekStartDate = req.query.weekStartDate as string | undefined;
       const currentWeek = weekStartDate || getWeekStartDate(new Date());
       const tasks = await storage.getCompletedTasks(userId, currentWeek);
       res.json(tasks);
