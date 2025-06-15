@@ -225,7 +225,7 @@ export default function Dashboard() {
       // Calculate what the next completion would be worth
       const currentCount = task.count || 1;
       const basePoints = task.basePoints || foundTask?.points || 1;
-      const nextMultiplier = Math.min(1 + currentCount * 0.5, 2.0); // Next completion multiplier
+      const nextMultiplier = Math.min(1 + currentCount * 0.5, 2.5); // Next completion multiplier (1x, 1.5x, 2x, 2.5x)
       const nextPoints = Math.round(basePoints * nextMultiplier);
       
       return {

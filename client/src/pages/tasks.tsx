@@ -493,7 +493,7 @@ export default function TasksPage() {
     }
     
     const nextCount = stat.timesThisWeek + 1;
-    const nextMultiplier = Math.min(1 + (nextCount - 1) * 0.5, 2.0);
+    const nextMultiplier = Math.min(1 + (nextCount - 1) * 0.5, 2.5); // 1x, 1.5x, 2x, 2.5x max
     const nextPoints = Math.round(basePoints * nextMultiplier);
     
     return { points: nextPoints, multiplier: nextMultiplier };

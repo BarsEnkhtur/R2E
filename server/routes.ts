@@ -160,10 +160,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           weekStartDate
         });
       } else {
-        // Task already done this week - apply compounding
+        // Task already done this week - apply multiplier
         const newTimesThisWeek = taskStat.timesThisWeek + 1;
-        const compoundingBonus = Math.min((newTimesThisWeek - 1) * 0.5, basePoints); // Cap at 2x base
-        const newCurrentValue = Math.min(basePoints + compoundingBonus, basePoints * 2);
+        const multiplier = Math.min(1 + (newTimesThisWeek - 1) * 0.5, 2.5); // 1x, 1.5x, 2x, 2.5x max
+        const newCurrentValue = Math.round(basePoints * multiplier);
         
         taskStat = await storage.updateTaskStats(userId, taskId, weekStartDate, {
           currentValue: newCurrentValue,
