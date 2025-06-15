@@ -1,0 +1,66 @@
+**Title: Dynamic Multipliers + Completion History & Undo**
+
+## 1. Fix Multipliers on Tasks Page
+- **Data Source**: Use pre-aggregated weekly stats from `GET /api/progress` (see previous spec).  
+- **Columns**:
+  - **This Week**: show `completions × → totalPoints` (actual earned points).  
+  - **Next Add**: show `+ basePoints × currentMultiplier → nextPoints` (using the smoothed curve ≤1.5×).  
+- **Implementation**:
+  ```jsx
+  const stats = weeklyById[task.id] || { completions: 0, totalPoints: 0, currentMultiplier: 1 };
+  <td>{stats.completions}× → <strong>{stats.totalPoints} pts</strong></td>
+  <td>+{task.basePoints} × {stats.currentMultiplier.toFixed(1)} → 
+      <strong>{(task.basePoints * stats.currentMultiplier).toFixed(1)} pts</strong>
+  </td>
+2. Add “Completion History” View
+Where: Under the Progress tab (or as a collapsible panel on Tasks page).
+
+Endpoint: GET /api/completions?weekStart=&weekEnd=&userId= returns:
+
+ts
+Copy
+Edit
+interface Completion {
+  id: string;
+  taskId: string;
+  taskName: string;
+  timestamp: string;
+  notes?: string;
+  pointsEarned: number;     // base × multiplier at that moment
+}
+UI: A table with columns:
+
+Task Name	Date & Time	Points Earned	Notes	Actions
+Gym/Recovery/PT	Jun 12 11:05 AM	5 pts	“Felt strong”	🗑️ Delete
+Coding Practice	Jun 11 02:30 PM	4 pts	(blank)	🗑️ Delete
+
+Actions:
+
+Delete: calls DELETE /api/completions/:id, then:
+
+Updates the history table.
+
+Refetches /api/progress to recompute your multipliers and totals.
+
+Edit Notes: inline “✎” icon that opens a small modal to PATCH /api/completions/:id with new notes.
+
+3. Acceptance Criteria
+Tasks Page shows correct “This Week” and “Next Add” based on real multipliers.
+
+Progress tab includes a “Completion History” table listing every log for the selected week.
+
+You can delete any mistaken log and see the totals + multipliers update immediately.
+
+You can add or edit a note on each completion.
+
+All APIs and UI follow existing authentication & pagination conventions.
+
+Drop this into Replit so they can implement both the dynamic scoring fixes and give you a permanent, editable ledger of everything you’ve logged.
+
+
+
+
+
+
+
+
