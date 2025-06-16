@@ -1,11 +1,12 @@
 import React, { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
-import { Award, Star, Sparkles, Trophy, Target, Lock, Filter } from "lucide-react";
+import { Award, Star, Sparkles, Trophy, Target, Lock, Filter, Zap } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface AiBadge {
   id: number;
@@ -31,6 +32,8 @@ export default function BadgesPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const [filterRarity, setFilterRarity] = useState<string>('all');
   const [showLocked, setShowLocked] = useState(true);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   // Fetch AI badges - authentic data only
   const { data: badgesData = [], isLoading: badgesLoading } = useQuery({
@@ -41,6 +44,42 @@ export default function BadgesPage() {
       return response.json();
     },
     enabled: !!user,
+  });
+
+  // Generate AI badge mutation
+  const generateBadgeMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/generate-ai-badge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Failed to generate badge');
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/ai-badges'] });
+      if (data.badge) {
+        toast({
+          title: "New Badge Earned!",
+          description: `You've unlocked "${data.badge.name}" - ${data.badge.description}`,
+        });
+      } else if (data.message) {
+        toast({
+          title: "Badge Generation",
+          description: data.message,
+        });
+      }
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
   // Filter only unlocked badges for statistics
@@ -293,6 +332,22 @@ export default function BadgesPage() {
                 <Trophy className="w-16 h-16 text-gray-400 mx-auto mb-4" />
                 <h3 className="text-lg font-medium text-gray-900 mb-2">No Badges Yet</h3>
                 <p className="text-gray-500 mb-6">Start completing tasks to unlock your first achievements!</p>
+                
+                {/* Generate Badge Button */}
+                <Button
+                  onClick={() => generateBadgeMutation.mutate()}
+                  disabled={generateBadgeMutation.isPending}
+                  className="mb-6"
+                >
+                  {generateBadgeMutation.isPending ? (
+                    "Analyzing Your Progress..."
+                  ) : (
+                    <>
+                      <Zap className="w-4 h-4 mr-2" />
+                      Generate Your First Badge
+                    </>
+                  )}
+                </Button>
                 
                 <div className="text-left max-w-md mx-auto space-y-2">
                   <p className="text-sm font-medium text-gray-700 mb-2">Example badge types:</p>
