@@ -151,6 +151,13 @@ Changelog:
   - Improved dashboard focus panel clarity: changed "pts each" to "pts total" for better understanding
   - Enhanced task matching logic for proper dashboard data display
   - Completed full CRUD operations for both default and custom tasks with proper icon persistence
+- June 16, 2025. Dynamic Multipliers & Completion History Implementation:
+  - Fixed Tasks page multiplier calculations to show accurate "Next Add" points using base points
+  - Added completion history component with collapsible table under Progress page
+  - Implemented delete functionality that recalculates multipliers automatically
+  - Built edit notes feature for all task completions
+  - Created new API endpoints: GET /api/completions, PATCH /api/completions/:id, DELETE /api/completions/:id
+  - Updated Tasks table to display real weekly stats from /api/progress endpoint
 ```
 
 ## User Preferences

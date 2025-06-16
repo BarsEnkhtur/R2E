@@ -1064,7 +1064,7 @@ export default function TasksPage() {
                         </TableCell>
                         <TableCell>
                           <div className="text-sm">
-                            +{task.points} × {stats.currentMultiplier.toFixed(1)}× → <strong>{Math.round(task.points * stats.currentMultiplier)} pts</strong>
+                            +{stats.basePoints || task.points} × {stats.currentMultiplier.toFixed(1)}× → <strong>{Math.round((stats.basePoints || task.points) * stats.currentMultiplier)} pts</strong>
                           </div>
                         </TableCell>
                         <TableCell>

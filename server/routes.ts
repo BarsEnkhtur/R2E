@@ -98,10 +98,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Process completed tasks to build weekly stats
       tasks.forEach(task => {
         if (!weeklyTaskData[task.taskId]) {
+          // Get the base points from task stats, not from the completed task points
+          const stat = taskStatsMap.get(task.taskId);
           weeklyTaskData[task.taskId] = {
             taskId: task.taskId,
             displayName: task.name,
-            basePoints: task.points,
+            basePoints: stat?.basePoints || task.points, // Use base points from stats
             completions: 0,
             totalPoints: 0,
             currentMultiplier: 1.0
@@ -109,7 +111,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
         
         weeklyTaskData[task.taskId].completions += 1;
-        weeklyTaskData[task.taskId].totalPoints += task.points;
+        weeklyTaskData[task.taskId].totalPoints += task.points; // This is the actual earned points
       });
       
       // New logarithmic multiplier function with 1.5x cap
