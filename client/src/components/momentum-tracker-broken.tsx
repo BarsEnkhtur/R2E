@@ -266,7 +266,7 @@ export default function MomentumTracker() {
   const { data: weeklyHistory = [] } = useQuery({
     queryKey: ['/api/weekly-history'],
     queryFn: async (): Promise<WeeklyHistory[]> => {
-      const response = await fetch('/api/weekly-history');
+      const response = await fetch(apiUrl('/api/weekly-history');
       if (!response.ok) throw new Error('Failed to fetch weekly history');
       return await response.json();
     }
@@ -286,7 +286,7 @@ export default function MomentumTracker() {
   const { data: customTasks = [] } = useQuery({
     queryKey: ['/api/custom-tasks'],
     queryFn: async (): Promise<CustomTask[]> => {
-      const response = await fetch('/api/custom-tasks');
+      const response = await fetch(apiUrl('/api/custom-tasks');
       if (!response.ok) throw new Error('Failed to fetch custom tasks');
       return await response.json();
     }
@@ -331,7 +331,7 @@ export default function MomentumTracker() {
   // Mutation to create a new completed task
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: { taskId: string; name: string; points: number; note?: string }) => {
-      const response = await fetch('/api/completed-tasks', {
+      const response = await fetch(apiUrl('/api/completed-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData)
@@ -378,7 +378,7 @@ export default function MomentumTracker() {
   // Mutation to clear all tasks
   const clearAllTasksMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/completed-tasks', {
+      const response = await fetch(apiUrl('/api/completed-tasks', {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to clear tasks');
@@ -395,7 +395,7 @@ export default function MomentumTracker() {
   // Mutation to create custom task
   const createCustomTaskMutation = useMutation({
     mutationFn: async (taskData: any) => {
-      const response = await fetch('/api/custom-tasks', {
+      const response = await fetch(apiUrl('/api/custom-tasks', {
         method: 'POST',
         body: JSON.stringify(taskData),
         headers: { 'Content-Type': 'application/json' }

@@ -578,7 +578,7 @@ export default function TasksPage() {
   // Mutation to create custom task
   const createCustomTaskMutation = useMutation({
     mutationFn: async (taskData: { name: string; description: string; points: number; color: string; icon: string }) => {
-      const response = await fetch('/api/custom-tasks', {
+      const response = await fetch(apiUrl('/api/custom-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -643,7 +643,7 @@ export default function TasksPage() {
           return response.json();
         } else {
           // Create new override
-          const response = await fetch('/api/custom-tasks', {
+          const response = await fetch(apiUrl('/api/custom-tasks', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -754,7 +754,7 @@ export default function TasksPage() {
   // Mutation to create a new completed task with optimistic updates
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: { taskId: string; name: string; points: number; note?: string }) => {
-      const response = await fetch('/api/completed-tasks', {
+      const response = await fetch(apiUrl('/api/completed-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData)

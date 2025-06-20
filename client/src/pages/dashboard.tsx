@@ -319,7 +319,7 @@ export default function Dashboard() {
   // Mutation to create a new completed task
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: { taskId: string; name: string; points: number; note?: string }) => {
-      const response = await fetch('/api/completed-tasks', {
+      const response = await fetch(apiUrl('/api/completed-tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData)
