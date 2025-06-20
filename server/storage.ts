@@ -6,6 +6,8 @@ export interface IStorage {
   // User operations for Replit Auth
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUser(id: string, updates: Partial<User>): Promise<User>;
+  exportUserData(userId: string): Promise<any>;
   
   // User-scoped data operations
   getCompletedTasks(userId: string, weekStartDate?: string): Promise<CompletedTask[]>;
@@ -59,6 +61,40 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUser(id: string, updates: Partial<User>): Promise<User> {
+    const [user] = await db
+      .update(users)
+      .set({
+        ...updates,
+        updatedAt: new Date(),
+      })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
+  }
+
+  async exportUserData(userId: string): Promise<any> {
+    const user = await this.getUser(userId);
+    const completedTasks = await this.getCompletedTasks(userId);
+    const customTasks = await this.getCustomTasks(userId);
+    const weeklyHistory = await this.getWeeklyHistory(userId);
+    const aiBadges = await this.getAiBadges(userId);
+    
+    return {
+      user: {
+        id: user?.id,
+        email: user?.email,
+        displayName: user?.displayName,
+        createdAt: user?.createdAt,
+      },
+      completedTasks,
+      customTasks,
+      weeklyHistory,
+      badges: aiBadges,
+      exportedAt: new Date().toISOString(),
+    };
   }
 
   async getCompletedTasks(userId: string, weekStartDate?: string): Promise<CompletedTask[]> {

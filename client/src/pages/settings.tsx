@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Layout from "@/components/layout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,30 +7,77 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
-import { User, Bell, Shield, Trash2, Save } from "lucide-react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { User, Bell, Shield, Trash2, Save, Download } from "lucide-react";
 
 export default function SettingsPage() {
   const { user, isLoading: isAuthLoading } = useAuth();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   
-  // Profile settings
-  const [displayName, setDisplayName] = useState(user?.email?.split('@')[0] || '');
+  // Profile settings - initialize from user data when available
+  const [displayName, setDisplayName] = useState('');
   const [emailNotifications, setEmailNotifications] = useState(true);
   const [weeklyDigest, setWeeklyDigest] = useState(true);
   const [taskReminders, setTaskReminders] = useState(false);
   const [achievementAlerts, setAchievementAlerts] = useState(true);
 
+  // Initialize form values when user data loads
+  useEffect(() => {
+    if (user) {
+      setDisplayName(user.displayName || user.email?.split('@')[0] || '');
+      setEmailNotifications(user.emailNotifications ?? true);
+      setWeeklyDigest(user.weeklyDigest ?? true);
+      setTaskReminders(user.taskReminders ?? false);
+      setAchievementAlerts(user.achievementAlerts ?? true);
+    }
+  }, [user]);
+
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: (updates: any) => apiRequest('/api/user/profile', {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
+      toast({
+        title: "Profile updated",
+        description: "Your settings have been saved successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const handleSaveProfile = () => {
-    toast({
-      title: "Settings saved",
-      description: "Your profile preferences have been updated.",
+    updateProfileMutation.mutate({
+      displayName,
+      emailNotifications,
+      weeklyDigest,
+      taskReminders,
+      achievementAlerts,
     });
   };
 
   const handleExportData = () => {
+    // Create a link to download the data export
+    const link = document.createElement('a');
+    link.href = '/api/user/export';
+    link.download = `road2employment-data-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
     toast({
-      title: "Data export initiated",
-      description: "Your data export will be emailed to you within 24 hours.",
+      title: "Data export started",
+      description: "Your data will download shortly.",
     });
   };
 
@@ -96,9 +143,13 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="flex justify-end">
-              <Button onClick={handleSaveProfile} className="bg-blue-600 hover:bg-blue-700">
+              <Button 
+                onClick={handleSaveProfile} 
+                disabled={updateProfileMutation.isPending}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
                 <Save className="w-4 h-4 mr-2" />
-                Save Profile
+                {updateProfileMutation.isPending ? 'Saving...' : 'Save Profile'}
               </Button>
             </div>
           </CardContent>
@@ -188,6 +239,7 @@ export default function SettingsPage() {
                 Download a copy of all your data including tasks, progress, and achievements.
               </p>
               <Button variant="outline" onClick={handleExportData}>
+                <Download className="w-4 h-4 mr-2" />
                 Export My Data
               </Button>
             </div>

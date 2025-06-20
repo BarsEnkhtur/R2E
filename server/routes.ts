@@ -39,6 +39,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user profile and preferences
+  app.patch('/api/user/profile', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const updates = req.body;
+      
+      // Only allow specific fields to be updated
+      const allowedFields = ['displayName', 'emailNotifications', 'weeklyDigest', 'taskReminders', 'achievementAlerts'];
+      const filteredUpdates = Object.keys(updates)
+        .filter(key => allowedFields.includes(key))
+        .reduce((obj: any, key) => {
+          obj[key] = updates[key];
+          return obj;
+        }, {});
+
+      const updatedUser = await storage.updateUser(userId, filteredUpdates);
+      res.json(updatedUser);
+    } catch (error) {
+      console.error("Error updating user profile:", error);
+      res.status(500).json({ message: "Failed to update user profile" });
+    }
+  });
+
+  // Export user data
+  app.get('/api/user/export', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = getUserId(req);
+      const userData = await storage.exportUserData(userId);
+      
+      const filename = `road2employment-data-${new Date().toISOString().split('T')[0]}.json`;
+      res.setHeader('Content-Type', 'application/json');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.json(userData);
+    } catch (error) {
+      console.error("Error exporting user data:", error);
+      res.status(500).json({ message: "Failed to export user data" });
+    }
+  });
+
   // Get progress data for a specific date range
   app.get("/api/progress", isAuthenticated, async (req, res) => {
     try {

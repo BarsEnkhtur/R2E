@@ -18,7 +18,12 @@ export const users = pgTable("users", {
   email: text("email").unique(),
   firstName: text("first_name"),
   lastName: text("last_name"),
+  displayName: text("display_name"),
   profileImageUrl: text("profile_image_url"),
+  emailNotifications: boolean("email_notifications").default(true),
+  weeklyDigest: boolean("weekly_digest").default(true),
+  taskReminders: boolean("task_reminders").default(false),
+  achievementAlerts: boolean("achievement_alerts").default(true),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
@@ -127,7 +132,12 @@ export const upsertUserSchema = createInsertSchema(users).pick({
   email: true,
   firstName: true,
   lastName: true,
+  displayName: true,
   profileImageUrl: true,
+  emailNotifications: true,
+  weeklyDigest: true,
+  taskReminders: true,
+  achievementAlerts: true,
 });
 
 export const insertCompletedTaskSchema = createInsertSchema(completedTasks).pick({
