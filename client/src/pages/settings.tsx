@@ -36,10 +36,7 @@ export default function SettingsPage() {
 
   // Profile update mutation
   const updateProfileMutation = useMutation({
-    mutationFn: (updates: any) => apiRequest('/api/user/profile', {
-      method: 'PATCH',
-      body: JSON.stringify(updates),
-    }),
+    mutationFn: (updates: any) => apiRequest('PATCH', '/api/user/profile', updates),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/auth/user'] });
       toast({
@@ -47,10 +44,11 @@ export default function SettingsPage() {
         description: "Your settings have been saved successfully.",
       });
     },
-    onError: () => {
+    onError: (error: any) => {
+      console.error("Profile update error:", error);
       toast({
         title: "Error",
-        description: "Failed to update profile. Please try again.",
+        description: error.message || "Failed to update profile. Please try again.",
         variant: "destructive",
       });
     },
