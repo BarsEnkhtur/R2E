@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { apiUrl } from "@/lib/config";
 import { 
   Share2, 
   Copy, 
@@ -36,7 +37,7 @@ export default function ShareView() {
 
   const forkMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/shares/${token}/fork`, {
+      const response = await fetch(apiUrl(`/api/shares/${token}/fork`), {
         method: "POST",
         headers: { 'Content-Type': 'application/json' }
       });
@@ -91,7 +92,7 @@ export default function ShareView() {
   };
 
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = apiUrl("/api/login");
   };
 
   if (isLoading) {

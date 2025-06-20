@@ -67,7 +67,7 @@ export default function SettingsPage() {
   const handleExportData = () => {
     // Create a link to download the data export
     const link = document.createElement('a');
-    link.href = '/api/user/export';
+    link.href = apiUrl('/api/user/export');
     link.download = `road2employment-data-${new Date().toISOString().split('T')[0]}.json`;
     document.body.appendChild(link);
     link.click();

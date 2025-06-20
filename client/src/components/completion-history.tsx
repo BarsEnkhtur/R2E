@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Trash2, Edit, ChevronDown, ChevronUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { apiUrl } from "@/lib/config";
 
 interface Completion {
   id: number;
@@ -37,7 +38,7 @@ export default function CompletionHistory({ weekStart, weekEnd }: CompletionHist
   const { data: completions = [], isLoading } = useQuery({
     queryKey: ['/api/completions', weekStart, weekEnd],
     queryFn: async () => {
-      const response = await fetch(`/api/completions?weekStart=${weekStart}&weekEnd=${weekEnd}`);
+      const response = await fetch(apiUrl(`/api/completions?weekStart=${weekStart}&weekEnd=${weekEnd}`));
       if (!response.ok) throw new Error('Failed to fetch completions');
       return response.json();
     },
@@ -47,7 +48,7 @@ export default function CompletionHistory({ weekStart, weekEnd }: CompletionHist
   // Delete completion mutation
   const deleteCompletionMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await fetch(`/api/completions/${id}`, {
+      const response = await fetch(apiUrl(`/api/completions/${id}`), {
         method: 'DELETE',
       });
       if (!response.ok) throw new Error('Failed to delete completion');
@@ -73,7 +74,7 @@ export default function CompletionHistory({ weekStart, weekEnd }: CompletionHist
   // Update notes mutation
   const updateNotesMutation = useMutation({
     mutationFn: async ({ id, notes }: { id: number; notes: string }) => {
-      const response = await fetch(`/api/completions/${id}`, {
+      const response = await fetch(apiUrl(`/api/completions/${id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notes })

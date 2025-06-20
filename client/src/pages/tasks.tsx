@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import Layout from "@/components/layout";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/config";
 import { 
   Plus, 
   Search, 
@@ -370,7 +371,7 @@ export default function TasksPage() {
   const { data: customTasks = [], isLoading } = useQuery({
     queryKey: ['/api/custom-tasks'],
     queryFn: async () => {
-      const response = await fetch('/api/custom-tasks');
+      const response = await fetch(apiUrl('/api/custom-tasks'));
       if (!response.ok) return [];
       return response.json();
     },
@@ -395,7 +396,7 @@ export default function TasksPage() {
   const { data: progressData, isLoading: isProgressLoading } = useQuery({
     queryKey: ['/api/progress', weekRange.start, weekRange.end],
     queryFn: async () => {
-      const response = await fetch(`/api/progress?start=${weekRange.start}&end=${weekRange.end}`);
+      const response = await fetch(apiUrl(`/api/progress?start=${weekRange.start}&end=${weekRange.end}`));
       if (!response.ok) throw new Error('Failed to fetch progress data');
       return response.json();
     },
