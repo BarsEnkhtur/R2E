@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/config";
 import {
   DndContext,
   closestCenter,
@@ -374,17 +375,17 @@ export default function MomentumTracker() {
   // Queries
   const { data: completedTasks = [], isLoading } = useQuery({
     queryKey: ['/api/completed-tasks', currentWeek],
-    queryFn: () => fetch(`/api/completed-tasks?week=${currentWeek}`).then(res => res.json())
+    queryFn: () => fetch(apiUrl(`/api/completed-tasks?week=${currentWeek}`)).then(res => res.json())
   });
 
   const { data: dynamicGoalData, isLoading: isGoalLoading } = useQuery({
     queryKey: ['/api/dynamic-goal', currentWeek],
-    queryFn: () => fetch(`/api/dynamic-goal/${currentWeek}`).then(res => res.json())
+    queryFn: () => fetch(apiUrl(`/api/dynamic-goal/${currentWeek}`)).then(res => res.json())
   });
 
   const { data: taskStats = [] } = useQuery({
     queryKey: ['/api/task-stats', currentWeek],
-    queryFn: () => fetch(`/api/task-stats?week=${currentWeek}`).then(res => res.json())
+    queryFn: () => fetch(apiUrl(`/api/task-stats?week=${currentWeek}`)).then(res => res.json())
   });
 
   // Calculate current points
@@ -413,7 +414,7 @@ export default function MomentumTracker() {
   // Mutations
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: any) => {
-      const response = await fetch('/api/completed-tasks', {
+      const response = await fetch(apiUrl('/api/completed-tasks'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData)

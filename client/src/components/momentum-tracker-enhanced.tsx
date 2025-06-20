@@ -10,6 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/config";
 import {
   DndContext,
   closestCenter,
@@ -399,7 +400,7 @@ export default function MomentumTrackerEnhanced() {
   const { data: completedTasks = [], isLoading } = useQuery({
     queryKey: ['/api/completed-tasks', currentWeek],
     queryFn: async () => {
-      const response = await fetch(`/api/completed-tasks?weekStartDate=${currentWeek}`);
+      const response = await fetch(apiUrl(`/api/completed-tasks?weekStartDate=${currentWeek}`));
       if (!response.ok) return [];
       return response.json();
     },
@@ -410,7 +411,7 @@ export default function MomentumTrackerEnhanced() {
   const { data: goalData, isLoading: isGoalLoading } = useQuery({
     queryKey: ['/api/dynamic-goal', currentWeek],
     queryFn: async () => {
-      const response = await fetch(`/api/dynamic-goal/${currentWeek}`);
+      const response = await fetch(apiUrl(`/api/dynamic-goal/${currentWeek}`));
       if (!response.ok) return { goal: 15 };
       return response.json();
     },
@@ -421,7 +422,7 @@ export default function MomentumTrackerEnhanced() {
   const { data: weeklyStats, isLoading: isWeeklyStatsLoading } = useQuery({
     queryKey: ['/api/task-stats', currentWeek],
     queryFn: async () => {
-      const response = await fetch(`/api/task-stats?weekStartDate=${currentWeek}`);
+      const response = await fetch(apiUrl(`/api/task-stats?weekStartDate=${currentWeek}`));
       if (!response.ok) return [];
       return response.json();
     },
@@ -432,7 +433,7 @@ export default function MomentumTrackerEnhanced() {
   const { data: weeklyHistory = [], isLoading: isHistoryLoading } = useQuery({
     queryKey: ['/api/weekly-history'],
     queryFn: async () => {
-      const response = await fetch('/api/weekly-history');
+      const response = await fetch(apiUrl('/api/weekly-history'));
       if (!response.ok) return [];
       return response.json();
     },
@@ -443,7 +444,7 @@ export default function MomentumTrackerEnhanced() {
   const { data: customTasks = [], isLoading: isCustomTasksLoading } = useQuery({
     queryKey: ['/api/custom-tasks'],
     queryFn: async () => {
-      const response = await fetch('/api/custom-tasks');
+      const response = await fetch(apiUrl('/api/custom-tasks'));
       if (!response.ok) return [];
       return response.json();
     },
@@ -663,7 +664,7 @@ export default function MomentumTrackerEnhanced() {
   // Mutation to create a new completed task
   const createTaskMutation = useMutation({
     mutationFn: async (taskData: { taskId: string; name: string; points: number; note?: string }) => {
-      const response = await fetch('/api/completed-tasks', {
+      const response = await fetch(apiUrl('/api/completed-tasks'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData)

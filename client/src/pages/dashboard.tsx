@@ -147,7 +147,7 @@ export default function Dashboard() {
   const { data: progressData, isLoading } = useQuery({
     queryKey: ['/api/progress', currentWeekRange.start, currentWeekRange.end],
     queryFn: async () => {
-      const response = await fetch(`/api/progress?start=${currentWeekRange.start}&end=${currentWeekRange.end}`);
+      const response = await fetch(apiUrl(`/api/progress?start=${currentWeekRange.start}&end=${currentWeekRange.end}`));
       if (!response.ok) {
         throw new Error('Failed to fetch progress data');
       }
