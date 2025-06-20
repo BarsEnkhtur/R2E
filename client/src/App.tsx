@@ -15,14 +15,18 @@ import NotFound from "@/pages/not-found";
 
 function Router() {
   const { isAuthenticated, isLoading } = useAuth();
-  
-  // Check for demo mode in URL
-  const urlParams = new URLSearchParams(window.location.search);
-  const isDemoMode = urlParams.has('demo');
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin w-12 h-12 border-4 border-slate-300 border-t-blue-600 rounded-full"></div>
+      </div>
+    );
+  }
 
   return (
     <Switch>
-      {isDemoMode ? (
+      {isAuthenticated ? (
         <>
           <Route path="/" component={() => <Redirect to="/dashboard" />} />
           <Route path="/dashboard" component={Dashboard} />
@@ -31,17 +35,8 @@ function Router() {
           <Route path="/badges" component={BadgesPage} />
           <Route path="/settings" component={SettingsPage} />
         </>
-      ) : isLoading || !isAuthenticated ? (
-        <Route path="/" component={Landing} />
       ) : (
-        <>
-          <Route path="/" component={() => <Redirect to="/dashboard" />} />
-          <Route path="/dashboard" component={Dashboard} />
-          <Route path="/tasks" component={TasksPage} />
-          <Route path="/progress" component={ProgressPage} />
-          <Route path="/badges" component={BadgesPage} />
-          <Route path="/settings" component={SettingsPage} />
-        </>
+        <Route path="/" component={Landing} />
       )}
       <Route path="/share/:token" component={ShareView} />
       <Route component={NotFound} />

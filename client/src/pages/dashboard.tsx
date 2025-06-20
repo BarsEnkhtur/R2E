@@ -251,13 +251,13 @@ export default function Dashboard() {
 
   const topTasks = getTopTasks();
 
-  // Initialize user name from email
+  // Initialize user name from user data
   useEffect(() => {
-    if (user && !userName) {
-      const emailName = (user as any)?.email?.split('@')[0] || 'there';
-      setUserName(emailName);
+    if (user) {
+      const displayName = user.displayName || user.email?.split('@')[0] || 'there';
+      setUserName(displayName);
     }
-  }, [user, userName]);
+  }, [user]);
 
   // Dynamic greeting based on progress
   const getDynamicGreeting = (): string => {

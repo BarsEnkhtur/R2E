@@ -26,7 +26,7 @@ export default function Landing() {
   };
 
   const handleDemo = () => {
-    window.location.href = "/?demo=true";
+    window.location.href = "/api/demo";
   };
 
   return (

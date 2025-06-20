@@ -76,7 +76,7 @@ export default function Layout({ children }: LayoutProps) {
               {user && (
                 <>
                   <span className="text-sm text-gray-600 hidden sm:block">
-                    {(user as any)?.email || 'User'}
+                    {user.displayName || user.email?.split('@')[0] || 'User'}
                   </span>
                   <Button
                     onClick={() => window.location.href = '/api/logout'}
