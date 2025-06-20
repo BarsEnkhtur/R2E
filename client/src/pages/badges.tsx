@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Award, Star, Sparkles, Trophy, Target, Lock, Filter, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/config";
 
 interface AiBadge {
   id: number;
@@ -39,7 +40,7 @@ export default function BadgesPage() {
   const { data: badgesData = [], isLoading: badgesLoading } = useQuery({
     queryKey: ['/api/ai-badges'],
     queryFn: async () => {
-      const response = await fetch('/api/ai-badges');
+      const response = await fetch(apiUrl('/api/ai-badges'));
       if (!response.ok) return [];
       return response.json();
     },
@@ -49,7 +50,7 @@ export default function BadgesPage() {
   // Generate AI badge mutation
   const generateBadgeMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/generate-ai-badge', {
+      const response = await fetch(apiUrl('/api/generate-ai-badge'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
       });

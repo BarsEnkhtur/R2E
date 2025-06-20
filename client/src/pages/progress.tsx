@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import CompletionHistory from "@/components/completion-history";
 import { ChevronLeft, ChevronRight, TrendingUp, Calendar, Target, Award } from "lucide-react";
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks, getISOWeek } from "date-fns";
+import { apiUrl } from "@/lib/config";
 
 interface CompletedTask {
   id: number;
@@ -56,13 +57,13 @@ export default function ProgressPage() {
   const { data: progressData, isLoading: progressLoading } = useQuery({
     queryKey: ['/api/progress', currentWeekRange.start, currentWeekRange.end],
     queryFn: async () => {
-      const response = await fetch(`/api/progress?start=${currentWeekRange.start}&end=${currentWeekRange.end}`);
+      const response = await fetch(apiUrl(`/api/progress?start=${currentWeekRange.start}&end=${currentWeekRange.end}`));
       if (!response.ok) {
         // Fallback to existing endpoints for compatibility
         const [tasksRes, goalRes, historyRes] = await Promise.all([
-          fetch(`/api/completed-tasks?weekStartDate=${currentWeek}`),
-          fetch(`/api/dynamic-goal/${currentWeek}`),
-          fetch('/api/weekly-history')
+          fetch(apiUrl(`/api/completed-tasks?weekStartDate=${currentWeek}`)),
+          fetch(apiUrl(`/api/dynamic-goal/${currentWeek}`)),
+          fetch(apiUrl('/api/weekly-history'))
         ]);
         
         const tasks = tasksRes.ok ? await tasksRes.json() : [];

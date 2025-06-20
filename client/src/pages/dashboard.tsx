@@ -10,6 +10,7 @@ import Layout from "@/components/layout";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
+import { apiUrl } from "@/lib/config";
 import { 
   ChevronLeft, 
   ChevronRight, 
@@ -159,7 +160,7 @@ export default function Dashboard() {
   const { data: customTasks = [], isLoading: isCustomTasksLoading } = useQuery({
     queryKey: ['/api/custom-tasks'],
     queryFn: async () => {
-      const response = await fetch('/api/custom-tasks');
+      const response = await fetch(apiUrl('/api/custom-tasks'));
       if (!response.ok) return [];
       return response.json();
     },
@@ -170,7 +171,7 @@ export default function Dashboard() {
   const { data: aiBadges = [], isLoading: isBadgesLoading } = useQuery({
     queryKey: ['/api/ai-badges', 'recent'],
     queryFn: async () => {
-      const response = await fetch('/api/ai-badges?recent=true');
+      const response = await fetch(apiUrl('/api/ai-badges?recent=true'));
       if (!response.ok) return [];
       const badges = await response.json();
       return badges
