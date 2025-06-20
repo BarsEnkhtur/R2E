@@ -1,6 +1,6 @@
 # Road2Employment (R2E)
 
-*A personal momentum tracker that grew from one person's need to a community of goal-crushers*
+*A personal momentum tracker that grew from one person's need to a community of hungry go-getters*
 
 ## The Story
 
