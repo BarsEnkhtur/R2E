@@ -697,7 +697,7 @@ export default function MomentumTrackerEnhanced() {
   // Mutation to delete a completed task
   const deleteTaskMutation = useMutation({
     mutationFn: async (taskId: number) => {
-      const response = await fetch(`/api/completed-tasks/${taskId}`, {
+      const response = await fetch(apiUrl(`/api/completed-tasks/${taskId}`), {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete task');
@@ -715,7 +715,7 @@ export default function MomentumTrackerEnhanced() {
   // Mutation to update a completed task
   const updateTaskMutation = useMutation({
     mutationFn: async (data: { id: number; note?: string }) => {
-      const response = await fetch(`/api/completed-tasks/${data.id}`, {
+      const response = await fetch(apiUrl(`/api/completed-tasks/${data.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ note: data.note })
@@ -758,7 +758,7 @@ export default function MomentumTrackerEnhanced() {
   // Mutation to create custom task
   const createCustomTaskMutation = useMutation({
     mutationFn: async (taskData: { name: string; description: string; points: number; color: string }) => {
-      const response = await fetch('/api/custom-tasks', {
+      const response = await fetch(apiUrl('/api/custom-tasks'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(taskData)
@@ -778,7 +778,7 @@ export default function MomentumTrackerEnhanced() {
   // Mutation to update custom task
   const updateCustomTaskMutation = useMutation({
     mutationFn: async (data: { id: number; name: string; description: string; points: number; color: string }) => {
-      const response = await fetch(`/api/custom-tasks/${data.id}`, {
+      const response = await fetch(apiUrl(`/api/custom-tasks/${data.id}`), {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -809,7 +809,7 @@ export default function MomentumTrackerEnhanced() {
       const customTask = customTasks.find((ct: CustomTask) => ct.taskId === taskId);
       if (!customTask) throw new Error('Custom task not found');
       
-      const response = await fetch(`/api/custom-tasks/${customTask.id}`, {
+      const response = await fetch(apiUrl(`/api/custom-tasks/${customTask.id}`), {
         method: 'DELETE'
       });
       if (!response.ok) throw new Error('Failed to delete custom task');
